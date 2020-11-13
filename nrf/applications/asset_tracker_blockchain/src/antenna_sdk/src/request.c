@@ -482,14 +482,15 @@ static int req_basic_request(const char *request, char *response, size_t respons
     HTTP_DEBUG_OUTPUT("Start recv\n");
     int tot_num_bytes = 0;
 	do {
-		num_bytes =blocking_recv(fd, recv_buf, RECV_BUF_SIZE, 0);
+		num_bytes =blocking_recv(fd, recv_buf+tot_num_bytes, RECV_BUF_SIZE, 0);
 		tot_num_bytes += num_bytes;
 
 		if (num_bytes <= 0) {
 			break;
 		}        
 	} while (num_bytes > 0);
-    if(num_bytes <= RECV_BUF_SIZE)
+    HTTP_DEBUG_OUTPUT("taotal:%d\n", tot_num_bytes);
+    if(tot_num_bytes <= RECV_BUF_SIZE)
         recv_buf[tot_num_bytes] = 0;
     HTTP_DEBUG_OUTPUT("%s\n", recv_buf);
     pStr = strstr(recv_buf, "{\"");
