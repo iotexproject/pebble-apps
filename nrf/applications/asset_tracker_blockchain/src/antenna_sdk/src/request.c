@@ -133,11 +133,11 @@ typedef struct {
 
 #define HTTP_HDR_END "\r\n\r\n"
 
-#define RECV_BUF_SIZE 2048
+//#define RECV_BUF_SIZE 2048
 #define TLS_SEC_TAG 42
 
 #define MAX_MTU_SIZE     1000
-#define RECV_BUF_SIZE    2048
+#define RECV_BUF_SIZE    IOTEX_EBM_MAX_RES_LEN
 #define SEND_BUF_SIZE    MAX_MTU_SIZE
 
 /* Certificate for `google.com` */
@@ -415,7 +415,7 @@ static int req_basic_request(const char *request, char *response, size_t respons
 		.ai_socktype = SOCK_STREAM,
 	};
     Host_Path *pHost;
-    char *send_buf, *recv_buf = response,*pStr;
+    char *send_buf, *recv_buf = response,*pStr,*pStr1,*pStr2;
     pHost = malloc(sizeof(Host_Path));
     send_buf = malloc(SEND_BUF_SIZE);    
     if((pHost == NULL)||(send_buf == NULL))
@@ -490,10 +490,44 @@ static int req_basic_request(const char *request, char *response, size_t respons
 		}        
 	} while (num_bytes > 0);
     HTTP_DEBUG_OUTPUT("taotal:%d\n", tot_num_bytes);
-    if(tot_num_bytes <= RECV_BUF_SIZE)
+    if(tot_num_bytes < RECV_BUF_SIZE)
         recv_buf[tot_num_bytes] = 0;
     HTTP_DEBUG_OUTPUT("%s\n", recv_buf);
-    pStr = strstr(recv_buf, "{\"");
+    if(strstr(recv_buf, "Transfer-Encoding: chunked") != NULL)
+    {
+        pStr = strstr(recv_buf,"\r\n\r\n");
+        if(pStr)
+        {
+            pStr += 4;            
+            tot_num_bytes = 0;
+            num_bytes = strtol(pStr, NULL, 16);
+            pStr1 = strstr(pStr,"{\"");
+            pStr = pStr1;
+            tot_num_bytes += num_bytes;            
+            while(num_bytes)
+            {
+                pStr1 += 2;
+                pStr1 += num_bytes;
+                num_bytes = strtol(pStr1, NULL, 16);
+                //printk("num_bytes2:%d\n", num_bytes);
+                if(num_bytes)
+                {
+                    tot_num_bytes += num_bytes;                    
+                    pStr2 = strstr(pStr1,"\r\n");
+                    pStr2 += 2;
+                    memcpy(pStr1, pStr2, num_bytes);
+                    pStr1 = pStr2;
+                }
+            }
+            pStr[tot_num_bytes] = 0;
+            HTTP_DEBUG_OUTPUT("lenth: %d\n", tot_num_bytes);
+            HTTP_DEBUG_OUTPUT("pStr:  %s\n", pStr);            
+        }      
+    }
+    else
+    {
+        pStr = strstr(recv_buf, "{\"");            
+    }      
     if (!is_post && pStr) {
         // get data        
         i = 0;
@@ -504,6 +538,7 @@ static int req_basic_request(const char *request, char *response, size_t respons
         } 
         recv_buf[i] = 0;
     }
+     HTTP_DEBUG_OUTPUT("response:  \n %s\n", recv_buf); 
 clean_up:
 	freeaddrinfo(res);
 	(void)close(fd);

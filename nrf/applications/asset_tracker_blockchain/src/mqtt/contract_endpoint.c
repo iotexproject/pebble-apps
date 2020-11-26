@@ -4,22 +4,31 @@
 #include "antenna_sdk/src/iotex_emb.h"
 #include "antenna_sdk/src/abi_read_contract.h"
 #include "mqtt.h"
+#define ENDPOINT_ENCRYOPTO  1
 
+
+
+#define  RELEASE_MODE  1
 
 // test contract
 //const char *pebble = "io1zclqa7w3gxpk47t3y3g9gzujgtl44lastfth28"; // to be replaced by actual contract address
 //  mainnet contract
+#if RELEASE_MODE
 const char *pebble = "io1a8qeke954ncyddc0ek3vlq5xpz54f0l7lyx8wg";
+#else
+const char *pebble = "io1y6asvyp7qs0y0zqjluu53pgk0xkwrqgxhgvve6";
+#endif
 const char *method = "c5934222";
 //static char data[33] = "0000000000000000000000000000000000333532363536313030373934363132"; // hex-encoded string of 32-byte device ID
 iotex_st_contract_data contract_data = {};
+
 
 
 extern struct mqtt_endpoint *pEndPoint;
 
 void getDeviceID(char *data)
 {
-#if 1
+#if RELEASE_MODE
     char *pImei;
     int i;   
     memcpy(data, "0000000000000000000000000000000000", 34);
@@ -31,7 +40,8 @@ void getDeviceID(char *data)
     }
     *(data+34+i)=0;
 #else
-    memcpy(data,"0000000000000000000000000000000000333532363536313030373934363132", 64);
+    //memcpy(data,"0000000000000000000000000000000000333532363536313030373934363132", 64);
+    memcpy(data, "0000000000000000000000000000000000333532363536313033333830393633", 64);
     data[64]=0;
 #endif
     //printk("device id: %s\n", data);
@@ -53,15 +63,16 @@ int iotex_peble_startup_check(void)
     char *pStr = NULL;
     int ret = -1;
     uint64_t  start;
-    uint32_t  duration;
-    const char *endpoint,*token;
+    uint32_t  duration,hexbytes;
+    const char *endpoint,*token, *hexcode;
     iotex_st_chain_meta  chain = {};
     // read the device's order info from contract
     if (iotex_emb_read_contract_by_addr(pebble, method, pEndPoint->dev_id, &contract_data) != 0) {
-        // error handling
+        // error handling       
         printk("iotex_emb_read_contract_by_addr error \n");
         return  -1;
     }
+
 
     // parse order info
     start = abi_get_order_start(contract_data.data, contract_data.size); // starting block subscriber paid to receive data
@@ -73,12 +84,52 @@ int iotex_peble_startup_check(void)
     
     if (iotex_emb_get_chain_meta(&chain) != 0) {
         // error handling
+        free(endpoint);
+        endpoint = NULL;
+        free(token);
+        token = NULL;        
         printk("iotex_emb_get_chain_meta error \n");
         return -2;
     }
 
     printk("start:%llu, duration:%u, chain.height:%llu\n", start,duration,chain.height);
+#if  ENDPOINT_ENCRYOPTO    
+    if((hexcode = malloc(strlen(endpoint))) == NULL)
+    {
+        free(endpoint);
+        endpoint = NULL;
+        free(token);
+        token = NULL;        
+        printk("not enough space \n");
+        return -2;
+    }
+        
+    if((hexbytes = signer_str2hex(endpoint, hexcode, strlen(endpoint))) <= 0)
+    {
+        free(endpoint);
+        endpoint = NULL;
+        free(token);
+        token = NULL;
+        free(hexcode); 
+        printk("string to hex error \n");
+        return  -2;
+    }      
+    //printk("bytes: %d \n",hexbytes);  
+    if(RSA_decrypt(hexcode,hexbytes,endpoint,strlen(endpoint)))
+    {
+        free(endpoint);
+        endpoint = NULL;
+        free(token);
+        token = NULL;
+        free(hexcode);        
+        printk("RSA dec error \n");
+        return  -2;        
+    }
+#endif
+#if(!RELEASE_MODE)
     printk("endpoint:%s\n", endpoint ); 
+#endif    
+    printk("endpoint decrypt ok \n"); 
     if ((start + (uint64_t)duration) > chain.height) {        
         duration = (uint32_t)(start + (uint64_t)duration - chain.height) * 5;
     } else {
@@ -106,13 +157,17 @@ int iotex_peble_startup_check(void)
     endpoint = NULL;
     free(token);
     token = NULL;
+#if  ENDPOINT_ENCRYOPTO     
+    free(hexcode);
+#endif    
     return  ret;
-
 }
 
 int iotex_pebble_endpoint_poll(void)
 {
     int  ret = 0;
+    const char  *hexcode;
+    uint32_t  hexbytes;
     if((!isSubExpired()) && (!iotex_mqtt_is_connected()))
         return 1;
     // read the device's order info from contract
@@ -130,13 +185,18 @@ int iotex_pebble_endpoint_poll(void)
     // calculate the duration we need to send IoT data
     iotex_st_chain_meta chain = {};
     if (iotex_emb_get_chain_meta(&chain) != 0) {
+        free(endpoint);
+        endpoint = NULL;
+        free(token);
+        token = NULL;      
         // error handling
         printk("iotex_emb_get_chain_meta error \n");
         return -2;
-    } 
-    printk("start:%llu, duration:%u, chain.height:%llu\n", start,duration,chain.height); 
-    printk("endpoint:%s\n", endpoint ); 
-    
+    }
+#if(!RELEASE_MODE)     
+    printk("start:%llu, duration:%u, chain.height:%llu\n", start,duration,chain.height);
+#endif    
+    //printk("endpoint:%s\n", endpoint ); 
     if (start + (uint64_t)duration > chain.height) {
         duration = (uint32_t)(start + (uint64_t)duration - chain.height) * 5;
     } else {
@@ -165,7 +225,7 @@ int iotex_pebble_endpoint_poll(void)
     free(endpoint);
     endpoint = NULL;
     free(token);
-    token = NULL;
+    token = NULL;  
     return  ret;
 }
 int iotex_init_endpoint(char *endpoint, int port)
@@ -187,6 +247,7 @@ int iotex_init_endpoint(char *endpoint, int port)
         printk("iotex_peble_startup_check retry \n");
         k_sleep(K_MSEC(1000));        
     }
+    printk("iotex_init_endpoint ok \n");
     return (pEndPoint->sub_status == SUBSCRIPTION_EXPIRED) ? 0 : 1;
 }
 

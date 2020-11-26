@@ -4,5 +4,6 @@
 int initECDSA_sep256r(void);
 int doESDA_sep256r_Sign(char *inbuf, uint32_t len, char *buf, int* sinlen);
 void hex2str(char* buf_hex, int len, char *str);
+int RSA_decrypt(char *input, int len, char *out, int out_len);
 
 #endif
