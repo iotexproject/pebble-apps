@@ -14,9 +14,9 @@
 //const char *pebble = "io1zclqa7w3gxpk47t3y3g9gzujgtl44lastfth28"; // to be replaced by actual contract address
 //  mainnet contract
 #if RELEASE_MODE
-const char *pebble = "io1a8qeke954ncyddc0ek3vlq5xpz54f0l7lyx8wg";
-#else
 const char *pebble = "io1y6asvyp7qs0y0zqjluu53pgk0xkwrqgxhgvve6";
+#else
+const char *pebble = "io1a8qeke954ncyddc0ek3vlq5xpz54f0l7lyx8wg";
 #endif
 const char *method = "c5934222";
 //static char data[33] = "0000000000000000000000000000000000333532363536313030373934363132"; // hex-encoded string of 32-byte device ID
