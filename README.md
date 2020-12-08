@@ -13,7 +13,7 @@ Pebble device registration requires RSA public key, which can be obtained by fol
 
 The picture below shows how to obtain the pebble RSA public key with a device id of 352656103381086 :
 
-![image](https://github.com/iotexproject/pebble-firmware-blockchain/doc/images/rsa_publick_key.png)
+![image](https://github.com/iotexproject/pebble-firmware-blockchain/tree/main/doc/images/rsa_publick_key.png)
 
 
 rsa_n and rsa_e are the required RSA public keys
