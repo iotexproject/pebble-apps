@@ -168,8 +168,8 @@ int iotex_pebble_endpoint_poll(void)
     int  ret = 0;
     const char  *hexcode;
     uint32_t  hexbytes;
-    if((!isSubExpired()) && (!iotex_mqtt_is_connected()))
-        return 1;
+    if(!iotex_mqtt_is_connected())
+        return 1;    
     // read the device's order info from contract
     if (iotex_emb_read_contract_by_addr(pebble, method, pEndPoint->dev_id, &contract_data) != 0) {
         // error handling
@@ -237,6 +237,7 @@ int iotex_init_endpoint(char *endpoint, int port)
         printk("iotex_init_endpoint: not enouhg heap space\n");
         return -1;
     }
+    memset(pEndPoint, 0, sizeof(struct mqtt_endpoint));
     getDeviceID(pEndPoint->dev_id);
     memcpy(pEndPoint->endpoint, endpoint, strlen(endpoint));
     pEndPoint->port = port;

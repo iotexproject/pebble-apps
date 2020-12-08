@@ -7,6 +7,7 @@
 #include <net/socket.h>
 
 extern atomic_val_t send_data_enable;
+extern atomic_val_t closeMQTTClient;
 
 struct mqtt_payload {
     char *buf;

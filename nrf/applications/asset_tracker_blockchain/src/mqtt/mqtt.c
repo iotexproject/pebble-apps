@@ -20,6 +20,7 @@ static bool connected = 0;
 
 /* When MQTT_EVT_CONNACK callback enable data sending */
 atomic_val_t send_data_enable;
+atomic_val_t closeMQTTClient;
 
 /* When connect mqtt server failed, auto reboot */
 static struct k_delayed_work cloud_reboot_work;
@@ -313,15 +314,10 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     struct sockaddr_storage broker_storage;
     const uint8_t *client_id = iotex_mqtt_get_client_id();    
     connected = 0;  
-   
-    err = iotex_init_endpoint(CONFIG_MQTT_BROKER_HOSTNAME, CONFIG_MQTT_BROKER_PORT);
-    if(!err)   
-        return 0;
-    else
-    {
-        if(err < 0)
-            return  -1;
-    }
+    
+    err = iotex_init_endpoint(CONFIG_MQTT_BROKER_HOSTNAME, CONFIG_MQTT_BROKER_PORT);  
+    if(err < 0)
+        return  -1;
 
     mqtt_client_init(client);
 
@@ -331,7 +327,7 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     //broker_init(CONFIG_MQTT_BROKER_HOSTNAME, &broker_storage);
 
     printk("client_id: %s\n", client_id);
-    //printk("pEndPoint->endpoint:%s, port:%d\n",pEndPoint->endpoint,pEndPoint->port);
+    printk("pEndPoint->endpoint:%s, port:%d\n",pEndPoint->endpoint,pEndPoint->port);
 
     /* MQTT client configuration */
     client->broker = &broker_storage;

@@ -11,6 +11,8 @@
 #include "icm/icm42605_helper.h"
 #include "gps_controller.h"
 #include "light_sensor/tsl2572.h"
+#include "ecdsa.h"
+
 
 extern double latitude;
 extern double longitude;
@@ -164,6 +166,7 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
     iotex_storage_icm42605 action_sensor;
 	double  timestamp;
     float AmbientLight;
+    uint16_t vol_Integer;
 
     /* Check current sampling count */
     if (!iotex_mqtt_is_need_sampling()) {
@@ -192,7 +195,9 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
 
     /* Vbatx100 */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
-        buffer[write_cnt++] = (uint8_t)(iotex_modem_get_battery_voltage() * 100);
+        vol_Integer = (uint16_t)(iotex_modem_get_battery_voltage() * 1000);
+        buffer[write_cnt++] = (uint8_t)(vol_Integer&0x00FF);
+        buffer[write_cnt++] = (uint8_t)((vol_Integer>>8)&0x00FF);
     }
 
     /* TODO GPS */
@@ -287,22 +292,25 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     char jsStr[130];
     int  sinLen;
     float AmbientLight=0.0;
+    char random[17];
+    RSA_KEY_PAIR *pubKey = NULL;
     cJSON *root_obj = cJSON_CreateObject();
     cJSON * msg_obj = cJSON_CreateObject();
     cJSON * sign_obj = cJSON_CreateObject();
     if (!root_obj||!msg_obj||!sign_obj) {
         goto out;
     }
-
+    cJSON_AddItemToObject(root_obj, "message", msg_obj); 
+    cJSON_AddItemToObject(root_obj, "signature", sign_obj);    
     if (DATA_CHANNEL_ENV_SENSOR & channel) {
         if (iotex_bme680_get_sensor_data(&env_sensor)) {
-            return -1;
+             goto out;
         }
     }
 
     if (DATA_CHANNEL_ACTION_SENSOR & channel) {
         if (iotex_icm42605_get_sensor_data(&action_sensor)) {
-            return -1;
+             goto out;
         }
     }
 
@@ -438,11 +446,36 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     if (json_add_str(msg_obj, "timestamp", iotex_modem_get_clock(NULL))) {
         goto out;
     }
-    cJSON_AddItemToObject(root_obj, "message", msg_obj);      
-    output->buf = cJSON_PrintUnformatted(msg_obj);   
+    // get random number
+    GenRandom(random);
+    random[sizeof(random)-1] = 0;
+    cJSON *random_obj = cJSON_CreateString(random); 
+    if(!random_obj  || json_add_obj(msg_obj, "random", random_obj))
+    {
+        goto out;
+    }
+    if(isSubExpired()){
+        if(RSAPubNeedUpload()){            
+            pubKey = malloc(sizeof(RSA_KEY_PAIR));
+            if(pubKey == NULL)
+                goto out;
+            GetRSAkeypair(pubKey);
+            cJSON *rsa_pubN_obj = cJSON_CreateString(pubKey->RSA_N);
+            cJSON *rsa_pubE_obj = cJSON_CreateString(pubKey->RSA_E);
+            if(!rsa_pubN_obj  || !rsa_pubE_obj || json_add_obj(msg_obj, "RSA_N", rsa_pubN_obj) || json_add_obj(msg_obj, "RSA_E", rsa_pubE_obj)){
+                printk("RSA add object error\n");
+                goto out;
+            }
+        }
+        else {
+            CloseMQTTSession();
+            goto out;
+        }
+    } 
+    output->buf = cJSON_PrintUnformatted(msg_obj);
     doESDA_sep256r_Sign(output->buf,strlen(output->buf),esdaSign,&sinLen);   
     hex2str(esdaSign, sinLen,jsStr);
-    cJSON_free(output->buf);
+    cJSON_free(output->buf);        
     memcpy(esdaSign,jsStr,64);
     esdaSign[64] = 0;    
     cJSON *esdaSign_r_Obj = cJSON_CreateString(esdaSign);
@@ -450,16 +483,19 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
         goto out;
     cJSON *esdaSign_s_Obj = cJSON_CreateString(jsStr+64);
     if(!esdaSign_s_Obj  || json_add_obj(sign_obj, "s", esdaSign_s_Obj))
-        goto out;    
-    cJSON_AddItemToObject(root_obj, "signature", sign_obj);   
+        goto out; 
+                
     //memset(output->buf, 0, strlen(output->buf));   
     output->buf = cJSON_PrintUnformatted(root_obj);    
     output->len = strlen(output->buf);
-    cJSON_Delete(root_obj);   
+    cJSON_Delete(root_obj);     
+    if(pubKey != NULL) free(pubKey); 
     return 0;
 
 out:
+    printk("iotex_mqtt_get_selected_payload error \n");
     cJSON_Delete(root_obj);
+    if(pubKey != NULL) free(pubKey);
     return -ENOMEM;
 }
 
@@ -474,7 +510,8 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
     char esdaSign[65];
     char jsStr[130];
     int  sinLen;
-
+    char random[17];
+    uint16_t vol_Integer;
     cJSON *root_obj = cJSON_CreateObject();
     cJSON * msg_obj = cJSON_CreateObject();
     cJSON * sign_obj = cJSON_CreateObject();
@@ -492,7 +529,8 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
 
     /* Vbatx100 */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
-        cJSON *vbat = cJSON_CreateNumber(buffer[write_cnt++]);
+        vol_Integer = (uint16_t)(buffer[write_cnt++] | (buffer[write_cnt++]<<8));
+        cJSON *vbat = cJSON_CreateNumber((double)(vol_Integer/1000.0));
         if (!vbat || json_add_obj(msg_obj, "VBAT", vbat)) {
             goto out;
         }
@@ -633,6 +671,15 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
     if (json_add_str(msg_obj, "timestamp", epoch_buf)) {
         goto out;
     }
+    // get random number
+    GenRandom(random);
+    random[sizeof(random)-1] = 0;
+    cJSON *random_obj = cJSON_CreateString(random); 
+    if(!random_obj  || json_add_obj(msg_obj, "random", random_obj))
+    {
+        goto out;
+    }
+
     cJSON_AddItemToObject(root_obj, "message", msg_obj);
     output->buf = cJSON_PrintUnformatted(msg_obj);
     doESDA_sep256r_Sign(output->buf,strlen(output->buf),esdaSign,&sinLen);

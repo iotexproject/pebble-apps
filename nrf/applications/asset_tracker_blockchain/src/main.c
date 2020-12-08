@@ -169,7 +169,7 @@ static struct k_work send_gps_data_work;
 static struct k_delayed_work send_env_data_work;
 static struct k_delayed_work long_press_button_work;
 static struct k_delayed_work power_off_button_work;
-static struct k_delayed_work send_agps_request_work;
+//static struct k_delayed_work send_agps_request_work;
 //static struct k_delayed_work gps_work;
 
 #if defined(CONFIG_AT_CMD)
@@ -557,7 +557,6 @@ static void periodic_publish_sensors_data() {
             rc = iotex_mqtt_publish_data(&client, 0, msg.buf);            
             printk("mqtt_publish_devicedata: %d \n", rc);  
             //printk("message:%s \n", msg.buf);          
-            //free(msg.buf);
             cJSON_free(msg.buf);
             mqttSentOnce();
         }
@@ -663,7 +662,7 @@ static void work_init(void)
 	k_work_init(&send_gps_data_work, send_gps_data_work_fn);
 #endif
 	k_delayed_work_init(&send_env_data_work, send_env_data_work_fn);
-	k_delayed_work_init(&send_agps_request_work, send_agps_request);
+	//k_delayed_work_init(&send_agps_request_work, send_agps_request);
 	k_delayed_work_init(&long_press_button_work, long_press_handler);
 	k_delayed_work_init(&power_off_button_work, power_off_handler);
 }
@@ -804,6 +803,11 @@ void handle_bsdlib_init_ret(void)
 	}
 	#endif /* CONFIG_BSD_LIBRARY */
 }
+void CloseMQTTSession(void)
+{
+    atomic_set(&send_data_enable, 0);
+    atomic_set(&closeMQTTClient, 1);
+}
 void iotex_mqtt_bulk_upload_sampling_data(uint16_t channel) {
     int rc;
     struct mqtt_payload msg;
@@ -875,6 +879,9 @@ void main(void)
 	}
     //  init ECDSA 
     initECDSA_sep256r();
+	iotex_local_storage_init();
+    CheckPublickKey(); 
+
 	 /* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
 	iotex_hal_gpio_init();
 	iotex_hal_adc_init();	
@@ -896,9 +903,7 @@ void main(void)
     updateLedPattern();
 	work_init();
 	modem_configure();
-	iotex_modem_get_clock(NULL);
-	iotex_local_storage_init();
-
+	iotex_modem_get_clock(NULL);            
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&bsdlib_initialized, K_FOREVER);
 #else
@@ -915,8 +920,9 @@ void main(void)
     }
 
     sensors_init();
-    while (true) {                
-        if(iotex_pebble_endpoint_poll()<=0) {
+    while (true) {  
+                     
+        if((iotex_pebble_endpoint_poll()<0) || (atomic_get(&closeMQTTClient))) {
             K_SECONDS(iotex_mqtt_get_upload_period());
             continue;
         }                   
@@ -963,7 +969,7 @@ void main(void)
             mqtt_disconnect(&client);
             sys_reboot(0);
         }
-        updateLedPattern();
+        updateLedPattern();        
     }
 #if defined(CONFIG_LWM2M_CARRIER)
 	LOG_INF("Waiting for LWM2M carrier to complete initialization...");
