@@ -16,11 +16,13 @@
 #define CLOUD_CONNACK_WAIT_DURATION	CONFIG_CLOUD_WAIT_DURATION
 
 
+#define  MQTT_TOPIC_SIZE    (CLIENT_ID_LEN + 31)
+
 static bool connected = 0;
 
 /* When MQTT_EVT_CONNACK callback enable data sending */
 atomic_val_t send_data_enable;
-atomic_val_t closeMQTTClient;
+atomic_val_t isMQTTConnecting;
 
 /* When connect mqtt server failed, auto reboot */
 static struct k_delayed_work cloud_reboot_work;
@@ -32,18 +34,17 @@ static u8_t payload_buf[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
 
 extern void mqttGetResponse(void);
 
-static const char *iotex_mqtt_get_topic(void) {
-    static uint8_t mqtt_topic[CLIENT_ID_LEN + 31] ;
-    snprintf(mqtt_topic, sizeof(mqtt_topic), "device/%s/data",
-             iotex_mqtt_get_client_id());
-    return mqtt_topic;
+static  void iotex_mqtt_get_topic(u8_t *buf, int len) 
+{
+    snprintf(buf, len, "device/%s/data",iotex_mqtt_get_client_id());     
 }
-
-static const char *iotex_mqtt_get_config_topic(void) {
-    static uint8_t mqtt_topic[CLIENT_ID_LEN + 31] ;
-    snprintf(mqtt_topic, sizeof(mqtt_topic), "topic/config/%s",
-             iotex_mqtt_get_client_id());
-    return mqtt_topic;
+static  void iotex_mqtt_get_config_topic(u8_t *buf, int len) 
+{
+    snprintf(buf, len, "topic/config/%s",iotex_mqtt_get_client_id());
+}
+static void iotex_get_heart_beat_topic(u8_t *buf, int len)
+{
+    snprintf(buf, len, "device/%s/connect",iotex_mqtt_get_client_id());
 }
 struct mqtt_endpoint *pEndPoint = NULL;
 
@@ -113,7 +114,8 @@ static void broker_init(const char *hostname, struct sockaddr_storage *storage) 
 
 static int subscribe_config_topic(struct mqtt_client *client) {
 
-    const char *topic = iotex_mqtt_get_config_topic();
+    uint8_t topic[MQTT_TOPIC_SIZE];
+    iotex_mqtt_get_config_topic(topic, sizeof(topic));
     struct mqtt_topic subscribe_topic = {
         .topic = {
             .utf8 = (uint8_t *)topic,
@@ -201,18 +203,21 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             /* Cancel reboot worker */
             k_delayed_work_cancel(&cloud_reboot_work);
             connected = 1;
-            atomic_set(&send_data_enable, 1);
+            if(!isSubExpired() || !RSAUpOver())
+                atomic_set(&send_data_enable, 1);
+            atomic_set(&isMQTTConnecting,0);
 
             iotex_hal_gpio_set(LED_BLUE, LED_ON);
             iotex_hal_gpio_set(LED_GREEN, LED_OFF);
 
             printk("[%s:%d] MQTT client connected!\n", __func__, __LINE__);
-            subscribe_config_topic(c);
+            subscribe_config_topic(c);            
             break;
 
         case MQTT_EVT_DISCONNECT:
             connected = 0;
             atomic_set(&send_data_enable, 0);
+            atomic_set(&isMQTTConnecting,0);            
             iotex_hal_gpio_set(LED_BLUE, LED_OFF);
             iotex_hal_gpio_set(LED_GREEN, LED_ON);
             printk("[%s:%d] MQTT client disconnected %d\n", __func__, __LINE__, evt->result);
@@ -294,8 +299,10 @@ const uint8_t *iotex_mqtt_get_client_id() {
 
 int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char *data) {
     struct mqtt_publish_param param;
+    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
     param.message.topic.qos = qos;
-    param.message.topic.topic.utf8 = (u8_t *)iotex_mqtt_get_topic();
+    param.message.topic.topic.utf8 = pub_topic;
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
 
     param.message.payload.data = data;
@@ -307,20 +314,37 @@ int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char 
     return mqtt_publish(client, &param);
 }
 
+int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos)
+{
+     struct mqtt_publish_param param;
+    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    iotex_get_heart_beat_topic(pub_topic, sizeof(pub_topic));
+    param.message.topic.qos = qos;
+    param.message.topic.topic.utf8 = pub_topic;
+    param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
+
+    param.message.payload.data = "a";
+    param.message.payload.len = 1;
+    param.message_id = sys_rand32_get();
+    param.dup_flag = 0U;
+    param.retain_flag = 0U;
+
+    return mqtt_publish(client, &param);   
+}
+
 /**@brief Initialize the MQTT client structure */
 int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
 
     int err;
     struct sockaddr_storage broker_storage;
     const uint8_t *client_id = iotex_mqtt_get_client_id();    
-    connected = 0;  
-    
+    connected = 0;      
+    mqtt_client_init(client);
+
     err = iotex_init_endpoint(CONFIG_MQTT_BROKER_HOSTNAME, CONFIG_MQTT_BROKER_PORT);  
     if(err < 0)
         return  -1;
-
-    mqtt_client_init(client);
-
+        
     /* Load mqtt data channel configure */
     iotex_mqtt_load_config();
     broker_init(pEndPoint->endpoint, &broker_storage);
@@ -363,7 +387,7 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     k_delayed_work_init(&cloud_reboot_work, cloud_reboot_work_fn);
     k_delayed_work_submit(&cloud_reboot_work, K_SECONDS(1));
     printk("Before mqtt_connect, connect timeout will reboot in %d seconds\n", CLOUD_CONNACK_WAIT_DURATION);
-
+    atomic_set(&isMQTTConnecting,1);
     if ((err = mqtt_connect(client)) != 0) {
         return err;
     }

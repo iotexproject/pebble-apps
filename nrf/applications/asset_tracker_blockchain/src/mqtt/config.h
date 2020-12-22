@@ -94,10 +94,12 @@ uint16_t iotex_mqtt_get_current_sampling_count(void);
 
 void iotex_mqtt_load_config(void);
 void iotex_mqtt_update_config(const uint8_t *payload, uint32_t len);
-bool iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_config *config);
+//bool iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_config *config);
 void set_block_size(uint32_t size);
 uint32_t get_block_size(void);
 uint16_t get_his_block(void);
 bool iotex_mqtt_is_bulk_upload_over(void);
+void config_mutex_lock(void);
+void config_mutex_unlock(void);
 
 #endif /* _IOTEX_MQTT_CONFIG_H_ */

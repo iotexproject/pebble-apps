@@ -54,6 +54,7 @@
 #include "ecdsa.h"
 #include "light_sensor/tsl2572.h"
 
+
 //#if defined(CONFIG_BSD_LIBRARY)
 //#include "nrf_inbuilt_key.h"
 //#endif
@@ -336,7 +337,7 @@ static void send_gps_data_work_fn(struct k_work *work)
 static void send_env_data_work_fn(struct k_work *work) {
 #if(!EXTERN_GPS)    
     printk("[%s:%d, %d]\n", __func__, __LINE__, gps_control_is_active());
-#endif  
+#endif
     if (!atomic_get(&send_data_enable)) {
         return;
     }
@@ -346,7 +347,8 @@ static void send_env_data_work_fn(struct k_work *work) {
                               K_SECONDS(CONFIG_ENVIRONMENT_DATA_BACKOFF_TIME));
         return;
     }
-#endif    
+#endif
+    config_mutex_lock();
     if (iotex_mqtt_is_bulk_upload()) {
         sampling_and_store_sensor_data();
         k_delayed_work_submit(&send_env_data_work, K_SECONDS(iotex_mqtt_get_sampling_frequency()));
@@ -355,9 +357,17 @@ static void send_env_data_work_fn(struct k_work *work) {
         periodic_publish_sensors_data();
         k_delayed_work_submit(&send_env_data_work, K_SECONDS(iotex_mqtt_get_upload_period()));
     }
-
+    config_mutex_unlock();
     return;
 }
+
+void RestartEnvWork(int s)
+{
+    k_delayed_work_cancel(&send_env_data_work);
+    if(!isSubExpired())
+        k_delayed_work_submit(&send_env_data_work, K_SECONDS(s));
+}
+
 #if(!EXTERN_GPS)
 static void gps_handler(struct device *dev, struct gps_event *evt)
 {
@@ -556,6 +566,7 @@ static void periodic_publish_sensors_data() {
         if (!iotex_mqtt_get_selected_payload(iotex_mqtt_get_data_channel(), &msg)) {           
             rc = iotex_mqtt_publish_data(&client, 0, msg.buf);            
             printk("mqtt_publish_devicedata: %d \n", rc);  
+           //printk("%s \n", msg.buf);
             //printk("message:%s \n", msg.buf);          
             cJSON_free(msg.buf);
             mqttSentOnce();
@@ -803,11 +814,18 @@ void handle_bsdlib_init_ret(void)
 	}
 	#endif /* CONFIG_BSD_LIBRARY */
 }
-void CloseMQTTSession(void)
+void StopUploadData(void)
 {
     atomic_set(&send_data_enable, 0);
-    atomic_set(&closeMQTTClient, 1);
+    //atomic_set(&closeMQTTClient, 1);
 }
+void CloseMQTTSession(void)
+{
+    k_delayed_work_cancel(&send_env_data_work);
+    mqtt_disconnect(&client);
+    printk("mqtt disconnected\n");        
+}
+
 void iotex_mqtt_bulk_upload_sampling_data(uint16_t channel) {
     int rc;
     struct mqtt_payload msg;
@@ -858,7 +876,7 @@ static void sampling_and_store_sensor_data(void) {
 
         /* Required sampling count is fulfilled */
         if (iotex_mqtt_inc_current_sampling_count()) {
-            iotex_mqtt_bulk_upload_sampling_data(iotex_mqtt_get_data_channel());
+            //iotex_mqtt_bulk_upload_sampling_data(iotex_mqtt_get_data_channel());
         }
     }
     /* Data upload mode */
@@ -912,64 +930,69 @@ void main(void)
 #ifdef CONFIG_UNITTEST
     unittest();
 #endif
-    if ((err = iotex_mqtt_client_init(&client, &fds))) {
-        printk("ERROR: mqtt_connect %d, rebooting...\n", err);
-        k_sleep(K_MSEC(500));
-        sys_reboot(0);
-        return;
-    }
-
-    sensors_init();
-    while (true) {  
-                     
-        if((iotex_pebble_endpoint_poll()<0) || (atomic_get(&closeMQTTClient))) {
-            K_SECONDS(iotex_mqtt_get_upload_period());
-            continue;
-        }                   
-        err = poll(&fds, 1, mqtt_keepalive_time_left(&client));
-
-        if (err < 0) {
-            printk("ERROR: poll %d\n", errno);
-            error_handler(ERROR_CLOUD, err);
-            break;
+    while(true){
+        if ((err = iotex_mqtt_client_init(&client, &fds))) {
+            printk("ERROR: mqtt_connect %d, rebooting...\n", err);
+            k_sleep(K_MSEC(500));
+            sys_reboot(0);
+            return;
         }
-        err = mqtt_live(&client);
+        sensors_init();
+        while (true) {               
+            if(iotex_pebble_endpoint_poll() == MQTT_RECONNECT) {
+                CloseMQTTSession();
+                break; 
+            }                   
+            err = poll(&fds, 1, CONFIG_MAIN_BASE_TIME);
+            if (err < 0) {
+                printk("ERROR: poll %d\n", errno);
+                error_handler(ERROR_CLOUD, err);
+                break;
+            }
+            err = mqtt_live(&client);            
+            if(err == -ENOTCONN){
+                printk("reConnect mqtt \n");
+                break;
+            }
+            else if ((err != 0) && (err != -EAGAIN)) {
+                printk("ERROR: mqtt_live %d\n", err);
+                error_handler(ERROR_CLOUD, err);
+                break;
+            }else {
+                if(!err)
+                {                  
+                    iotex_mqtt_heart_beat(&client, 0);
+                } 
+            }      
+            printk("mqtt live ???? \n");            
+            if ((fds.revents & POLLIN) == POLLIN) {
+                err = mqtt_input(&client);
 
-        if ((err != 0) && (err != -EAGAIN)) {
-            printk("ERROR: mqtt_live %d\n", err);
-            error_handler(ERROR_CLOUD, err);
-            break;
-        }
-        printk("mqtt live ????\n");
-
-        if ((fds.revents & POLLIN) == POLLIN) {
-            err = mqtt_input(&client);
-
-            if (err != 0) {
-                printk("ERROR: mqtt_input %d\n", err);
+                if (err != 0) {
+                    printk("ERROR: mqtt_input %d\n", err);
+                    error_handler(ERROR_CLOUD, -EIO);
+                    break;
+                }
+            }
+            if ((fds.revents & POLLERR) == POLLERR) {
+                printk("POLLERR\n");
                 error_handler(ERROR_CLOUD, -EIO);
                 break;
             }
-        }
 
-        if ((fds.revents & POLLERR) == POLLERR) {
-            printk("POLLERR\n");
-            error_handler(ERROR_CLOUD, -EIO);
-            break;
+            if ((fds.revents & POLLNVAL) == POLLNVAL) {
+                printk("POLLNVAL\n");
+                error_handler(ERROR_CLOUD, -EIO);
+                break;
+            }  
+            if (do_reboot) {
+                /* Teardown */
+                mqtt_disconnect(&client);
+                sys_reboot(0);
+            }
+            updateLedPattern();
+            CheckPower();
         }
-
-        if ((fds.revents & POLLNVAL) == POLLNVAL) {
-            printk("POLLNVAL\n");
-            error_handler(ERROR_CLOUD, -EIO);
-            break;
-        }
-
-        if (do_reboot) {
-            /* Teardown */
-            mqtt_disconnect(&client);
-            sys_reboot(0);
-        }
-        updateLedPattern();        
     }
 #if defined(CONFIG_LWM2M_CARRIER)
 	LOG_INF("Waiting for LWM2M carrier to complete initialization...");
@@ -992,4 +1015,14 @@ void main(void)
     iotex_hal_gpio_set(LED_RED, LED_OFF);
     k_sleep(K_MSEC(500));
     sys_reboot(0);	
+}
+
+
+void net_mutex_lock(void)
+{
+    com_mqtt_mutex_lock(&client);
+}
+void net_mutex_unlock(void)
+{
+    com_mqtt_mutex_unlock(&client);
 }

@@ -20,6 +20,7 @@ const char *iotex_modem_get_imei() {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
         return "Unknown";
     }
+
     return imei_buf;
 }
 
@@ -168,4 +169,14 @@ float iotex_modem_get_battery_voltage(void)
     return (atoi(vbat)/(float)1000.0);
 }
 
+void CheckPower(void)
+{
+    volatile float adc_voltage = 0;
+    adc_voltage = iotex_modem_get_battery_voltage();
+    if(adc_voltage < 3.0)
+    {
+        printk("power lower than 2.7 \n");
+        PowerOffIndicator();
+    }
+}
 

@@ -46,7 +46,7 @@ target_sources(app PRIVATE src/sign/ecdsa.c)
 
 # Unittest
 #target_sources(app PRIVATE src/unittest/unittest.c)
-#(app PRIVATE src/unittest/nvs_unittest.c)
+#target_sources(app PRIVATE src/unittest/nvs_unittest.c)
 #target_sources(app PRIVATE src/unittest/mqtt_unittest.c)
 #target_sources(app PRIVATE src/unittest/nanopb_unittest.c)
 #target_sources(app PRIVATE src/unittest/nanopb_unittest.pb.c)

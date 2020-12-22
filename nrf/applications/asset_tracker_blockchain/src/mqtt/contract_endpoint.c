@@ -165,16 +165,17 @@ int iotex_peble_startup_check(void)
 
 int iotex_pebble_endpoint_poll(void)
 {
-    int  ret = 0;
+    int  ret = ENDPOINT_POLL_OK;
     const char  *hexcode;
     uint32_t  hexbytes;
-    if(!iotex_mqtt_is_connected())
-        return 1;    
+
+    if(atomic_get(&isMQTTConnecting))
+        return ENDPOINT_POLL_PAUSE;    
     // read the device's order info from contract
     if (iotex_emb_read_contract_by_addr(pebble, method, pEndPoint->dev_id, &contract_data) != 0) {
         // error handling
         printk("iotex_emb_read_contract_by_addr error \n");
-        return  -1;
+        return  READ_CONTRACT_ERR;
     }
     // parse order info
     uint64_t start = abi_get_order_start(contract_data.data, contract_data.size); // starting block subscriber paid to receive data
@@ -191,33 +192,32 @@ int iotex_pebble_endpoint_poll(void)
         token = NULL;      
         // error handling
         printk("iotex_emb_get_chain_meta error \n");
-        return -2;
+        return GET_CHAIN_META_ERR;
     }
 #if(!RELEASE_MODE)     
     printk("start:%llu, duration:%u, chain.height:%llu\n", start,duration,chain.height);
 #endif    
-    //printk("endpoint:%s\n", endpoint ); 
+    //printk("endpoint:%s\n", endpoint );     
     if (start + (uint64_t)duration > chain.height) {
         duration = (uint32_t)(start + (uint64_t)duration - chain.height) * 5;
     } else {
         // subscription already expired
         duration = 0;
-    }
-
-    if (duration > 0) {
-        // start sending data to the subscriber's storage endpoint for 'duration' seconds    
+    }    
+    if (duration > 0) { 
+        // start sending data to the subscriber's storage endpoint for 'duration' seconds            
         if(pEndPoint->sub_status == SUBSCRIPTION_EXPIRED)
-        {            
-            sys_reboot(0);            
-        }  
-        ret = 2;
+        {                    
+            ret = MQTT_RECONNECT;             
+        }          
     }
     else
     {
         if(pEndPoint->sub_status == SUBSCRIPTION_ACTIVE)
-        {            
-            sys_reboot(0);
-            //ret = 2;
+        {        
+            pEndPoint->sub_status = SUBSCRIPTION_EXPIRED;                                      
+            StopUploadData();
+            ret = MQTT_STOP_UPLOAD;            
         }
     }
     printk("duration:%u\n", duration);
@@ -231,11 +231,13 @@ int iotex_pebble_endpoint_poll(void)
 int iotex_init_endpoint(char *endpoint, int port)
 {
     int retry=3;
-    pEndPoint = malloc(sizeof(struct mqtt_endpoint));
-    if(pEndPoint == NULL)
-    {
-        printk("iotex_init_endpoint: not enouhg heap space\n");
-        return -1;
+    if(pEndPoint == NULL) {
+        pEndPoint = malloc(sizeof(struct mqtt_endpoint));
+        if(pEndPoint == NULL)
+        {
+            printk("iotex_init_endpoint: not enouhg heap space\n");
+            return -1;
+        }
     }
     memset(pEndPoint, 0, sizeof(struct mqtt_endpoint));
     getDeviceID(pEndPoint->dev_id);

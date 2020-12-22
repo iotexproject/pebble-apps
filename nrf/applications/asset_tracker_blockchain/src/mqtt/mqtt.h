@@ -7,7 +7,7 @@
 #include <net/socket.h>
 
 extern atomic_val_t send_data_enable;
-extern atomic_val_t closeMQTTClient;
+extern atomic_val_t isMQTTConnecting;
 
 struct mqtt_payload {
     char *buf;
@@ -18,6 +18,16 @@ enum SUB_STATUS
 {
     SUBSCRIPTION_ACTIVE,
     SUBSCRIPTION_EXPIRED
+};
+
+enum ENDPOINT_POLL_STATUS
+{
+    GET_CHAIN_META_ERR = -2,
+    READ_CONTRACT_ERR,
+    ENDPOINT_POLL_OK,
+    ENDPOINT_POLL_PAUSE,
+    MQTT_RECONNECT,
+    MQTT_STOP_UPLOAD
 };
 
 struct mqtt_endpoint {
@@ -49,6 +59,8 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel);
 int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *output);
 //  wrap  json package
 int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payload *output);
+// mqtt  heart beat
+int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos);
 // init endpoint 
 int iotex_init_endpoint(char *endpoint, int port);
 // endpoint  polling

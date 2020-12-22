@@ -527,8 +527,14 @@ bool RSAPubNeedUpload(void)
 {
 	if(RSAPubUpload)
 	{
+		//printk("RSAPubUpload:%d\n", RSAPubUpload);
 		RSAPubUpload--;
-		return true;
+		if(RSAPubUpload == 0) {
+			StopUploadData();
+			return false;
+		}
+		else
+			return true;
 	}
 	else{
 		return false;

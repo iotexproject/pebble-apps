@@ -13,12 +13,11 @@ static iotex_mqtt_config __config = {
     .bulk_upload = CONFIG_MQTT_CONFIG_BULK_UPLOAD,
     .bulk_upload_sampling_cnt = CONFIG_MQTT_CONFIG_SAMPLING_COUNT,
     .bulk_upload_sampling_freq = CONFIG_MQTT_CONFIG_SAMPLING_FREQUENCY
-#else
-    .upload_period = CONFIG_MQTT_CONFIG_UPLOAD_PERIOD,
+#else   
+    .upload_period = CONFIG_MQTT_CONFIG_UPLOAD_PERIOD,    
 #endif
 };
-
-static char config_buffer[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
+struct sys_mutex iotex_config_mutex;
 
 static bool save_mqtt_config() {
     /* Delete sid, only save one piece config, do not save history */
@@ -98,6 +97,15 @@ bool iotex_mqtt_inc_current_sampling_count(void) {
     return false;
 }
 
+void config_mutex_lock(void)
+{
+    sys_mutex_lock(&iotex_config_mutex, K_FOREVER);
+}
+void config_mutex_unlock(void)
+{
+    sys_mutex_unlock(&iotex_config_mutex);
+}
+
 static void print_mqtt_config(const iotex_mqtt_config *config, const char *title) {
     printk("%s: bulk_upload: [%s], data_channel:[0x%04x], upload_period[%u], "
            "bulk_upload_sampling_cnt[%u], bulk_upload_sampling_freq[%u],"
@@ -107,7 +115,21 @@ static void print_mqtt_config(const iotex_mqtt_config *config, const char *title
            config->current_upload_cnt, config->current_sampling_cnt);
 }
 
-bool iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_config *config) {
+/*
+    parse jscon update configure
+    return 0
+*/
+static int iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_config *config) {
+    char config_buffer[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
+    uint32_t  dat;
+    int ret = 1;
+
+    if(len >= CONFIG_MQTT_PAYLOAD_BUFFER_SIZE)
+    {
+        printk("config size not enough len: %d, conf_size:%d\n",len, CONFIG_MQTT_PAYLOAD_BUFFER_SIZE);
+        return 0;
+    }
+
     memcpy(config_buffer, payload, len);
     config_buffer[len] = 0;
 
@@ -129,7 +151,7 @@ bool iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_co
         if (!err_ptr) {
             printk("[%s:%d] error before: %s\n", __func__, __LINE__, err_ptr);
         }
-
+        ret = 0;
         goto out;
     }
 
@@ -143,62 +165,82 @@ bool iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_co
     bulk_upload_sampling_cnt = cJSON_GetObjectItem(root_obj, "bulk_upload_sampling_cnt");
     bulk_upload_sampling_freq = cJSON_GetObjectItem(root_obj, "bulk_upload_sampling_freq");
     serverBeep = cJSON_GetObjectItem(root_obj, "beep");
-
+    
     /* Notice: 0 ==> false, otherwise true */
     if (bulk_upload && cJSON_IsString(bulk_upload)) {
+        dat = config->bulk_upload;
         config->bulk_upload = atoi(bulk_upload->valuestring);
+        config->bulk_upload_sampling_freq = 10;
+        config->bulk_upload_sampling_cnt = 10;
+        if(dat != config->bulk_upload)
+            ret = 2;
+        
     }
 
     if (data_channel && cJSON_IsString(data_channel)) {
         config->data_channel = atoi(data_channel->valuestring);
     }
 
-    if (upload_period && cJSON_IsString(upload_period)) {
+    if (upload_period && cJSON_IsString(upload_period)) { 
         config->upload_period = atoi(upload_period->valuestring);
+        if(!config->bulk_upload)
+            RestartEnvWork(config->upload_period);
     }
 
     if (bulk_upload_sampling_cnt && cJSON_IsString(bulk_upload_sampling_cnt)) {
-        config->bulk_upload_sampling_cnt = atoi(bulk_upload_sampling_cnt->valuestring);
+        dat = config->bulk_upload_sampling_cnt;        
+        config->bulk_upload_sampling_cnt = atoi(bulk_upload_sampling_cnt->valuestring);        
+        if(config->bulk_upload &&(dat != config->bulk_upload_sampling_cnt)){
+                ret = 2;     
+        } 
     }
 
-    if (bulk_upload_sampling_freq && cJSON_IsString(bulk_upload_sampling_freq)) {
+    if (bulk_upload_sampling_freq && cJSON_IsString(bulk_upload_sampling_freq)) {        
         config->bulk_upload_sampling_freq = atoi(bulk_upload_sampling_freq->valuestring);
+        if(config->bulk_upload)
+            RestartEnvWork(config->bulk_upload_sampling_freq);
     }
 
     if (serverBeep && cJSON_IsString(serverBeep)) {
-        onBeepMePressed(atoi(serverBeep->valuestring));
-    }    
+        onBeepMePressed(atoi(serverBeep->valuestring));        
+    }       
 
 #ifdef CONFIG_DEBUG_MQTT_CONFIG
     print_mqtt_config(config, __func__);
 #endif
 
     cJSON_Delete(root_obj);
-    return true;
+    return ret;
 
 out:
     cJSON_Delete(root_obj);
-    return false;
+    return ret;
 }
 
 /* Parse configure and save it to nvs */
 void iotex_mqtt_update_config(const uint8_t *payload, uint32_t len) {
-    if (!iotex_mqtt_parse_config(payload, len, &__config)) {
+    int ret;    
+
+    config_mutex_lock();
+    if (!(ret = iotex_mqtt_parse_config(payload, len, &__config))) {    
+        config_mutex_unlock();
         printk("[%s:%d]: Parse configure failed!\n", __func__, __LINE__);
         return;
     }
-
-    /* Save new configure */
-    if (!save_mqtt_config()) {
-        printk("[%s:%d]: Save configure failed!\n", __func__, __LINE__);
-        return;
-    }
-
     /* If enable bulk upload delete local sampling data */
-    if (iotex_mqtt_is_bulk_upload()) {
-        iotex_local_storage_del(SID_MQTT_BULK_UPLOAD_DATA);
+    if (ret == 2) {    
+        __config.current_sampling_cnt = 0;
+        __config.current_upload_cnt = 0;             
+        iotex_local_storage_del(SID_MQTT_BULK_UPLOAD_DATA);    
         printk("Local sampling data deleted!!!\n");
     }
+    /* Save new configure */
+    if (!save_mqtt_config()) {
+        config_mutex_unlock();
+        printk("[%s:%d]: Save configure failed!\n", __func__, __LINE__); 
+        return;       
+    }    
+    config_mutex_unlock();
 }
 
 /* Load confifure from nvs and apply */
@@ -214,6 +256,7 @@ void iotex_mqtt_load_config(void) {
 
         print_mqtt_config(&__config, __func__);
     }
+    sys_mutex_init(&iotex_config_mutex);
 }
 // bytes  of once  write 
 void set_block_size(uint32_t size)

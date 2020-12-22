@@ -454,7 +454,7 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     {
         goto out;
     }
-    if(isSubExpired()){
+    if(isSubExpired() && !RSAUpOver()){
         if(RSAPubNeedUpload()){            
             pubKey = malloc(sizeof(RSA_KEY_PAIR));
             if(pubKey == NULL)
@@ -467,8 +467,7 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
                 goto out;
             }
         }
-        else {
-            CloseMQTTSession();
+        else {            
             goto out;
         }
     } 

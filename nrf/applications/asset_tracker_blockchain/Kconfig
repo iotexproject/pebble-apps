@@ -506,6 +506,10 @@ config USE_AT_HOST
 	help
 	  Enable the AT host library so that AT commands can be sent to and
 	  received from a serial terminal.
+config MAIN_BASE_TIME
+	int "pebble  app main time period"
+	default  10000
+		  
 
 endmenu
 

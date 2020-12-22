@@ -27,5 +27,6 @@
 void iotex_hal_gpio_init(void);
 int iotex_hal_gpio_set(uint32_t pin, uint32_t value);
 void gpio_poweroff(void);
+void PowerOffIndicator(void);
 
 #endif //_IOTEX_HAL_GPIO_H_

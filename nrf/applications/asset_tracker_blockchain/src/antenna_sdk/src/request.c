@@ -366,7 +366,7 @@ int blocking_recv(int fd, u8_t *buf, u32_t size, u32_t flags)
     int err;
 	do {
 		err = recv(fd, buf, size, flags);
-	} while (err < 0 && errno == EAGAIN);
+	} while (err < 0 && (errno == EAGAIN));
 	return err;
 }
 
@@ -416,6 +416,8 @@ static int req_basic_request(const char *request, char *response, size_t respons
 	};
     Host_Path *pHost;
     char *send_buf, *recv_buf = response,*pStr,*pStr1,*pStr2;
+    struct timeval timeout = {5,0}; 
+    int tot_num_bytes;
     pHost = malloc(sizeof(Host_Path));
     send_buf = malloc(SEND_BUF_SIZE);    
     if((pHost == NULL)||(send_buf == NULL))
@@ -424,37 +426,47 @@ static int req_basic_request(const char *request, char *response, size_t respons
         return -1;
     }     
     parseURL(request, pHost);
+    net_mutex_lock();
 	err = getaddrinfo(pHost->host, NULL, &hints, &res);
 	if (err) {
-		printk("getaddrinfo() failed, err %d\n", errno);  
+		printk("getaddrinfo() failed, err %d\n", errno); 
+        net_mutex_unlock();
 		goto clean_up;
 	}
-
-	((struct sockaddr_in *)res->ai_addr)->sin_port = htons(pHost->port);
+	((struct sockaddr_in *)res->ai_addr)->sin_port = htons(pHost->port);  
+    
     if(!strncmp(IOTEX_EMB_BASE_URL,"https",5)) {
         fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TLS_1_2);
         if (fd == -1) {
-            printk("Failed to open socket!\n");
+            printk("Failed to open socket!\n");    
+            net_mutex_unlock();                   
             goto clean_up;
         }
         /* Setup TLS socket options */
         err = tls_setup(fd);
-        if (err) {
+        if (err) {     
+            net_mutex_unlock();                  
             goto clean_up;
         }
     }
     else {
         fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (fd == -1) {
-            printk("Failed to open socket!%d\n", errno);
+            printk("Failed to open socket!%d\n", errno);  
+            net_mutex_unlock();                     
             goto clean_up;
         }
     }
+    setsockopt(fd, NRF_SOL_SOCKET,NRF_SO_SNDTIMEO, (char *)&timeout,sizeof(struct timeval));
+    setsockopt(fd, NRF_SOL_SOCKET,NRF_SO_RCVTIMEO, (char *)&timeout,sizeof(struct timeval));
+
 	HTTP_DEBUG_OUTPUT("Connecting to %s\n", pHost->host);  
     err = blocking_connect(fd, (struct sockaddr *)res->ai_addr,
 			       sizeof(struct sockaddr_in));
-    if(err)
+    if(err){
+        net_mutex_unlock();              
         goto clean_up;
+    }        
 
     HTTP_DEBUG_OUTPUT("connect ok \n");
     if (is_post) {
@@ -473,25 +485,28 @@ static int req_basic_request(const char *request, char *response, size_t respons
     }
     HTTP_DEBUG_OUTPUT("\n\rsend_data_len:%d,Send HTTP  request.:\n", send_data_len);
     HTTP_DEBUG_OUTPUT("%s \n",send_buf); 
+    tot_num_bytes = 0;
     do {
-	    num_bytes = blocking_send(fd, send_buf, send_data_len, 0);		
+	    num_bytes = blocking_send(fd, send_buf+tot_num_bytes, send_data_len-tot_num_bytes, 0);		
 		if (num_bytes < 0) {
 			printk("ret: %d, errno: %s\n", num_bytes, strerror(errno));
-		};
-    } while (num_bytes < 0);
+		}
+        tot_num_bytes += num_bytes;
+    } while (num_bytes < 0);    
     HTTP_DEBUG_OUTPUT("Start recv\n");
-    int tot_num_bytes = 0;
+    tot_num_bytes = 0;
 	do {
-		num_bytes =blocking_recv(fd, recv_buf+tot_num_bytes, RECV_BUF_SIZE, 0);
-		tot_num_bytes += num_bytes;
-
+		num_bytes =blocking_recv(fd, recv_buf+tot_num_bytes, RECV_BUF_SIZE-tot_num_bytes, 0);		
 		if (num_bytes <= 0) {
 			break;
-		}        
+		}  
+        tot_num_bytes += num_bytes;
 	} while (num_bytes > 0);
+    net_mutex_unlock();     
     HTTP_DEBUG_OUTPUT("taotal:%d\n", tot_num_bytes);
     if(tot_num_bytes < RECV_BUF_SIZE)
         recv_buf[tot_num_bytes] = 0;
+    recv_buf[response_max_size-1] = 0;
     HTTP_DEBUG_OUTPUT("%s\n", recv_buf);
     if(strstr(recv_buf, "Transfer-Encoding: chunked") != NULL)
     {
@@ -543,7 +558,7 @@ clean_up:
 	freeaddrinfo(res);
 	(void)close(fd);
     free(pHost);
-    free(send_buf);
+    free(send_buf);   
     return 0;
 }
 
