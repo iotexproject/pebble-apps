@@ -399,3 +399,21 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     return 0;
 }
 
+void com_mqtt_mutex_lock(struct mqtt_client *client)
+{
+	int ret = sys_mutex_lock(&client->internal.mutex, K_FOREVER);
+
+	__ASSERT(ret == 0, "sys_mutex_lock failed with %d", ret);
+	(void)ret;
+}
+
+/**@brief Release the lock on the module specific mutex, if any.
+ */
+void com_mqtt_mutex_unlock(struct mqtt_client *client)
+{
+	int ret = sys_mutex_unlock(&client->internal.mutex);
+
+	__ASSERT(ret == 0, "sys_mutex_unlock failed with %d", ret);
+	(void)ret;
+}
+
