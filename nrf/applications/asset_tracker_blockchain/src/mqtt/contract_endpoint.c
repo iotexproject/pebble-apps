@@ -14,9 +14,11 @@
 //const char *pebble = "io1zclqa7w3gxpk47t3y3g9gzujgtl44lastfth28"; // to be replaced by actual contract address
 //  mainnet contract
 #if RELEASE_MODE
-const char *pebble = "io1y6asvyp7qs0y0zqjluu53pgk0xkwrqgxhgvve6";
+//const char *pebble = "io1y6asvyp7qs0y0zqjluu53pgk0xkwrqgxhgvve6";
+const char *pebble = "io1qhg383xf0sx4aen5zydn820qm66sfwyc9mma8z";
 #else
-const char *pebble = "io1a8qeke954ncyddc0ek3vlq5xpz54f0l7lyx8wg";
+//const char *pebble = "io1a8qeke954ncyddc0ek3vlq5xpz54f0l7lyx8wg";
+const char *pebble = "io1qhg383xf0sx4aen5zydn820qm66sfwyc9mma8z";
 #endif
 const char *method = "c5934222";
 //static char data[33] = "0000000000000000000000000000000000333532363536313030373934363132"; // hex-encoded string of 32-byte device ID
@@ -41,7 +43,8 @@ void getDeviceID(char *data)
     *(data+34+i)=0;
 #else
     //memcpy(data,"0000000000000000000000000000000000333532363536313030373934363132", 64);
-    memcpy(data, "0000000000000000000000000000000000333532363536313033333830393633", 64);
+    //memcpy(data, "0000000000000000000000000000000000333532363536313033333830393633", 64);
+    memcpy(data, "0000000000000000000000000000000000333532363536313030373834343135", 64);
     data[64]=0;
 #endif
     //printk("device id: %s\n", data);
