@@ -64,7 +64,7 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
     }
 
-    printk("AT CMD Modem time is:%s\n", cclk_r_buf);
+    //printk("AT CMD Modem time is:%s\n", cclk_r_buf);
 
     // num of years since 1900, the formula works only for 2xxx
     YY = (cclk_r_buf[8] - '0') * 10 + (cclk_r_buf[9] - '0') + 100;
@@ -88,7 +88,7 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
              ((YY - 1) / 100) * 86400L + ((YY + 299) / 400) * 86400L;
 
     snprintf(epoch_buf, sizeof(epoch_buf), "%.0f", epoch);
-    printk("UTC epoch %s\n", epoch_buf);
+    //printk("UTC epoch %s\n", epoch_buf);
 
     if (stamp) {
         snprintf(stamp->data, sizeof(stamp->data), "%.0f", epoch);
