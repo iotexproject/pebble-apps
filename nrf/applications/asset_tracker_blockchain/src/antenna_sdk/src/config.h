@@ -8,7 +8,7 @@ extern "C" {
 struct iotex_st_config;
 
 /* URL */
-#define     IOTEX_EMB_BASE_URL   "http://ec2-52-83-24-120.cn-northwest-1.compute.amazonaws.com.cn:8192/v%d/"
+#define     IOTEX_EMB_BASE_URL   "http://ec2-52-83-23-153.cn-northwest-1.compute.amazonaws.com.cn:8192/v%d/"
 #define IOTEX_EMB_MAX_URL_LEN 256
 #define IOTEX_EMB_MAX_ACB_LEN 1024
 
