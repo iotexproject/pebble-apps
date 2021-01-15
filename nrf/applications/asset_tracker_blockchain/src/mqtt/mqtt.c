@@ -369,8 +369,10 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     client->tx_buf_size = sizeof(tx_buffer);
 
     /* MQTT transport configuration */
-    //client->transport.type = MQTT_TRANSPORT_SECURE;
-    client->transport.type = MQTT_TRANSPORT_NON_SECURE;
+    if(CONFIG_MQTT_BROKER_PORT == 1884)
+        client->transport.type = MQTT_TRANSPORT_NON_SECURE;
+    else
+        client->transport.type = MQTT_TRANSPORT_SECURE;
 
     static sec_tag_t sec_tag_list[] = {CONFIG_CLOUD_CERT_SEC_TAG};
     struct mqtt_sec_config *tls_config = &(client->transport).tls.config;
