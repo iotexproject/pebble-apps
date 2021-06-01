@@ -270,6 +270,7 @@ uint8_t *getEndpos(const uint8_t *str)
 **/
 void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchString, uint8_t chSize, uint8_t chMode)
 {
+
     uint8_t *endstr;
     endstr = getEndpos(pchString);
     while (*pchString != '\0') {      

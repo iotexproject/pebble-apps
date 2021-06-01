@@ -68,13 +68,13 @@ void sta_Refresh(void)
     // power , >= 4.1v ful, 4.1 - 3.2 = 0.9
     memcpy(staBar.power_icon, power, sizeof(power));
     vol = iotex_modem_get_battery_voltage();
-    val = vol -3200;
-     
-    if((val <= 0) || val > 900)
+    val = vol -3200;    
+    if(val <= 0)
     {
         gpio_poweroff();
         k_sleep(K_MSEC(5000));        
     }
+    val = val > 900 ? 900:val;
     val /= 90;
     //printk("val:%d\n", val);
     if(val < 9)

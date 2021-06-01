@@ -999,9 +999,10 @@ void main(void)
 #endif
     exGPSInit();
     devRegSet(DEV_REG_START);
-    
+
     initOTA();
-    sta_Refresh();          
+    sta_Refresh(); 
+
     while(true){
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             printk("ERROR: mqtt_connect %d, rebooting...\n", err);
