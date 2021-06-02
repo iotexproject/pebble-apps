@@ -26,6 +26,7 @@ const uint8_t Signal[]=/*{0x00,0x00,0x20,0x30,0x38,0x3C,0x00,0x00}*/{0x00,0x00,0
 const uint8_t lte_pic[]={0x3C,0x42,0x81,0x3C,0x42,0x18,0x00,0x00,0x18,0x18,0x00,0x00,0x18,0x42,0x3C,0x81,0x42,0x3C};
 const uint8_t power[]={0x00,0x00,0x7E,0x7E,0x7E,0x7E,0x7E,0x7E,0x7E,0x7E,0x7E,0x7E,0x7E,0x7E,0x18,0x18,0x00,0x00};
 const uint8_t gps[] = {0x30,0x78,0xCC,0xC7,0xCC,0x78,0x30};
+const uint8_t sim_card[] = {0x00,0x1F,0x21,0x41,0x81,0xBD,0xA5,0xA5,0xA5,0xA5,0xBD,0x81,0x81,0x81,0xFF,0x00};
 
 extern uint8_t s_chDispalyBuffer[128][8];
 void sta_LoadIcon(void)
@@ -48,23 +49,29 @@ void sta_Refresh(void)
     int i,j ;
     // signal quality
     val = iotex_model_get_signal_quality();
-   
-    val = val > 27 ? 27 : val;
-    val /= 7;
-    memcpy(staBar.sig_icon, Signal, sizeof(Signal));
-    switch (val){
-        case 0:
-            memset(staBar.sig_icon+6, 0,sizeof(Signal)-7); 
-            break;
-        case 1:
-            memset(staBar.sig_icon+9, 0,sizeof(Signal)-10);
-            break;
-        case 2 :
-            memset(staBar.sig_icon+12, 0,sizeof(Signal)-13);
-            break;
-        default:
-            break;
-    } 
+    if(val == 255)
+    {
+        memcpy(staBar.sig_icon, sim_card, sizeof(sim_card));
+    }
+    else
+    {
+        val = val > 27 ? 27 : val;
+        val /= 7;
+        memcpy(staBar.sig_icon, Signal, sizeof(Signal));
+        switch (val){
+            case 0:
+                memset(staBar.sig_icon+6, 0,sizeof(Signal)-7); 
+                break;
+            case 1:
+                memset(staBar.sig_icon+9, 0,sizeof(Signal)-10);
+                break;
+            case 2 :
+                memset(staBar.sig_icon+12, 0,sizeof(Signal)-13);
+                break;
+            default:
+                break;
+        }        
+    }     
     // power , >= 4.1v ful, 4.1 - 3.2 = 0.9
     memcpy(staBar.power_icon, power, sizeof(power));
     vol = iotex_modem_get_battery_voltage();
@@ -78,7 +85,7 @@ void sta_Refresh(void)
     val /= 90;
     //printk("val:%d\n", val);
     if(val < 9)
-        memset(staBar.power_icon+val+4, 0, 9-val);
+        memset(staBar.power_icon+val+4, 0x42, 9-val);
     //refresh
     clearDisBuf(6,7);
     for ( i=0; i < sizeof(Signal);i++)
