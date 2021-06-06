@@ -70,12 +70,11 @@ int  SignAndSend(void)
 
     cJSON *root_obj = cJSON_CreateObject();
     cJSON *msg_obj = cJSON_CreateObject();
-    cJSON *sign_obj = cJSON_CreateObject();
-    if (!root_obj||!msg_obj||!sign_obj) {        
+    
+    if (!root_obj||!msg_obj) {        
         goto out;
     }
-    cJSON_AddItemToObject(root_obj, "message", msg_obj);
-    cJSON_AddItemToObject(root_obj, "signature", sign_obj); 
+    cJSON_AddItemToObject(root_obj, "message", msg_obj);    
 
     // wallet address
     cJSON *walletAddr_obj = cJSON_CreateString(walletAddr);
@@ -94,13 +93,18 @@ int  SignAndSend(void)
     if(!pubkey_obj  || json_add_obj(msg_obj, "publicKey", pubkey_obj))
         goto out;                  
 
-    json_buf = cJSON_PrintUnformatted(msg_obj);   
-printk("msg_obj :%s \n", json_buf);    
+    json_buf = cJSON_PrintUnformatted(root_obj);   
+printk("root_obj :%s \n", json_buf);    
     doESDA_sep256r_Sign(json_buf,strlen(json_buf),esdaSign,&sinLen);   
     hex2str(esdaSign, sinLen,jsStr);
     cJSON_free(json_buf);
     memcpy(esdaSign,jsStr,64);
-    esdaSign[64] = 0;    
+    esdaSign[64] = 0; 
+    cJSON *sign_obj = cJSON_CreateObject();
+    if(!sign_obj)
+        goto out;  
+    cJSON_AddItemToObject(root_obj, "signature", sign_obj); 
+    
     cJSON *esdaSign_r_Obj = cJSON_CreateString(esdaSign);
     if(!esdaSign_r_Obj  || json_add_obj(sign_obj, "r", esdaSign_r_Obj))
         goto out;
