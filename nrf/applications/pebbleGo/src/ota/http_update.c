@@ -388,7 +388,7 @@ void ota_update(void)
 	}
 
 	printk("Press Button 1 to start the FOTA download\n");
-	show_led(LED_OFF,LED_OFF,LED_ON);
+	//show_led(LED_OFF,LED_OFF,LED_ON);
     while(1)
     {
         k_sleep(K_MSEC(100000));

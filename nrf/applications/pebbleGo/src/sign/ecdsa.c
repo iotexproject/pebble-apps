@@ -66,7 +66,7 @@ pub : ecc public key, sizeof pub not less than 129 bytes
 int  get_ecc_public_key(char *pub)
 {
 	char buf[160];
-	static unsigned char trans_key = 2;
+	static unsigned char trans_key = /*2*/ 0;
 	if(pub == NULL){
 		return  trans_key;
 	}
