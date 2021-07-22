@@ -5,6 +5,10 @@
 #include "nvs/local_storage.h"
 #include "ui.h"
 
+#include "pb_decode.h"
+#include "pb_encode.h"
+#include "package.pb.h"
+
 /* Global configure */
 static iotex_mqtt_config __config = {
     .data_channel = CONFIG_MQTT_CONFIG_DATA_CHANNEL,
@@ -19,9 +23,72 @@ static uint8_t firmwareUrl[200]="https://pebble-ota.s3.ap-east-1.amazonaws.com/a
 
 extern  const uint8_t firmwareVersion[];
 
-void packDevConf(uint8_t *buf, uint32_t size)
+
+uint16_t getDevChannel(void)
 {
-    snprintf(buf, size, "{\"message\":{\"bulkUpload\":\"%d\",\"dataChannel\":\"%d\",\"uploadPeriod\":\"%d\",\"bulkPploadSamplingCnt\":\"%d\",\"bulkUploadSamplingFreq\":\"%d\",\"beep\":\"%d\",\"firmware\":\"%s\"}}",__config.bulk_upload,__config.data_channel, __config.upload_period,__config.bulk_upload_sampling_cnt,__config.bulk_upload_sampling_freq, 1000, firmwareVersion);
+    return __config.data_channel;
+}
+
+int packDevConf(uint8_t *buffer, uint32_t size)
+{
+    //snprintf(buf, size, "{\"message\":{\"bulkUpload\":\"%d\",\"dataChannel\":\"%d\",\"uploadPeriod\":\"%d\",\"bulkUploadSamplingCnt\":\"%d\",\"bulkUploadSamplingFreq\":\"%d\",\"beep\":\"%d\",\"firmware\":\"%s\"}}",__config.bulk_upload,__config.data_channel, __config.upload_period,__config.bulk_upload_sampling_cnt,__config.bulk_upload_sampling_freq, 1000, firmwareVersion);
+    SensorConfig  confData = SensorConfig_init_zero;
+    BinPackage binpack = BinPackage_init_zero;
+    uint32_t  uint_timestamp;
+    char esdaSign[65];
+    int  sinLen;
+
+    confData.has_bulkUpload = true;
+    confData.bulkUpload = __config.bulk_upload;
+    confData.has_dataChannel = true;
+    confData.dataChannel = __config.data_channel;
+    confData.has_uploadPeriod = true;
+    confData.uploadPeriod = __config.upload_period; 
+    confData.has_bulkUploadSamplingCnt = true;
+    confData.bulkUploadSamplingCnt = __config.bulk_upload_sampling_cnt;
+    confData.has_bulkUploadSamplingFreq = true;
+    confData.bulkUploadSamplingFreq = __config.bulk_upload_sampling_freq;
+    confData.has_beep = true;
+    confData.beep = 1000;
+    confData.has_firmware = true;
+    strcpy(confData.firmware, firmwareVersion);
+
+    pb_ostream_t enc_datastream;
+	enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));	
+	if (!pb_encode(&enc_datastream, SensorConfig_fields, &confData))
+	{
+		//encode error happened
+		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
+		return 0;
+    }
+    uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+    binpack.data.size = enc_datastream.bytes_written;
+    binpack.data.bytes[enc_datastream.bytes_written] = (char)((uint_timestamp & 0xFF000000) >> 24);
+    binpack.data.bytes[enc_datastream.bytes_written+1] = (char)((uint_timestamp & 0x00FF0000) >> 16);
+    binpack.data.bytes[enc_datastream.bytes_written+2] = (char)((uint_timestamp & 0x0000FF00) >> 8);
+    binpack.data.bytes[enc_datastream.bytes_written+3] = (char)(uint_timestamp & 0x000000FF);  
+    //*(uint32_t*)buffer = BinPackage_PackageType_CONFIG;
+    buffer[0] = 0;buffer[1] = 0;buffer[2] = 0;
+    buffer[3] = (uint8_t)BinPackage_PackageType_CONFIG;
+    memcpy(buffer+4, binpack.data.bytes, enc_datastream.bytes_written+4);
+
+    printk("enc_datastream.bytes_written+8 :%d \n", enc_datastream.bytes_written+8);
+
+    doESDASign(buffer,enc_datastream.bytes_written + 8,esdaSign,&sinLen);     
+
+    memcpy(binpack.signature, esdaSign, 64); 
+    binpack.timestamp = uint_timestamp; 
+    binpack.type = BinPackage_PackageType_CONFIG; 
+
+    pb_ostream_t enc_packstream;
+    enc_packstream = pb_ostream_from_buffer(buffer, size);	
+    if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack))
+    {
+        //encode error happened
+        printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
+        return 0;
+    }
+    return  enc_packstream.bytes_written;   
 }
 
 
@@ -283,12 +350,11 @@ uint16_t get_his_block(void)
 		return 0;
 }
 int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len) 
-{    
-    int ret = -1;
+{
+   int ret = -1;
 
     //uint8_t url[200];
-    cJSON *firmwareUri = NULL;
-    cJSON *message_obj = NULL;    
+    cJSON *Uri = NULL;    
     cJSON *root_obj = cJSON_Parse(payload);
     if (!root_obj) {
         const char *err_ptr = cJSON_GetErrorPtr();
@@ -298,12 +364,11 @@ int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len)
         }   
         return ret;     
     }
-    message_obj = cJSON_GetObjectItem(root_obj, "message");
-    firmwareUri = cJSON_GetObjectItem(message_obj, "firmwareUri");
-    if (firmwareUri && cJSON_IsString(firmwareUri)) {
+    Uri = cJSON_GetObjectItem(root_obj, "uri");
+    if (Uri && cJSON_IsString(Uri)) {
         //strcpy(url, firmwareUri->valuestring);
-        strcpy(firmwareUrl,  firmwareUri->valuestring);
-printk("firmwareUri:%s \n", firmwareUrl);        
+        strcpy(firmwareUrl,  Uri->valuestring);
+printk("firmwareUrl:%s \n", firmwareUrl);        
     }
     cJSON_Delete(root_obj);  
 /*
@@ -316,7 +381,8 @@ printk("firmwareUri:%s \n", firmwareUrl);
 
     ret  = 0;
 
-    return ret;    
+    return ret;      
+
 }
 
 uint8_t * getOTAUrl(void)

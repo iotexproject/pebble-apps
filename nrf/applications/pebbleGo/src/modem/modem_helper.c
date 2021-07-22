@@ -17,7 +17,7 @@ const char *iotex_modem_get_imei() {
     static char imei_buf[MODEM_IMEI_LEN + 5];
 
     if ((err = at_cmd_write("AT+CGSN", imei_buf, sizeof(imei_buf), &at_state))) {
-        printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        printk("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
         return "Unknown";
     }
     imei_buf[15]=0;
@@ -50,7 +50,7 @@ int iotex_model_get_signal_quality() {
         snr[i++] = *p++;        
     }
 //printk("snr_ack:%s\n", snr_ack);    
-//printk("snr:%s\n", snr);
+//printk("snr:%s, %d\n", snr, atoi(snr));
     return atoi(snr);
 }
 
@@ -68,7 +68,7 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
     int err = at_cmd_write("AT+CCLK?", cclk_r_buf, sizeof(cclk_r_buf), &at_state);
 
     if (err) {
-        printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        printk("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
     }
 
     printk("AT CMD Modem time is:%s\n", cclk_r_buf);

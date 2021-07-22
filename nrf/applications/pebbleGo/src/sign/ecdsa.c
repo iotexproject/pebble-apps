@@ -10,6 +10,7 @@
 
 #define   AES_KMU_SLOT			  2
 
+//#define	  TEST_VERFY_SIGNATURE	
 
 #define TV_NAME(name) name " -- [" __FILE__ ":" STRINGIFY(__LINE__) "]"
 #define  CHECK_RESULT(exp_res,chk) \
@@ -28,6 +29,8 @@
 
 #define PUBKEY_STRIP_HEAD(a)   (a+81)
 
+#define  KEY_BLOCK_SIZE 190
+
 static uint16_t CRC16(uint8_t *data, size_t len) {
 	uint16_t crc = 0x0000;
 	size_t j;
@@ -44,7 +47,7 @@ static uint16_t CRC16(uint8_t *data, size_t len) {
 
 int get_ecc_key(void)
 {
-	char buf[160];
+	char buf[KEY_BLOCK_SIZE];
 	uint8_t decrypted_buf[66];
 	iotex_local_storage_load(SID_ECC_KEY,buf,sizeof(buf));
 
@@ -56,8 +59,29 @@ int get_ecc_key(void)
 	}
 	decrypted_buf[64] = 0;
 	//printk("decrypted : 0x%x, 0x%x,0x%x,0x%x\n", decrypted_buf[0],decrypted_buf[1],decrypted_buf[2],decrypted_buf[3]);
-	//test_case_ecdsa_data.p_x = (const char *)decrypted_buf;
-        SetEccPrivKey(decrypted_buf);
+#ifdef	TEST_VERFY_SIGNATURE	
+	unsigned char pub[160];
+	hex2str(PUBKEY_STRIP_HEAD(buf), 64, pub);
+	printk("buf:");
+	for(int j =0; j < 64; j++)
+	{
+		printk("%02x", (char)*(PUBKEY_BUF_ADDRESS(buf)+j));
+	}
+	printk("\n");
+	printk("\n");	
+	printk("pu_compressed:");
+	for(int j = 0; j <33; j++ )
+	{
+		printk("%02x", (PUBKEY_BUF_ADDRESS(buf)+65)[j]);
+	}
+	printk("\n");	
+	printk("\n");
+	printk("pub:%s\n", pub);
+	printk("priv:%s\n", decrypted_buf);
+    SetEccPrivKey(decrypted_buf, pub);
+#else
+	SetEccPrivKey(decrypted_buf);
+#endif
 	return  0;
 }
 /*
@@ -65,8 +89,8 @@ pub : ecc public key, sizeof pub not less than 129 bytes
 */
 int  get_ecc_public_key(char *pub)
 {
-	char buf[160];
-	static unsigned char trans_key = /*2*/ 0;
+	char buf[KEY_BLOCK_SIZE];
+	static unsigned char trans_key = 2  /*0*/ ;
 	if(pub == NULL){
 		return  trans_key;
 	}
@@ -84,10 +108,10 @@ int  get_ecc_public_key(char *pub)
 
 unsigned char* readECCPubKey(void)
 {
-	unsigned char buf[160];
+	unsigned char buf[KEY_BLOCK_SIZE];
 	static unsigned char pub[160];
 	iotex_local_storage_load(SID_ECC_KEY,buf,sizeof(buf));	
-	hex2str(PUBKEY_STRIP_HEAD(buf), 64, pub);
+	hex2str(PUBKEY_BUF_ADDRESS(buf)+65, 33, pub);
 	return pub;
 }
 
@@ -97,7 +121,7 @@ unsigned char* readECCPubKey(void)
 */
 int startup_check_ecc_key(void)
 {
-	char buf[160];	
+	char buf[KEY_BLOCK_SIZE];	
 	uint8_t key[16];
 	uint8_t encrypted_buf[66];
 	uint16_t crc;
@@ -108,18 +132,30 @@ int startup_check_ecc_key(void)
 	memset(buf, 0, sizeof(buf));	
 	iotex_local_storage_load(SID_ECC_KEY,buf,sizeof(encrypted_buf));	
 	crc = *(uint16_t *)(buf+64);
-	//printk("crc :0x%x\n", crc);	
+	printk("crc :0x%x\n", crc);	
 	if((CRC16(buf, 64) != crc) || (!crc))
+	//if(1)
 	{
-		if((ret = gen_ecc_key(buf,sizeof(buf), PUBKEY_BUF_ADDRESS(buf), 80))==0)
-		{	
+		int  ret_len1 = sizeof(buf), ret_len2 = 80;
+		if((ret = gen_ecc_key(buf,&ret_len1, PUBKEY_BUF_ADDRESS(buf), &ret_len2))==0)
+		{				
+			printk("ret_len1:%d,ret_len2:%d, cmp: %d \n", ret_len1, ret_len2&0x0000FFFF, (ret_len2&0xFFFF0000)>>16);
+			ret = (ret_len2&0xFFFF0000)>>16;
+			for(i = 0; i <ret; i++ )
+			{
+				printk("%02x", (PUBKEY_BUF_ADDRESS(buf)+(ret_len2&0x0000FFFF))[i]);
+			}
+			printk("\n");
+
 			genAESKey(key, sizeof(key));
 			ret = store_key_in_kmu(AES_KMU_SLOT, key, read);
 			if(ret)	{
 				printk("write key into kmu slot:%d erro:%d\n",AES_KMU_SLOT,ret);
 				return -1;
 			}
-			//printk("To be encrypt :0x%x,0x%x,0x%x,0x%x\n", buf[0],buf[1],buf[2],buf[3]);		
+			//printk("To be encrypt_priv :0x%x,0x%x,0x%x,0x%x\n", buf[0],buf[1],buf[2],buf[3]);
+			//printk("To be encrypt_pub :0x%x,0x%x,0x%x,0x%x\n", PUBKEY_BUF_ADDRESS(buf)[0],PUBKEY_BUF_ADDRESS(buf)[1],PUBKEY_BUF_ADDRESS(buf)[2],PUBKEY_BUF_ADDRESS(buf)[3]);
+
 			for(i = 0; i <4; i++){
 				if(ret = cc3xx_encrypt(AES_KMU_SLOT, buf+(i<<4), encrypted_buf+(i<<4))){
 					printk("cc3xx_encrypt erro: 0x%x\n", ret);
@@ -158,11 +194,24 @@ int startup_check_ecc_key(void)
 void hex2str(char* buf_hex, int len, char *str)
 {
 	int i,j;
+    const char hexmap[] = {
+        '0', '1', '2', '3', '4', '5', '6', '7',
+        '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
+    };	
 	for(i =0,j=0; i< len; i++)
-	{
-		str[j++] = (buf_hex[i]&0x0F) > 9 ? ((buf_hex[i]&0x0F)-10 +'A'):((buf_hex[i]&0x0F)+'0');
-		str[j++] = (buf_hex[i]&0xF0) > 0x90 ? (((buf_hex[i]&0xF0)>>4)-10 + 'A'):(((buf_hex[i]&0xF0)>>4)+'0');		
+	{		
+		str[j++] = hexmap[buf_hex[i]>>4];	
+		str[j++] = hexmap[buf_hex[i]&0x0F];
 	}
 	str[j] = 0;	
+}
+
+int doESDASign(char *inbuf, uint32_t len, char *buf, int* sinlen)
+{
+	int ret;
+	//ret = doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
+	doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
+	LowsCalc(buf+32, buf+32);
+	return ret;
 }
 

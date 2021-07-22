@@ -14,10 +14,14 @@
 #include "display.h"
 #include "watchdog.h"
 
+
+#include "pb_decode.h"
+#include "pb_encode.h"
+#include "package.pb.h"
+
 static uint32_t devRegStatus = DEV_REG_STOP;
 
 static uint8_t walletAddr[200];
-
 
 
 //static  unsigned char json_buffer[300];
@@ -37,93 +41,86 @@ uint32_t devRegGet(void)
 }
 int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len) 
 {
-    int ret = -1;
     cJSON *walletAddress = NULL;
-    cJSON *message_obj = NULL;    
+    cJSON *regStatus = NULL;
     cJSON *root_obj = cJSON_Parse(payload);
+
     if (!root_obj) {
         const char *err_ptr = cJSON_GetErrorPtr();
 
         if (!err_ptr) {
             printk("[%s:%d] error before: %s\n", __func__, __LINE__, err_ptr);
-        }   
-        return ret;     
+        }
+        return 0;
     }
-    message_obj = cJSON_GetObjectItem(root_obj, "message");
-    walletAddress = cJSON_GetObjectItem(message_obj, "walletAddress");
-    if (walletAddress && cJSON_IsString(walletAddress)) {
-        strcpy(walletAddr, walletAddress->valuestring);
-printk("walletAddr:%s \n", walletAddr);        
+    regStatus = cJSON_GetObjectItem(root_obj, "status");
+    if(!regStatus)
+    {
+        printk("Poll proposal error\n");
+        cJSON_Delete(root_obj);
+        return 0;
     }
-    cJSON_Delete(root_obj);    
-    return ret;      
+    if(regStatus->valueint == 1){
+        walletAddress = cJSON_GetObjectItem(root_obj, "proposer");
+        if(walletAddress != NULL)
+        {
+            printk("proposer: %s \n", walletAddress->valuestring);
+            strcpy(walletAddr, walletAddress->valuestring);
+            cJSON_Delete(root_obj);
+            return 1;        
+        }
+    }
+    else if(regStatus->valueint == 2){
+        return 2;
+    }
+
+    cJSON_Delete(root_obj);
+    return 0; 
 }
 
-
+extern int hexStr2Bin(char *str, char *bin);
 int  SignAndSend(void)
 {
-    int ret = -1;
     char esdaSign[65];
     char jsStr[130];  
-    char *json_buf; 
+    char *json_buf = NULL; 
     int  sinLen; 
+    uint32_t  uint_timestamp;
 
-    cJSON *root_obj = cJSON_CreateObject();
-    cJSON *msg_obj = cJSON_CreateObject();
+    ConfirmPackage confirmAdd = ConfirmPackage_init_zero;
+
+    uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+
+    json_buf = malloc(DATA_BUFFER_SIZE);
+    if(json_buf == NULL)
+        return  -1;
+    printk("walletAddr:%s\n", walletAddr);
+    confirmAdd.owner.size = hexStr2Bin(walletAddr+2,confirmAdd.owner.bytes);
+
+    confirmAdd.owner.bytes[confirmAdd.owner.size] = (char)((uint_timestamp & 0xFF000000) >> 24);
+    confirmAdd.owner.bytes[confirmAdd.owner.size+1] = (char)((uint_timestamp & 0x00FF0000) >> 16);
+    confirmAdd.owner.bytes[confirmAdd.owner.size+2] = (char)((uint_timestamp & 0x0000FF00) >> 8);
+    confirmAdd.owner.bytes[confirmAdd.owner.size+3] = (char)(uint_timestamp & 0x000000FF);       
+
+    doESDA_sep256r_Sign(confirmAdd.owner.bytes,confirmAdd.owner.size+4,esdaSign,&sinLen);   
+
+    memcpy(confirmAdd.signature, esdaSign, 64);   
+
+    confirmAdd.timestamp = uint_timestamp;
+    confirmAdd.channel = getDevChannel();
+
+    pb_ostream_t enc_packstream;
+	enc_packstream = pb_ostream_from_buffer(json_buf, DATA_BUFFER_SIZE);	
+	if (!pb_encode(&enc_packstream, ConfirmPackage_fields, &confirmAdd))
+	{
+		//encode error 
+		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
+        free(json_buf);
+		return -1;
+	}    
     
-    if (!root_obj||!msg_obj) {        
-        goto out;
-    }
-    cJSON_AddItemToObject(root_obj, "message", msg_obj);    
-
-    // wallet address
-    cJSON *walletAddr_obj = cJSON_CreateString(walletAddr);
-    if(!walletAddr_obj  || json_add_obj(msg_obj, "walletAddress", walletAddr_obj))
-        goto out;        
-    // imei
-    cJSON *imei_obj = cJSON_CreateString(iotex_mqtt_get_client_id());
-    if(!imei_obj  || json_add_obj(msg_obj, "imei", imei_obj))
-        goto out; 
-        
-    // public key
-    //get_ecc_public_key(jsStr);
-    json_buf = readECCPubKey();
-    json_buf[128] = 0;
-    cJSON *pubkey_obj = cJSON_CreateString(json_buf);
-    if(!pubkey_obj  || json_add_obj(msg_obj, "publicKey", pubkey_obj))
-        goto out;                  
-
-    json_buf = cJSON_PrintUnformatted(root_obj);   
-printk("root_obj :%s \n", json_buf);    
-    doESDA_sep256r_Sign(json_buf,strlen(json_buf),esdaSign,&sinLen);   
-    hex2str(esdaSign, sinLen,jsStr);
-    cJSON_free(json_buf);
-    memcpy(esdaSign,jsStr,64);
-    esdaSign[64] = 0; 
-    cJSON *sign_obj = cJSON_CreateObject();
-    if(!sign_obj)
-        goto out;  
-    cJSON_AddItemToObject(root_obj, "signature", sign_obj); 
-    
-    cJSON *esdaSign_r_Obj = cJSON_CreateString(esdaSign);
-    if(!esdaSign_r_Obj  || json_add_obj(sign_obj, "r", esdaSign_r_Obj))
-        goto out;
-    
-    cJSON *esdaSign_s_Obj = cJSON_CreateString(jsStr+64);
-    if(!esdaSign_s_Obj  || json_add_obj(sign_obj, "s", esdaSign_s_Obj))
-        goto out; 
-            
-    //memset(output->buf, 0, strlen(output->buf));   
-    json_buf = cJSON_PrintUnformatted(root_obj);    
-    //output->len = strlen(json_buf);
-printk("json_buf :%s \n", json_buf);   
-
-    publish_dev_ownership(json_buf);
-    ret = 0;
-out:   
-    cJSON_free(json_buf);
-    cJSON_Delete(root_obj); 
-    return ret;      
+    publish_dev_ownership(json_buf, enc_packstream.bytes_written);   
+    free(json_buf); 
 }
 
 void waitForOtaOver(void)
@@ -147,20 +144,48 @@ void stopTaskBeforeOTA(void)
 }
 
 void mainStatus(struct mqtt_client *client)
-{
+{    
     switch(devRegGet())
     {
+        case DEV_REG_STATUS:
+            publish_dev_query("", 0);
+            break;
+        case DEV_REG_PRESS_ENTER:
+            if(IsEnterPressed())
+            {
+                ClearKey();
+                devRegSet(DEV_REG_POLL_FOR_WALLET);
+                hintString(htRegRequest,HINT_TIME_FOREVER); 
+            }
+            break;
+        case DEV_REG_POLL_FOR_WALLET:
+            publish_dev_query("", 0);
+            break;
+        case DEV_REG_ADDR_CHECK:
+            sprintf(htRegaddrChk_en,"%s", walletAddr);
+            hintString(htRegaddrChk,HINT_TIME_FOREVER);
+            if(IsEnterPressed())
+            {
+                devRegSet(DEV_REG_SIGN_SEND);
+                hintString(htRegWaitACK,HINT_TIME_FOREVER);
+            }
+            break;
         case DEV_REG_SIGN_SEND:
-            hintString(htRegWaitACK,HINT_TIME_FOREVER);            
             SignAndSend();
-            devRegSet(DEV_REG_WAIT_ACK);  
+            devRegSet(DEV_REG_POLL_STATE);  
             //  only for test
-            k_sleep(K_MSEC(1000));
-            devRegSet(DEV_REG_SUCCESS); 
+            //k_sleep(K_MSEC(1000));
+            //devRegSet(DEV_REG_SUCCESS); 
+            break;
+        case DEV_REG_POLL_STATE:
+            publish_dev_query("", 0);
+            
+            //devRegSet(DEV_REG_SUCCESS); 
             break;
         case DEV_REG_SUCCESS:
             hintString(htRegSuccess, HINT_TIME_DEFAULT);
-            devRegSet(DEV_REG_START);        
+            StartSendEnvData(30);
+            devRegSet(DEV_REG_STOP);                    
             break;
         case DEV_UPGRADE_STARED:
             stopTaskBeforeOTA();
@@ -169,7 +194,10 @@ void mainStatus(struct mqtt_client *client)
             hintString(htUpgrading, HINT_TIME_DEFAULT);
             printk("will restart ???\n");
             waitForOtaOver();
-            iotex_mqtt_upgrade_over(client,0);
+            //iotex_mqtt_upgrade_over(client,0);
+            break;
+        case DEV_REG_STOP:
+            
             break;
         default :
             break;
@@ -218,10 +246,10 @@ void  iotexDevBinding(struct pollfd *fds, struct mqtt_client *client)
             break;
         } 
         //printk("kjkljljljljlj\n");
-        if(!err)
-        {
-            iotex_mqtt_heart_beat(client, 0);
-        }     
+        //if(!err)
+        //{
+        //    iotex_mqtt_heart_beat(client, 0);
+        //}     
         printk("mqtt live ????\n");
 
         mainStatus(client);       

@@ -176,11 +176,6 @@ static struct k_delayed_work send_env_data_work;
 static struct k_delayed_work long_press_button_work;
 static struct k_delayed_work   heartbeat_work;
 
-
-//static struct k_delayed_work power_off_button_work;
-//static struct k_delayed_work send_agps_request_work;
-//static struct k_delayed_work gps_work;
-
 #if defined(CONFIG_AT_CMD)
 #define MODEM_AT_CMD_BUFFER_LEN (CONFIG_AT_CMD_RESPONSE_MAX_LEN + 1)
 #else
@@ -361,11 +356,13 @@ static void send_env_data_work_fn(struct k_work *work) {
     config_mutex_lock();
     if (iotex_mqtt_is_bulk_upload()) {
         sampling_and_store_sensor_data();
-        k_delayed_work_submit(&send_env_data_work, K_SECONDS(iotex_mqtt_get_sampling_frequency()));
+        //k_delayed_work_submit(&send_env_data_work, K_SECONDS(iotex_mqtt_get_sampling_frequency()));
+        k_delayed_work_submit_to_queue(&application_work_q, &send_env_data_work, K_SECONDS(iotex_mqtt_get_sampling_frequency())); 
     }
     else {
         periodic_publish_sensors_data();
-        k_delayed_work_submit(&send_env_data_work, K_SECONDS(iotex_mqtt_get_upload_period()));
+        //k_delayed_work_submit_to_queue(&application_work_q, &send_env_data_work, K_SECONDS(iotex_mqtt_get_upload_period()));
+        k_delayed_work_submit_to_queue(&application_work_q, &send_env_data_work, K_SECONDS(30));
     }
     config_mutex_unlock();
     return;
@@ -518,16 +515,6 @@ void publish_gps_data() {
     }
 }
 #endif
-#if 0
-static void genSampleData(void)
-{
-    struct mqtt_payload msg;
-    if(!iotex_mqtt_get_selected_payload(iotex_mqtt_get_data_channel(), &msg)) {
-        printk("sensor_data:%s\n", msg.buf);
-        free(msg.buf);
-    }    
-}
-#endif
 
 #if 1 
 #include <drivers/pwm.h>
@@ -565,36 +552,35 @@ void mqttGetResponse(void)
 }
 static void periodic_publish_sensors_data() {
     int rc;
-    struct mqtt_payload msg;
+    char *pbuf=NULL;
     printk("[%s:%d]\n", __func__, __LINE__);
-
     if (iotex_mqtt_is_connected() && !ismqttOffline()) {
-        SUCCESS_OR_BREAK(mqtt_ping(&client));
-
-        /* Upload selected channel data */
-        if (!iotex_mqtt_get_selected_payload(iotex_mqtt_get_data_channel(), &msg)) {           
-            rc = iotex_mqtt_publish_data(&client, 0, msg.buf);            
+        SUCCESS_OR_BREAK(mqtt_ping(&client));  
+        pbuf = malloc(DATA_BUFFER_SIZE);           
+        if(rc = SensorPackage(iotex_mqtt_get_data_channel(), pbuf)) {      
+            rc = iotex_mqtt_publish_data(&client, 0, pbuf, rc);            
             printk("mqtt_publish_devicedata: %d \n", rc);  
-            printk("message:%s \n", msg.buf);          
-            //free(msg.buf);
-            cJSON_free(msg.buf);
-            //mqttSentOnce();
         }
         else
         {
             printk("mqtt package error ! \n");
-        }                
+        }
+        free(pbuf);              
     }
     else
     {
         printk("periodic_publish_sensors_data mqttSentCount : %d \n", mqttSentCount);
         sys_reboot(0);
     }
+} 
+int publish_dev_ownership(char *buf, int len)
+{
+    return iotex_mqtt_publish_ownership(&client, 0, buf, len);
 }
 
-int publish_dev_ownership(char *buf)
+int publish_dev_query(char *buf, int len)
 {
-    return iotex_mqtt_publish_ownership(&client, 0, buf);
+    return iotex_mqtt_publish_query(&client, 0, buf, len);
 }
 
 #if IS_ENABLED(CONFIG_GPS_START_ON_MOTION)
@@ -763,7 +749,7 @@ static void ui_evt_handler(struct ui_evt evt)
        (evt.button == UI_BUTTON_1)) {
         if(IsDevReg())
         {
-            if(devRegGet() == DEV_REG_WAIT_FOR_BUTTON_DOWN)
+            if(devRegGet() == 1)
             {
                 devRegSet(DEV_REG_SIGN_SEND);
                 //SetIndicator(UI_WAIT_ACK);
@@ -850,31 +836,7 @@ void handle_bsdlib_init_ret(void)
 void iotex_mqtt_bulk_upload_sampling_data(uint16_t channel) {
     int rc;
     struct mqtt_payload msg;
-	uint8_t buffer[128];
-	
-      printk("[%s:%d]\n", __func__, __LINE__);	
-	if(!iotex_mqtt_is_bulk_upload_over())
-	{
-		iotex_local_storage_hist(SID_MQTT_BULK_UPLOAD_DATA, buffer, get_block_size(), get_his_block());
-	    if (iotex_mqtt_is_connected() && !ismqttOffline()) {
-	        SUCCESS_OR_BREAK(mqtt_ping(&client));
-
-	        /* Upload selected channel data */
-	        if (!iotex_mqtt_bin_to_json(buffer, iotex_mqtt_get_data_channel(), &msg)) {
-	            rc = iotex_mqtt_publish_data(&client, 0, msg.buf);
-	            PRINT_RESULT("mqtt_bulk_upload", rc);
-	            free(msg.buf);
-                mqttSentOnce();
-	        }
-	    }
-        else
-        {
-            printk("periodic_publish_sensors_data mqttSentCount : %d \n", mqttSentCount);
-            sys_reboot(0);            
-        }
-        	
-		iotex_mqtt_inc_current_upload_count();	
-	}			
+	uint8_t buffer[128];		
 }
 static void sampling_and_store_sensor_data(void) {
     /* Data sampling mode */ 
@@ -921,7 +883,32 @@ void stopMqtt(void)
 {
     mqtt_disconnect(&client);    
 }
+
+void StartSendEnvData(uint32_t sec)
+{
+    printk("start send env data!\n");
+    k_delayed_work_submit_to_queue(&application_work_q, &send_env_data_work, K_SECONDS(sec));
+}
+
 extern void sta_Refresh(void);
+void data_test(void)
+{
+    char *pbuf=NULL;
+    int rc;
+    printk("[%s:%d]\n", __func__, __LINE__);
+    pbuf = malloc(DATA_BUFFER_SIZE);
+    /* Upload selected channel data */        
+    if(rc = SensorPackage(iotex_mqtt_get_data_channel(), pbuf)) {           
+        printk("mqtt_publish_devicedata: %d \n", rc);  
+    }
+    else
+    {
+        printk("mqtt package error ! \n");
+    }
+    free(pbuf);    
+}
+
+
 void main(void)
 {
     int err;
@@ -934,20 +921,12 @@ void main(void)
 		watchdog_init_and_start(&application_work_q);        
 	}
     //  init ECDSA 
+    InitLowsCalc();
     if(initECDSA_sep256r())
     {
         printk("initECDSA_sep256r error\n");       
         return;        
     }
-    //Initcc3xx();
-    //store_key_in_kmu(2);
-    //use_key_from_kmu(2);
-
-    //return 0;
-
-    //RSA_gen_key();
-    //RSA_encrypt();
-    //RSA_decrypt();
 
 	 /* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
     iotex_local_storage_init();
@@ -973,9 +952,6 @@ void main(void)
     provision_certificates();
 #endif /* CONFIG_USE_PROVISIONED_CERTIFICATES  */
 	
-#if defined(CONFIG_USE_UI_MODULE)
-   // ui_init(ui_evt_handler);
-#endif
 	iotex_key_init();
     updateLedPattern();
 	work_init();
@@ -984,11 +960,7 @@ void main(void)
 
     sta_Refresh();
 
-//hintString(htRegSuccess/*htRegRequest*/, HINT_TIME_DEFAULT);
-
 	modem_configure();
-	iotex_modem_get_clock(NULL);
-
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&bsdlib_initialized, K_FOREVER);
 #else
@@ -1010,67 +982,10 @@ void main(void)
             sys_reboot(0);
             return;
         }       
-        k_delayed_work_submit(&send_env_data_work, K_SECONDS(10));
-        // device  binding registration
         iotexDevBinding(&fds,&client);
         k_delayed_work_cancel(&send_env_data_work);
-        // open Iotex-GPS
-        //sensors_init();
+        devRegSet(DEV_REG_START);
     }
-
-    #if 0
-    while (true) {
-        err = poll(&fds, 1, CONFIG_MAIN_BASE_TIME);
-
-        if (err < 0) {
-            printk("ERROR: poll %d\n", errno);
-            error_handler(ERROR_CLOUD, err);
-            break;
-        }
-        err = mqtt_live(&client);
-
-        if ((err != 0) && (err != -EAGAIN)) {
-            printk("ERROR: mqtt_live %d\n", err);
-            error_handler(ERROR_CLOUD, err);
-            break;
-        }
-        if(!err)
-        {
-            iotex_mqtt_heart_beat(&client, 0);
-        }        
-        printk("mqtt live ????\n");
-
-        if ((fds.revents & POLLIN) == POLLIN) {
-            err = mqtt_input(&client);
-
-            if (err != 0) {
-                printk("ERROR: mqtt_input %d\n", err);
-                error_handler(ERROR_CLOUD, -EIO);
-                break;
-            }
-        }
-
-        if ((fds.revents & POLLERR) == POLLERR) {
-            printk("POLLERR\n");
-            error_handler(ERROR_CLOUD, -EIO);
-            break;
-        }
-
-        if ((fds.revents & POLLNVAL) == POLLNVAL) {
-            printk("POLLNVAL\n");
-            error_handler(ERROR_CLOUD, -EIO);
-            break;
-        }
-
-        if (do_reboot) {
-            /* Teardown */
-            mqtt_disconnect(&client);
-            sys_reboot(0);
-        }
-        updateLedPattern();
-        CheckPower();
-    }
-    #endif
 #if defined(CONFIG_LWM2M_CARRIER)
 	LOG_INF("Waiting for LWM2M carrier to complete initialization...");
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);

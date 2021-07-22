@@ -12,13 +12,13 @@ struct mqtt_payload {
     char *buf;
     size_t len;
 };
-
+#define  DATA_BUFFER_SIZE   500
 /* Get MQTT client id */
 const uint8_t *iotex_mqtt_get_client_id(void);
 
 bool iotex_mqtt_is_connected(void);
 int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds);
-int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char *data);
+int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char *data, int  len);
 
 /* Sampling data and pack to json string to output buffer */
 int iotex_mqtt_get_devinfo_payload(struct mqtt_payload *output);
@@ -41,5 +41,7 @@ int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos);
 int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos);
 
 int iotex_mqtt_upgrade_over(struct mqtt_client *client, enum mqtt_qos qos);
+
+int SensorPackage(uint16_t channel, uint8_t *buffer);
 
 #endif

@@ -39,6 +39,8 @@ extern const uint8_t *htRegWaitACK[];
 extern const uint8_t *htRegSuccess[];
 extern const uint8_t *htconfirmUpgrade[];
 extern const uint8_t *htUpgrading[];
+extern const uint8_t *htRegaddrChk[];
+extern uint8_t  htRegaddrChk_en[];
 extern  uint8_t htLanguage;
 
 

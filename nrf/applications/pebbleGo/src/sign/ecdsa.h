@@ -7,5 +7,7 @@ void hex2str(char* buf_hex, int len, char *str);
 int GenRandom(char *out);
 int startup_check_ecc_key(void);
 int  get_ecc_public_key(char *pub);
+void InitLowsCalc(void);
+int doESDASign(char *inbuf, uint32_t len, char *buf, int* sinlen);
 
 #endif

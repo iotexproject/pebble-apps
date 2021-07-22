@@ -10,6 +10,10 @@
 #include "ui.h"
 #include "display.h"
 
+#include "pb_decode.h"
+#include "pb_encode.h"
+#include "package.pb.h"
+
 #if !defined(CONFIG_CLOUD_CLIENT_ID)
 #define CLIENT_ID_LEN (MODEM_IMEI_LEN + 4)
 #else
@@ -28,7 +32,7 @@ atomic_val_t send_data_enable;
 /* When connect mqtt server failed, auto reboot */
 static struct k_delayed_work cloud_reboot_work;
 
-static uint8_t devState=0;
+static uint8_t devSt=0;
 
 /* Buffers for MQTT client. */
 static u8_t rx_buffer[CONFIG_MQTT_MESSAGE_BUFFER_SIZE];
@@ -45,7 +49,7 @@ static  void iotex_mqtt_get_topic(u8_t *buf, int len)
 }
 static  void iotex_mqtt_get_config_topic(u8_t *buf, int len) 
 {
-    snprintf(buf, len, "device/%s/action/upgrade",iotex_mqtt_get_client_id());
+    snprintf(buf, len, "backend/%s/firmware",iotex_mqtt_get_client_id());
 }
 static  void iotex_mqtt_get_upgrdOver_topic(u8_t *buf, int len)
 {
@@ -62,38 +66,92 @@ static void iotex_set_upload_topic(u8_t *buf, int len)
 
 static  void iotex_mqtt_get_reg_topic(u8_t *buf, int len) 
 {
-    snprintf(buf, len, "device/%s/action/add",iotex_mqtt_get_client_id());
+    snprintf(buf, len, "backend/%s/status",iotex_mqtt_get_client_id());
 }
 static  void iotex_mqtt_get_ownership_topic(u8_t *buf, int len) 
 {
-    snprintf(buf, len, "device/%s/action/confirm",iotex_mqtt_get_client_id());
+    snprintf(buf, len, "device/%s/confirm",iotex_mqtt_get_client_id());
+}
+static  void iotex_mqtt_query_topic(u8_t *buf, int len) 
+{
+    snprintf(buf, len, "device/%s/query",iotex_mqtt_get_client_id());
+}
+static void  iotex_mqtt_backend_ack_topic(u8_t *buf, int len)
+{
+    snprintf(buf, len, "backend/%s/status",iotex_mqtt_get_client_id());
 }
 
 
-static void packDevState(uint8_t *buf, uint32_t size)
+static int packDevState(uint8_t *buf, uint32_t size)
 {
-    switch(devState){
+    SensorState  devSta = SensorState_init_zero;
+    BinPackage binpack = BinPackage_init_zero;
+    uint32_t  uint_timestamp;
+    char esdaSign[65];
+    int  sinLen;
+
+    switch(devSt){
         case 0:
-            snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","online");
-            devState = 1;
+            //snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","online");
+            devSta.has_state = true;
+            strcpy(devSta.state, "1");
+            devSt = 1;
             break;
          case 1:
-            snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","running");
+            //snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","running");
+            devSta.has_state = true;
+            strcpy(devSta.state, "2");            
             break;
         case 2:
-            snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","offline");
+            //snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","offline");
+            devSta.has_state = true;
+            strcpy(devSta.state, "3");  
             break;
         case 3:
-            snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","error");
+            //snprintf(buf, size, "{\"message\":{\"deviceState\":\"%s\"}}","error");
+            devSta.has_state = true;
+            strcpy(devSta.state, "4");              
             break;
         default:
             break;                               
     }
+    if(devSt < 4)
+    {
+        uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+        pb_ostream_t enc_datastream;
+        enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));	
+        if (!pb_encode(&enc_datastream, SensorState_fields, &devSta))
+        {
+            //encode error happened
+            printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
+            return 0;
+        } 
+        binpack.data.size = enc_datastream.bytes_written;
+        binpack.data.bytes[enc_datastream.bytes_written] = (char)((uint_timestamp & 0xFF000000) >> 24);
+        binpack.data.bytes[enc_datastream.bytes_written+1] = (char)((uint_timestamp & 0x00FF0000) >> 16);
+        binpack.data.bytes[enc_datastream.bytes_written+2] = (char)((uint_timestamp & 0x0000FF00) >> 8);
+        binpack.data.bytes[enc_datastream.bytes_written+3] = (char)(uint_timestamp & 0x000000FF);  
+        doESDASign(binpack.data.bytes,enc_datastream.bytes_written + 4,esdaSign,&sinLen);  
+        memcpy(binpack.signature, esdaSign, 64); 
+        binpack.timestamp = uint_timestamp;        
+
+        pb_ostream_t enc_packstream;
+        enc_packstream = pb_ostream_from_buffer(buf, size);	
+        if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack))
+        {
+            //encode error happened
+            printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
+            return 0;
+        }
+        return  enc_packstream.bytes_written;    
+    }
+    return 0;
 }
 
 static void packUpgrdOver(uint8_t *buf, uint32_t size)
 {
-    snprintf(buf, size, "{\"message\":{\"downloadStatus\":\"1\"}}");
+    //snprintf(buf, size, "{\"message\":{\"downloadStatus\":\"1\"}}");
+    
 }
 
 /*
@@ -210,6 +268,7 @@ static int subscribe_regist_topic(struct mqtt_client *client) {
     return mqtt_subscribe(client, &subscription_list);
 }
 
+
 /**@brief Function to print strings without null-termination. */
 static void data_print(u8_t *prefix, u8_t *data, size_t len) {
     char buf[len + 1];
@@ -263,6 +322,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
 
     int err;
     uint8_t revTopic[100];
+    uint32_t status;
     switch (evt->type) {
         case MQTT_EVT_CONNACK:
             if (evt->result != 0) {
@@ -278,15 +338,17 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             //iotex_hal_gpio_set(LED_GREEN, LED_OFF);
 
             // upload configure and  firmware version
-            iotex_mqtt_configure_upload(c,0);
-            
+            //iotex_mqtt_configure_upload(c,0);
+            //publish_dev_query("", 0);
+
             printk("[%s:%d] MQTT client connected!\n", __func__, __LINE__);
             if(IsDevReg())
             {
-                subscribe_regist_topic(c);                
-                devRegSet(DEV_REG_WAIT_FOR_WALLET);
+                subscribe_regist_topic(c);  
+                ClearKey();             
+                devRegSet(DEV_REG_STATUS);
                 //SetIndicator(UI_WAIT_FOR_WALLET);
-                hintString(htNetConnected,HINT_TIME_FOREVER);
+                //hintString(htNetConnected,HINT_TIME_FOREVER);
             }
             // get upgrade url
             subscribe_config_topic(c); 
@@ -309,14 +371,27 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
 
             if (err >= 0) {
                 data_print("Received: ", payload_buf, p->message.payload.len);
-                iotex_mqtt_get_reg_topic(revTopic,sizeof(revTopic));
+                //iotex_mqtt_get_reg_topic(revTopic,sizeof(revTopic));
+                iotex_mqtt_backend_ack_topic(revTopic,sizeof(revTopic));
                 if (!strcmp(p->message.topic.topic.utf8, revTopic))
                 {
-                    if(IsDevReg()){
-                        iotex_mqtt_get_wallet(payload_buf, p->message.payload.len);
-                        devRegSet(DEV_REG_WAIT_FOR_BUTTON_DOWN);                        
-                        hintString(htRegRequest,HINT_TIME_FOREVER);
-                    }                    
+                    status = iotex_mqtt_get_wallet(payload_buf, p->message.payload.len);
+                    if(status == 2)
+                    {
+                        iotex_mqtt_configure_upload(c,0);
+                        if(IsDevReg())
+                            devRegSet(DEV_REG_SUCCESS);                         
+                    }
+                    else if(status == 1)
+                    {
+                        if(devRegGet() == DEV_REG_POLL_FOR_WALLET)
+                            devRegSet(DEV_REG_ADDR_CHECK);
+                    }
+                    else
+                    {
+                        hintString(htNetConnected,HINT_TIME_FOREVER);
+                        devRegSet(DEV_REG_PRESS_ENTER);                        
+                    }               
                 }
                 else
                 {   //  download  firmware url
@@ -401,7 +476,27 @@ const uint8_t *iotex_mqtt_get_client_id() {
     return client_id_buf;
 }
 
-int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, char *data)
+
+int iotex_mqtt_publish_query(struct mqtt_client *client, enum mqtt_qos qos, char *data, int len)
+{
+    struct mqtt_publish_param param;
+    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    iotex_mqtt_query_topic(pub_topic, sizeof(pub_topic));
+    param.message.topic.qos = qos;
+    param.message.topic.topic.utf8 = pub_topic;
+    param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
+
+    param.message.payload.data = data;
+    param.message.payload.len = len;
+    param.message_id = iotex_random(); //sys_rand32_get();
+    param.dup_flag = 0U;
+    param.retain_flag = 0U;
+printk("publish topic %s \n", pub_topic);
+printk("data: %s \n",data);
+    return mqtt_publish(client, &param);    
+}
+
+int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, char *data, int len)
 {
     struct mqtt_publish_param param;
     u8_t pub_topic[MQTT_TOPIC_SIZE];
@@ -411,17 +506,17 @@ int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, 
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
 
     param.message.payload.data = data;
-    param.message.payload.len = strlen(data);
+    param.message.payload.len = len;
     param.message_id = iotex_random(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
 printk("publish topic %s \n", pub_topic);
-printk("data: %s \n",data);
+printk("len: %d \n",len);
     return mqtt_publish(client, &param);    
 }
 
 
-int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char *data) {
+int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char *data, int  len) {
     struct mqtt_publish_param param;
     u8_t pub_topic[MQTT_TOPIC_SIZE];
     iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
@@ -430,7 +525,7 @@ int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char 
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
 
     param.message.payload.data = data;
-    param.message.payload.len = strlen(data);
+    param.message.payload.len = len;
     param.message_id = iotex_random(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
@@ -442,6 +537,7 @@ int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos)
 {
     struct mqtt_publish_param param;
     u8_t pub_topic[MQTT_TOPIC_SIZE];
+    int len;
     uint8_t payload[100];
 printk("iotex_mqtt_heart_beat\n");    
     iotex_get_heart_beat_topic(pub_topic, sizeof(pub_topic));
@@ -449,10 +545,10 @@ printk("iotex_mqtt_heart_beat\n");
     param.message.topic.topic.utf8 = pub_topic;
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
 
-    packDevState(payload, sizeof(payload));
+    len = packDevState(payload, sizeof(payload));
 printk("iotex_mqtt_heart_beat:%s\n",payload);    
     param.message.payload.data = payload;//"a";
-    param.message.payload.len = strlen(payload);    
+    param.message.payload.len = len;    
     param.message_id = iotex_random(); //sys_rand32_get();   
     param.dup_flag = 0U;
     param.retain_flag = 0U;
@@ -487,15 +583,17 @@ int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos)
     struct mqtt_publish_param param;
     u8_t pub_topic[MQTT_TOPIC_SIZE];
     uint8_t payload[300];
-    iotex_set_upload_topic(pub_topic, sizeof(pub_topic));
+    int len;
+    iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
+printk("configure topic:%s\n", pub_topic);
     param.message.topic.qos = qos;
     param.message.topic.topic.utf8 = pub_topic;
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
 
-    packDevConf(payload, sizeof(payload));
+    len = packDevConf(payload, sizeof(payload));
     param.message.payload.data = payload;//"a";
-printk("iotex_mqtt_configure_upload:%s\n",payload);     
-    param.message.payload.len = strlen(payload);    
+printk("iotex_mqtt_configure_upload len:%d\n",len);     
+    param.message.payload.len = len;    
     param.message_id = iotex_random(); //sys_rand32_get();   
     param.dup_flag = 0U;
     param.retain_flag = 0U;

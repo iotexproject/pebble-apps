@@ -12,6 +12,10 @@
 #include "gps_controller.h"
 #include "light_sensor/tsl2572.h"
 
+#include "pb_decode.h"
+#include "pb_encode.h"
+#include "package.pb.h"
+
 extern double latitude;
 extern double longitude;
 int json_add_obj(cJSON *parent, const char *str, cJSON *item) {
@@ -462,8 +466,11 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
         }        
     }
     //output->buf = cJSON_PrintUnformatted(msg_obj);  
-    output->buf = cJSON_PrintUnformatted(root_obj);     
+    output->buf = cJSON_PrintUnformatted(root_obj);
+//printk("sign_string:%s\n", output->buf);             
     doESDA_sep256r_Sign(output->buf,strlen(output->buf),esdaSign,&sinLen);   
+//printk("doESDA_sep256r_Sign :0x%x \n", i); 
+
     hex2str(esdaSign, sinLen,jsStr);
     cJSON_free(output->buf);
     memcpy(esdaSign,jsStr,64);
@@ -482,7 +489,10 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     //memset(output->buf, 0, strlen(output->buf));   
     output->buf = cJSON_PrintUnformatted(root_obj);    
     output->len = strlen(output->buf);
-    cJSON_Delete(root_obj);   
+    cJSON_Delete(root_obj);  
+printk("json package: %d bytes\n", output->len);
+//TestProtobufFloat(channel);    
+
     return 0;
 
 out:
@@ -673,7 +683,7 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
 
     cJSON_AddItemToObject(root_obj, "message", msg_obj);
     output->buf = cJSON_PrintUnformatted(msg_obj);
-    doESDA_sep256r_Sign(output->buf,strlen(output->buf),esdaSign,&sinLen);
+    doESDA_sep256r_Sign(output->buf,strlen(output->buf),esdaSign,&sinLen);   
     hex2str(esdaSign, sinLen,jsStr);
     free(output->buf);
     memcpy(esdaSign, jsStr, 64);
@@ -695,4 +705,215 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
 out:
     cJSON_Delete(root_obj);
     return -ENOMEM;	
+}
+// protoc --nanopb_out=.  package.proto
+
+int SensorPackage(uint16_t channel, uint8_t *buffer)
+{
+    int i;
+    iotex_storage_bme680 env_sensor;
+    iotex_storage_icm42605 action_sensor;
+    char esdaSign[65];
+    char jsStr[130];
+    int  sinLen;
+    float AmbientLight=0.0;
+    uint32_t  uint_timestamp;
+    //char random[17];
+    
+
+    BinPackage binpack = BinPackage_init_zero;
+    
+    SensorData sensordat = SensorData_init_zero;
+    // Initialize buffer
+    memset(buffer, 0, DATA_BUFFER_SIZE);
+    if (DATA_CHANNEL_ENV_SENSOR & channel) {
+        if (iotex_bme680_get_sensor_data(&env_sensor)) {
+            return 0;
+        }
+    }
+
+    if (DATA_CHANNEL_ACTION_SENSOR & channel) {
+        if (iotex_icm42605_get_sensor_data(&action_sensor)) {
+            return 0;
+        }
+    }
+
+    /* Snr */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_SNR)) {
+        sensordat.snr = (uint32_t)(iotex_model_get_signal_quality()*100);
+        printk("SNR:%d\n", sensordat.snr);
+        sensordat.has_snr=true;
+    }
+
+    /* Vbat */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
+        sensordat.vbat = (uint32_t)(iotex_modem_get_battery_voltage()/10);
+        sensordat.has_vbat = true;
+    }
+
+    /* TODO GPS */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {        
+        int i = getGPS(&latitude,&longitude);     
+        if(!i){
+            sensordat.latitude = (uint32_t)(latitude*100000);
+            sensordat.has_latitude = true;
+            sensordat.longitude = (uint32_t)(longitude*100000);
+            sensordat.has_longitude = true;
+        }
+        else{
+            sensordat.latitude = 2000000000;
+            sensordat.has_latitude = true;
+            sensordat.longitude = 2000000000;
+            sensordat.has_longitude = true;
+        }                    
+    }
+    /* Env sensor gas */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
+        sensordat.gasResistance = (uint32_t)(env_sensor.gas_resistance*100);
+        sensordat.has_gasResistance = true;
+        //printk("sensordat.gasResistance:%d\n", sensordat.gasResistance);
+    }
+
+    /* Env sensor temperature */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP)) {
+        sensordat.temperature = (uint32_t)(env_sensor.temperature*100);
+        sensordat.has_temperature = true;
+    }
+
+    /* Env sensor pressure */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_PRESSURE)) {
+        sensordat.pressure = (uint32_t)(env_sensor.pressure*100);
+        sensordat.has_pressure = true;        
+    }
+
+    /* Env sensor humidity */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_HUMIDITY)) {
+        sensordat.humidity = (uint32_t)(env_sensor.humidity*100);
+        sensordat.has_humidity = true;
+    }
+    /* Env sensor light */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_LIGHT_SENSOR)) {
+        AmbientLight=iotex_Tsl2572ReadAmbientLight();      
+        sensordat.light = (uint32_t)(AmbientLight*100);
+        sensordat.has_light = true;
+    }    
+
+    /* Action sensor temperature */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP2)) {
+        sensordat.temperature2 = (uint32_t)(action_sensor.temperature*100);
+        sensordat.has_temperature2 = true;
+    }
+
+    /* Action sensor gyroscope data */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GYROSCOPE)) { 
+        for (i = 0; i < ARRAY_SIZE(action_sensor.gyroscope); i++) {
+            sensordat.gyroscope[i] = (int32_t)(action_sensor.gyroscope[i]);
+        }
+    }
+    /* Action sensor accelerometer */
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_ACCELEROMETER)) {
+        for (i = 0; i < ARRAY_SIZE(action_sensor.accelerometer); i++) {
+            sensordat.accelerometer[i] = (int32_t)(action_sensor.accelerometer[i]);
+        }
+    }
+    /* Add timestamp */
+    uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+    // get random number
+    GenRandom(sensordat.random);
+    sensordat.random[sizeof(sensordat.random)-1] = 0;
+    sensordat.has_random = true;
+
+    pb_ostream_t enc_datastream;
+	enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));	
+	if (!pb_encode(&enc_datastream, SensorData_fields, &sensordat))
+	{
+		//encode error happened
+		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
+		return 0;
+	}
+    binpack.data.size = enc_datastream.bytes_written;
+    binpack.data.bytes[enc_datastream.bytes_written] = (char)((uint_timestamp & 0xFF000000) >> 24);
+    binpack.data.bytes[enc_datastream.bytes_written+1] = (char)((uint_timestamp & 0x00FF0000) >> 16);
+    binpack.data.bytes[enc_datastream.bytes_written+2] = (char)((uint_timestamp & 0x0000FF00) >> 8);
+    binpack.data.bytes[enc_datastream.bytes_written+3] = (char)(uint_timestamp & 0x000000FF);
+    *(uint32_t*)buffer = BinPackage_PackageType_DATA;
+    memcpy(buffer+4,  binpack.data.bytes, enc_datastream.bytes_written+4);
+    printk("uint_timestamp:%d \n",uint_timestamp);
+    doESDASign(buffer,enc_datastream.bytes_written + 8,esdaSign,&sinLen);
+printk("sinLen:%d\n", sinLen);           
+    memcpy(binpack.signature, esdaSign, 64);      
+    binpack.timestamp = uint_timestamp; 
+    binpack.type = BinPackage_PackageType_DATA;
+    pb_ostream_t enc_packstream;
+	enc_packstream = pb_ostream_from_buffer(buffer, DATA_BUFFER_SIZE);	
+	if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack))
+	{
+		//encode error happened
+		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
+		return 0;
+	}
+    printk("sen->snr:%d\n", sensordat.snr);
+
+#if 0
+    // --------------------------------- TEST CODE ------------------------
+    {
+        sinLen = enc_packstream.bytes_written;
+        // decode buffer now
+        /* Allocate space for the decoded message. */
+        BinPackage message = BinPackage_init_zero;
+        
+        /* Create a stream that reads from the buffer. */
+        pb_istream_t sens_decode_stream = pb_istream_from_buffer(buffer, sinLen);
+        
+        /* Check for errors... */
+        if (!pb_decode(&sens_decode_stream, BinPackage_fields, &message))
+        {
+            printk("Decoding failed: %s\n", PB_GET_ERROR(&sens_decode_stream));
+            return 0;
+        }
+
+        SensorData DecodeSensor = SensorData_init_zero;        
+        /* Create a stream that reads from the buffer. */
+        pb_istream_t test_decode_stream = pb_istream_from_buffer(binpack.data.bytes, binpack.data.size);
+        
+        /* Check for errors... */
+        if (!pb_decode(&test_decode_stream, SensorData_fields, &DecodeSensor))
+        {
+            printk("Decoding failed: %s\n", PB_GET_ERROR(&test_decode_stream));
+            return 0;
+        }
+
+        PrintSensorData(&DecodeSensor);
+    }
+#endif
+
+    return  enc_packstream.bytes_written;
+}
+void PrintSensorData(SensorData *sen, BinPackage *pack)
+{
+    printk("protobuf decode : \n");
+printk("sen->snr:%d\n", sen->snr);
+    printk("snr:%d.%02d vbat:%d.%02d latitude:%d.%05d longitude:%d.%05d \n" , sen->snr/100,sen->snr%100, \
+    sen->vbat/100,sen->vbat%100,sen->latitude/100000,sen->latitude%100000,\
+    sen->longitude/100000,sen->longitude%100000);
+
+    printk("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n",sen->gasResistance/100,sen->gasResistance%100,\
+    sen->temperature/100,sen->temperature%100,sen->pressure/100,sen->pressure%100,\
+    sen->humidity/100,sen->humidity%100);
+
+    printk("light:%d.%02d temperature2:%d.%02d gyroscope:%d,%d,%d \n",sen->light/100,sen->light%100,\
+    sen->temperature2/100,sen->temperature2%100,sen->gyroscope[0],sen->gyroscope[1],sen->gyroscope[2]);
+
+    printk("accelerometer:%d,%d,%d \n", sen->accelerometer[0],sen->accelerometer[1],sen->accelerometer[2]);
+
+    printk("timestamp:%s \n", pack->timestamp);
+
+    printk("randoms: %s\n", sen->random);
+
+    printk("signature:");
+    for(int i =0; i <64; i++)
+    {
+        printk("%02x", pack->signature[i]);
+    }
+    printk("\n");   
 }

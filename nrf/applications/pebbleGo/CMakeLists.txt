@@ -36,13 +36,15 @@ target_sources(app PRIVATE src/mqtt/config.c)
 target_sources(app PRIVATE src/mqtt/payload.c)
 target_sources(app PRIVATE src/mqtt/devReg.c)
 # Protbuf
-#target_sources(app PRIVATE src/nanopb/pb_encode.c)
-#target_sources(app PRIVATE src/nanopb/pb_decode.c)
-#target_sources(app PRIVATE src/nanopb/pb_common.c)
+target_sources(app PRIVATE src/nanopb/pb_encode.c)
+target_sources(app PRIVATE src/nanopb/pb_decode.c)
+target_sources(app PRIVATE src/nanopb/pb_common.c)
+target_sources(app PRIVATE src/nanopb/package.pb.c)
 # Local NVS
 target_sources(app PRIVATE src/nvs/local_storage.c)
 # Signature 
 target_sources(app PRIVATE src/sign/ecdsa.c)
+target_sources(app PRIVATE src/sign/LowerS.c)
 # OTA
 target_sources(app PRIVATE src/ota/http_update.c)
 # Unittest
@@ -73,14 +75,14 @@ zephyr_library_include_directories(
   src/ui
   src/cloud_codec
 #  src/unittest
-#  src/nanopb
+  src/nanopb
   src/mqtt
   src/env_sensors
   src/light_sensor
   src/watchdog
   src/sign
-  src/antenna_sdk/src
-  src/antenna_sdk/src/crypto
+#  src/antenna_sdk/src
+#  src/antenna_sdk/src/crypto
   )
 
 # Application sources
@@ -92,8 +94,8 @@ add_subdirectory(src/gps_controller)
 add_subdirectory(src/env_sensors)
 add_subdirectory_ifdef(CONFIG_WATCHDOG src/watchdog)
 #add_subdirectory_ifdef(CONFIG_LIGHT_SENSOR src/light_sensor)
-add_subdirectory(src/antenna_sdk/src)
-add_subdirectory(src/antenna_sdk/src/crypto)
+#add_subdirectory(src/antenna_sdk/src)
+#add_subdirectory(src/antenna_sdk/src/crypto)
 
 if (CONFIG_USE_BME680_BSEC)
   target_link_libraries(app PUBLIC bsec_lib)

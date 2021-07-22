@@ -27,6 +27,11 @@ uint8_t getKey(void)
     return pressedKey;
 }
 
+bool IsEnterPressed(void)
+{
+    return (pressedKey & KB_POWER_KEY);
+}
+
 static void up_key_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {    
     u32_t key;    
     key = gpio_pin_get(port, IO_UP_KEY);
@@ -65,6 +70,7 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
         pressedKey |= KB_POWER_KEY;
         k_delayed_work_submit(&power_off_button_work,K_SECONDS(5));       
         printk("Power key pressed\n");
+        /*
         if(IsDevReg())
         {
             if(devRegGet() == DEV_REG_WAIT_FOR_BUTTON_DOWN)
@@ -80,6 +86,7 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
                 devRegSet(DEV_UPGRADE_STARED);
             }
         }
+        */
     }
     else {
         k_delayed_work_cancel(&power_off_button_work);

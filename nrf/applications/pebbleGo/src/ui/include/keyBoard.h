@@ -17,6 +17,7 @@ enum USER_KEY_DEF{
 void ClearKey(void);
 uint8_t getKey(void);
 void iotex_key_init(void);
+bool IsEnterPressed(void);
 
 
 
