@@ -384,13 +384,16 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                     }
                     else if(status == 1)
                     {
-                        if(devRegGet() == DEV_REG_POLL_FOR_WALLET)
+                        //if(devRegGet() == DEV_REG_POLL_FOR_WALLET)
+                        if(devRegGet() < DEV_REG_ADDR_CHECK)
                             devRegSet(DEV_REG_ADDR_CHECK);
                     }
                     else
                     {
-                        hintString(htNetConnected,HINT_TIME_FOREVER);
-                        devRegSet(DEV_REG_PRESS_ENTER);                        
+                        if(devRegGet() != DEV_REG_POLL_FOR_WALLET){
+                            hintString(htNetConnected,HINT_TIME_FOREVER);
+                            devRegSet(DEV_REG_PRESS_ENTER); 
+                        }                      
                     }               
                 }
                 else
@@ -398,12 +401,12 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                     iotex_mqtt_get_config_topic(revTopic,sizeof(revTopic));
                     if (!strcmp(p->message.topic.topic.utf8, revTopic))
                     {
-                        //if(!IsDevReg())
-                        //{
+                        if(!IsDevReg())
+                        {
                             iotex_mqtt_update_url(payload_buf, p->message.payload.len);
                             hintString(htconfirmUpgrade,HINT_TIME_FOREVER);
                             devRegSet(DEV_UPGRADE_CONFIRM);
-                        //}
+                        }
                     }
                 }                                
             }

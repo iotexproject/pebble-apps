@@ -58,7 +58,7 @@ void  hintString(uint8_t *str[], uint8_t tim)
     dis = str[htLanguage]; 
     clearDisBuf(0,5);    
     if(htLanguage == HT_LANGUAGE_EN){        
-        len = strlen(dis); 
+        len = strlen(dis);        
         if(len > 16)
         {
             lines = ((len<<3)+HINT_WIDTH-1)/HINT_WIDTH;       
@@ -68,7 +68,7 @@ void  hintString(uint8_t *str[], uint8_t tim)
             }
             else
             {
-                printk("Hints too long\n");
+                printk("Hints too long:%s, lines:%d\n", dis, lines);
                 sys_mutex_unlock(&iotex_hint_mutex);
                 return;
             }          
