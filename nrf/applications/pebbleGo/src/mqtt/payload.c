@@ -755,9 +755,9 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {        
         int i = getGPS(&latitude,&longitude);     
         if(!i){
-            sensordat.latitude = (uint32_t)(latitude*100000);
+            sensordat.latitude = (uint32_t)(latitude*10000000);
             sensordat.has_latitude = true;
-            sensordat.longitude = (uint32_t)(longitude*100000);
+            sensordat.longitude = (uint32_t)(longitude*10000000);
             sensordat.has_longitude = true;
         }
         else{

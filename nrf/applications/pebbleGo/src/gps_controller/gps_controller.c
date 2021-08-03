@@ -161,8 +161,7 @@ int getGPS(double *lat, double *lon)
     double fractpart; 	
 	if(printit){
 		if(!getRMC(print_buf1,&rmc)){
-		//if(!getRMC("$GNRMC,093153.00,A,3050.68816,N,11448.65818,E,0.074,,220720,,,A,V*12",&rmc)){
-#if 0			
+		//if(!getRMC("$GNRMC,093153.00,A,3050.68816,N,11448.65818,E,0.074,,220720,,,A,V*12",&rmc)){			
             intpart= rmc.latitude/100;
             fractpart=((rmc.latitude/100)-intpart)/0.6; 
 			if(rmc.lat == 'S')                     
@@ -175,18 +174,7 @@ int getGPS(double *lat, double *lon)
 			if(rmc.lon == 'W')                     
 			*lon = (intpart+fractpart)*-1; 
 			else	
-				*lon = intpart+fractpart; 
-#else 
-			if(rmc.lat == 'S')                     
-				*lat = rmc.latitude*-1;  
-			else
-				*lat = rmc.latitude;
-				
-			if(rmc.lon == 'W')                     
-				*lon = rmc.longitude*-1; 
-			else	
-				*lon = rmc.longitude; 								
-#endif												
+				*lon = intpart+fractpart; 												
 			ret = 0;						
 		}
 		printit = 0;
