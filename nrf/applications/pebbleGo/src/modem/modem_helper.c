@@ -27,7 +27,7 @@ const char *iotex_modem_get_imei() {
 int iotex_model_get_signal_quality() {
 
     enum at_cmd_state at_state;
-    char snr_ack[32], snr[4];
+    char snr_ack[32], snr[4]={0};
     char *p=snr_ack;
 
     int err = at_cmd_write("AT+CESQ", snr_ack, 32, &at_state);
@@ -185,5 +185,31 @@ void CheckPower(void)
         printk("power lower than 3.3 \n");
         PowerOffIndicator();
     }
+}
+void dectCard(void)
+{
+    enum at_cmd_state at_state;
+    char vbat_ack[32]; 
+    int err;
+
+    err = at_cmd_write("AT%XSIM=1", vbat_ack, 32, &at_state);   
+    if (err) {
+        printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+    }      
+}
+bool cardExist(void)
+{
+    enum at_cmd_state at_state;
+    char vbat_ack[32]; 
+    int err; 
+    memset(vbat_ack, 0, sizeof(vbat_ack));
+    err = at_cmd_write("AT%XSIM?", vbat_ack, 32, &at_state);   
+    if (err) {
+        printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+    }
+    if(vbat_ack[7] == '1')
+        return  true;
+    else
+        return  false;
 }
 

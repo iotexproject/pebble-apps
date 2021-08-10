@@ -39,6 +39,7 @@ void sta_LoadIcon(void)
 void sta_SetMeta(enum E_STATUS_BAR mt, uint8_t val)
 {
     staBar.val[mt] = val;
+    dectCard();
 }
 
 
@@ -48,13 +49,15 @@ void sta_Refresh(void)
     uint32_t vol;
     int i,j ;
     // signal quality
-    val = iotex_model_get_signal_quality();
-    if(val == 255)
+    //val = iotex_model_get_signal_quality();    
+    if(!cardExist())
     {
         memcpy(staBar.sig_icon, sim_card, sizeof(sim_card));
     }
     else
     {
+        val = iotex_model_get_signal_quality();      
+        if(val == 255) val = 0;
         val = val > 27 ? 27 : val;
         val /= 7;
         memcpy(staBar.sig_icon, Signal, sizeof(Signal));

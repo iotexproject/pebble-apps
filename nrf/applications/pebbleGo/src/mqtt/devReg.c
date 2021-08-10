@@ -253,12 +253,8 @@ void  iotexDevBinding(struct pollfd *fds, struct mqtt_client *client)
         printk("mqtt live ????\n");
 
         mainStatus(client);       
-        tmCount++;
-        if(tmCount == (STA_REFRESH_T/CONFIG_MAIN_BASE_TIME))
-        {
-            tmCount = 0;
-            sta_Refresh();
-        }
+        sta_Refresh();
+        
         if(!hintTimeDec())
         {
             ssd1306_display_logo();
