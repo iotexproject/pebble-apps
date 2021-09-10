@@ -213,3 +213,92 @@ bool cardExist(void)
         return  false;
 }
 
+bool getModeVer(uint8_t *buf)
+{    
+    enum at_cmd_state at_state;
+    char vbat_ack[32]; 
+    int err; 
+    memset(vbat_ack, 0, sizeof(vbat_ack));
+    err = at_cmd_write("AT%SHORTSWVER", vbat_ack, 32, &at_state);   
+    if (err) {
+        printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        return false;
+    }    
+    sprintf(buf, vbat_ack+13);
+    err = strlen(buf);
+    buf[err-1] = 0;
+    buf[err-2] = 0;
+    //printk("last char :%c \n", buf[strlen(buf)-2]);
+    return true;
+}
+void disableModem(void)
+{   
+    enum at_cmd_state at_state;
+    char vbat_ack[32]; 
+    int err;   
+    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);    
+    memset(vbat_ack, 0, sizeof(vbat_ack));  
+}
+
+bool  WritDataIntoModem(uint32_t sec, uint8_t *str)
+{
+    enum at_cmd_state at_state;
+    int err; 
+    char vbat_ack[32];
+    char  *cmd = NULL;
+    unsigned int  size;
+
+    size = strlen(str)+32;
+    cmd = malloc(size);
+    if(cmd == NULL)
+    {
+        //printk("line %d space not enough\n", __LINE__);
+        return false;
+    }
+
+    //bsdlib_shutdown();
+    //printk("WritDataIntoModem \n");
+    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);    
+    memset(vbat_ack, 0, sizeof(vbat_ack));
+    memset(cmd, 0, size);
+    strcpy(cmd, "AT%CMNG=");
+    sprintf(cmd+strlen(cmd), "0,%d,0,\"%s\"", sec, str);
+    //printk("write cmd :%s\n",cmd);
+    err = at_cmd_write(cmd, vbat_ack, 32, &at_state); 
+    free(cmd);   
+    if(err){
+        //printk("write erro\n");
+        return false;
+    }
+    else{
+        //printk("write over\n");
+        return true;  
+    }
+}
+
+uint8_t* ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len)
+{
+    enum at_cmd_state at_state;
+    int err; 
+    char  cmd[32];
+    
+    //bsdlib_shutdown();
+    if(len < 79){
+        //printk("read buf not enough \n");
+        return NULL;
+    }
+    strcpy(cmd, "AT%CMNG=");
+    sprintf(cmd+strlen(cmd), "2,%d,0", sec);
+    //printk("read cmd :%s\n",cmd);
+    err = at_cmd_write(cmd, buf, len, &at_state); 
+    if(err){
+        //printk("read erro\n");
+        return NULL;
+    }
+    else 
+    {
+        //printk("err:%d, read:%s\n", err, buf);
+        //printk("ret_buf:%s\n", buf+80);
+        return (buf+80); 
+    }
+}

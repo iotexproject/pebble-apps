@@ -140,7 +140,7 @@ void ssd1306_clear_screen(uint8_t chFill)
 void ssd1306_clear_buffer(uint8_t chFill)  
 { 
     memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer)); 
-   }
+}
 /**
   * @brief  Draws a piont on the screen
   *        
@@ -293,11 +293,11 @@ void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchSt
 void ssd1306_init(void)
 {
 
-      if (!(__i2c_dev_CD1306 = device_get_binding(I2C_DEV_BME680))) {
+    if (!(__i2c_dev_CD1306 = device_get_binding(I2C_DEV_BME680))) {
         printk("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
         return ;
     }    
-    ssd1306_write_byte(0xAE, SSD1306_CMD);//--turn off oled panel
+    //ssd1306_write_byte(0xAE, SSD1306_CMD);//--turn off oled panel
     ssd1306_write_byte(0x00, SSD1306_CMD);//---set low column address
     ssd1306_write_byte(0x10, SSD1306_CMD);//---set high column address
     ssd1306_write_byte(0x40, SSD1306_CMD);//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F)
@@ -326,13 +326,12 @@ void ssd1306_init(void)
     ssd1306_write_byte(0xA6, SSD1306_CMD);// Disable Inverse Display On (0xa6/a7) 
     //ssd1306_write_byte(0xAF, SSD1306_CMD);//--turn on oled panel
     //ssd1306_display_on();
-    ssd1306_clear_screen(0); 
-   
-    ssd1306_display_logo();
+    //ssd1306_clear_screen(0); 
+    //ssd1306_display_logo();
     //ssd1306_display_string(10,20,"up_key_press",16,1);
     //ssd1306_refresh_gram();
 
-    ssd1306_display_on();
+    //ssd1306_display_on();
     hintInit();
 }
 

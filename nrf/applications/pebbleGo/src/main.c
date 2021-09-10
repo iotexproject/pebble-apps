@@ -55,8 +55,17 @@
 #include "light_sensor/tsl2572.h"
 #include  "mqtt/devReg.h"
 #include "display.h"
+#include "ver.h"
 
-const uint8_t firmwareVersion[] = "pebbleGo V1.0.1";
+#if(CONFIG_IOTEX_BOARD_VERSION == 3)
+Z_GENERIC_SECTION(.openocd_dbg.5) __attribute__((used)) const  uint8_t AppVersion[]= APP_VERSION_INFO;
+#elif(CONFIG_IOTEX_BOARD_VERSION == 2)
+Z_GENERIC_SECTION(.openocd_dbg.5) __attribute__((used)) const  uint8_t AppVersion[]=APP_VERSION_INFO;
+#else
+Z_GENERIC_SECTION(.openocd_dbg.5) __attribute__((used)) const  uint8_t AppVersion[]=APP_VERSION_INFO;
+#endif
+const uint8_t firmwareVersion[] = APP_VERSION;
+
 
 //#if defined(CONFIG_BSD_LIBRARY)
 //#include "nrf_inbuilt_key.h"
@@ -928,7 +937,7 @@ void main(void)
         return;        
     }
 
-	 /* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
+	/* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
     iotex_local_storage_init();
 
     if(startup_check_ecc_key())
@@ -937,7 +946,7 @@ void main(void)
         printk("system will not startup\n");
         return;
     }  
-               
+
 
     iotex_hal_gpio_init();
     iotex_hal_adc_init();	
@@ -955,8 +964,11 @@ void main(void)
 	iotex_key_init();
     updateLedPattern();
 	work_init();
-
+    
     ssd1306_init();
+
+    MainMenu();
+    
 
     sta_Refresh();
 
@@ -973,8 +985,7 @@ void main(void)
     devRegSet(DEV_REG_START);
 
     initOTA();
-    sta_Refresh(); 
-
+    sta_Refresh();
     while(true){
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             printk("ERROR: mqtt_connect %d, rebooting...\n", err);

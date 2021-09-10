@@ -6,6 +6,12 @@
 
 menu "Asset tracker"
 
+
+
+config IOTEX_BOARD_VERSION
+	int "IoTeX Board Version"
+	default 3
+
 config APP_VERSION
 	string "Application version"
 	default "v1.2.0"

@@ -4,6 +4,33 @@
 #include <stdint.h>
 #include <stdio.h>
 
+//define  mqtt tls cert
+#define  CERT_START_SEC   4
+// default asia
+#define ASIA_PACIFIC_CERT_SEC   CERT_START_SEC
+#define ASIA_PACIFIC_KEY_SEC    (CERT_START_SEC+1)  //5
+// pacific
+#define EUROPE_FRANKFURT_CERT_SEC   (CERT_START_SEC+2)
+#define EUROPE_FRANKFURT_KEY_SEC    (CERT_START_SEC+3)  
+// middle_east
+#define MIDDLE_EAST_CERT_SEC   (CERT_START_SEC+4)
+#define MIDDLE_EAST_KEY_SEC    (CERT_START_SEC+5)  
+// north_america
+#define NORTH_AMERICA_CERT_SEC   (CERT_START_SEC+6)
+#define NORTH_AMERICA_KEY_SEC    (CERT_START_SEC+7)  
+// south america
+#define SOUTH_AMERICA_CERT_SEC   (CERT_START_SEC+8)
+#define SOUTH_AMERICA_KEY_SEC    (CERT_START_SEC+9) 
+// root CA
+#define AWS_ROOT_CA             (CERT_START_SEC+10) 
+
+// define  ECC_KEY  SEC
+#define  ECC_KEY_SEC          (CERT_START_SEC+11)   // private + public
+
+// define  system parameters
+#define   PEBBLE_SYS_PARAM_SEC   (CERT_START_SEC+12)
+
+
 typedef enum {
     SID_DEVICE_GPS = 0x1,
     SID_DEVICE_INFO = 0x2,

@@ -1,9 +1,14 @@
 #ifndef     __KEY_BOARD_H__
 #define     __KEY_BOARD_H__
 
-
-#define IO_UP_KEY     28    //p0.28  0--key press 
+#if(CONFIG_IOTEX_BOARD_VERSION ==3)
+#define IO_UP_KEY     21    //p0.28  0--key press 
+#define IO_DOWN_KEY   25    //p0.16  0--key press
+#else if (CONFIG_IOTEX_BOARD_VERSION ==2)
+#define IO_UP_KEY     28   //p0.28  0--key press 
 #define IO_DOWN_KEY   16    //p0.16  0--key press
+#endif
+
 
 enum USER_KEY_DEF{
     KB_NO_KEY=0,
@@ -18,6 +23,7 @@ void ClearKey(void);
 uint8_t getKey(void);
 void iotex_key_init(void);
 bool IsEnterPressed(void);
+bool isUpKeyStartupPressed(void);
 
 
 

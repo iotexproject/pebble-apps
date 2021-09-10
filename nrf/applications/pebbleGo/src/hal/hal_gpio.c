@@ -33,7 +33,7 @@ void checkCHRQ(void)
 
 static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
     
-    printk("Charge pin %d triggered\n", IO_NCHRQ);
+    //printk("Charge pin %d triggered\n", IO_NCHRQ);
 
     checkCHRQ();
 }
@@ -120,7 +120,17 @@ int iotex_hal_gpio_set(uint32_t pin, uint32_t value) {
 
 void gpio_poweroff(void)
 {
-    gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_OFF);    
+      /* qhm add 0830*/
+     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+     k_sleep(K_MSEC(300));
+     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+     k_sleep(K_MSEC(300));
+     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+     k_sleep(K_MSEC(300));
+     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+     k_sleep(K_MSEC(300));
+      /*end of qhm add 0830*/
+    //gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_OFF);   delete by qhm 0830 
 }
 
 void PowerOffIndicator(void)

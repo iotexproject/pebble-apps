@@ -16,6 +16,9 @@ static struct gpio_callback up_key_gpio_cb, down_key_gpio_cb, pwr_key_gpio_cb;
 static uint8_t pressedKey;
 static struct k_delayed_work power_off_button_work;
 
+static bool b_poweroff = false; /* qhm add 0830*/
+
+
 extern struct device *__gpio0_dev;
 
 void ClearKey(void)
@@ -30,6 +33,16 @@ uint8_t getKey(void)
 bool IsEnterPressed(void)
 {
     return (pressedKey & KB_POWER_KEY);
+}
+
+bool isUpKeyStartupPressed(void)
+{
+    u32_t key;
+    key = gpio_pin_get(__gpio0_dev, IO_UP_KEY);
+    if(key)
+        return false;
+    else
+        return true;
 }
 
 static void up_key_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {    
@@ -70,36 +83,30 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
         pressedKey |= KB_POWER_KEY;
         k_delayed_work_submit(&power_off_button_work,K_SECONDS(5));       
         printk("Power key pressed\n");
-        /*
-        if(IsDevReg())
-        {
-            if(devRegGet() == DEV_REG_WAIT_FOR_BUTTON_DOWN)
-            {
-                devRegSet(DEV_REG_SIGN_SEND);
-                //SetIndicator(UI_WAIT_ACK);               
-            }            
-        }
-        else
-        {
-            if(devRegGet() == DEV_UPGRADE_CONFIRM)
-            {               
-                devRegSet(DEV_UPGRADE_STARED);
-            }
-        }
-        */
     }
     else {
         k_delayed_work_cancel(&power_off_button_work);
+
+        /* qhm add 0830*/
+        if(b_poweroff==true)
+        {
+        gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_OFF);  
+        b_poweroff=false;
+        }
+        /*end of qhm add 0830*/
         printk("Power key released\n");
     }
 }
 
 static void power_off_handler(struct k_work *work)
-{        
+{  
+    b_poweroff=true;     /* qhm add 0830*/     
     gpio_poweroff();
 }
 
 void iotex_key_init(void) { 
+
+    ClearKey();
     /* up_key pin */
     gpio_pin_configure(__gpio0_dev, IO_UP_KEY,
                     (GPIO_DIR_IN | GPIO_INT | GPIO_PULL_UP |

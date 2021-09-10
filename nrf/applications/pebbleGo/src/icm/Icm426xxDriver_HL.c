@@ -95,7 +95,7 @@ int inv_icm426xx_device_reset(struct inv_icm426xx * s)
 		return status;
 
 	/* Wait 120us for soft reset to be effective before trying to perform any further read */
-	inv_icm426xx_sleep_us(120);
+	inv_icm426xx_sleep_us(1000);  //qiuhm 120->1000
 
 	do {
 		status |= inv_icm426xx_set_reg_bank(s, 1);

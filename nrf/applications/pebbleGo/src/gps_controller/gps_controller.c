@@ -71,9 +71,9 @@ static void uart_gps_rx_handler(u8_t character)
                 printit= true ;
 #endif
                 pos1=0;
-//                uart_irq_rx_disable(guart_dev_gps);
-//                printk("%s",print_buf1);
-//                uart_irq_rx_enable(guart_dev_gps);
+                //uart_irq_rx_disable(guart_dev_gps);
+                //printk("%s",print_buf1);
+                //uart_irq_rx_enable(guart_dev_gps);
                 //printk("get a cmd\n");            
 	}
         else

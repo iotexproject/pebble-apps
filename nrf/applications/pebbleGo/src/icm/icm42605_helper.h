@@ -4,7 +4,14 @@
 #include <stdint.h>
 #include "nvs/local_storage.h"
 
+
+#if(CONFIG_IOTEX_BOARD_VERSION == 3)
+#define I2C_DEV_ICM42605  "I2C_2"
+#endif
+#if(CONFIG_IOTEX_BOARD_VERSION == 2)
 #define I2C_DEV_ICM42605  "I2C_1"
+#endif
+
 #define I2C_ADDR_ICM42605 0x69
 
 #define IS_LOW_NOISE_MODE 1

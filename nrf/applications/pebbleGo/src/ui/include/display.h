@@ -52,7 +52,7 @@ void sta_Refresh(void);
 void hintInit(void);
 uint8_t hintTimeDec(void);
 void  hintString(uint8_t *str[], uint8_t tim);
-
+void MainMenu(void);
 
 
 

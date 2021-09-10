@@ -31,6 +31,25 @@
 
 #define  KEY_BLOCK_SIZE 190
 
+
+#define   MODEM_READ_HEAD_LEN	200	
+#define   KEY_STR_BUF_SIZE		329
+#define   MODEM_READ_BUF_SIZE	(KEY_STR_BUF_SIZE+MODEM_READ_HEAD_LEN)
+#define   KEY_STR_LEN	(KEY_STR_BUF_SIZE-1)
+#define	  PRIV_STR_BUF_SIZE		133
+#define   PRIV_STR_LEN   		(PRIV_STR_BUF_SIZE-1)
+
+#define   PUB_STR_BUF_SIZE		197
+
+#define  KEY_HEX_SIZE		164
+#define  PRIV_HEX_SIZE		66
+#define  PUB_HEX_SIZE		(KEY_HEX_SIZE - PRIV_HEX_SIZE)
+
+#define  PUB_HEX_ADDR(a)	(a+PRIV_HEX_SIZE)
+#define  PUB_STR_ADDR(a)	(a+PRIV_STR_LEN)
+#define  COM_PUB_STR_ADD(a)  (a+PRIV_STR_LEN+130)
+
+
 static uint16_t CRC16(uint8_t *data, size_t len) {
 	uint16_t crc = 0x0000;
 	size_t j;
@@ -47,71 +66,70 @@ static uint16_t CRC16(uint8_t *data, size_t len) {
 
 int get_ecc_key(void)
 {
-	char buf[KEY_BLOCK_SIZE];
-	uint8_t decrypted_buf[66];
-	iotex_local_storage_load(SID_ECC_KEY,buf,sizeof(buf));
+	uint8_t *pbuf;
+	char buf[MODEM_READ_BUF_SIZE];
+	uint8_t decrypted_buf[PRIV_STR_BUF_SIZE];
+	uint8_t binBuf[PRIV_STR_BUF_SIZE];
+	unsigned char pub[PUB_STR_BUF_SIZE];
 
-	for(int i = 0; i <4; i++){
-		if(cc3xx_decrypt(AES_KMU_SLOT, decrypted_buf+(i<<4), buf+(i<<4))){
-			printk("cc3xx_decrypt erro\n");
-			return -1;				
+	memset(buf, 0, sizeof(buf));
+	pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
+	if(pbuf != NULL){
+		memcpy(decrypted_buf, pbuf, PRIV_STR_LEN);
+		decrypted_buf[PRIV_STR_LEN] = 0;		
+		hexStr2Bin(decrypted_buf, binBuf);
+		//printk("binary:\n");
+		//for(i = 0; i < 66; i++ )
+		//	printk("%02x ", binBuf[i]);
+		//printk("\n");
+		//crc = *(uint16_t *)(binBuf+64);
+		//printk("read crc:%04x\n", crc);
+		//printk("calc crc:%04x\n", CRC16(binBuf, 64));
+		for(int i = 0; i <4; i++){
+			if(cc3xx_decrypt(AES_KMU_SLOT, decrypted_buf+(i<<4), binBuf+(i<<4))){
+				printk("cc3xx_decrypt erro\n");
+				return -1;				
+			}
 		}
+		decrypted_buf[64] = 0;	
+		SetEccPrivKey(decrypted_buf);
+
+		memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
+		pub[64] = 0;
+		printk("pub:%s \n", pub);			
 	}
-	decrypted_buf[64] = 0;
+	else
+		return 1;
 	//printk("decrypted : 0x%x, 0x%x,0x%x,0x%x\n", decrypted_buf[0],decrypted_buf[1],decrypted_buf[2],decrypted_buf[3]);
-#ifdef	TEST_VERFY_SIGNATURE	
-	unsigned char pub[160];
-	hex2str(PUBKEY_STRIP_HEAD(buf), 64, pub);
-	printk("buf:");
-	for(int j =0; j < 64; j++)
-	{
-		printk("%02x", (char)*(PUBKEY_BUF_ADDRESS(buf)+j));
-	}
-	printk("\n");
-	printk("\n");	
-	printk("pu_compressed:");
-	for(int j = 0; j <33; j++ )
-	{
-		printk("%02x", (PUBKEY_BUF_ADDRESS(buf)+65)[j]);
-	}
-	printk("\n");	
-	printk("\n");
-	printk("pub:%s\n", pub);
-	printk("priv:%s\n", decrypted_buf);
-    SetEccPrivKey(decrypted_buf, pub);
-#else
-	SetEccPrivKey(decrypted_buf);
-#endif
+	//test_case_ecdsa_data.p_x = (const char *)decrypted_buf;
+    
 	return  0;
 }
+unsigned char* readECCPubKey(void);
 /*
 pub : ecc public key, sizeof pub not less than 129 bytes
 */
 int  get_ecc_public_key(char *pub)
 {
-	char buf[KEY_BLOCK_SIZE];
-	static unsigned char trans_key = 2  /*0*/ ;
-	if(pub == NULL){
-		return  trans_key;
+	unsigned char  *pbuf;
+	pbuf = readECCPubKey();
+	if(pbuf != NULL){
+		memcpy(pub, pbuf, 64);
+		return  0;
 	}
-	else {
-		if(trans_key > 0){
-			iotex_local_storage_load(SID_ECC_KEY,buf,sizeof(buf));	
-			hex2str(PUBKEY_STRIP_HEAD(buf), 64, pub);
-			trans_key--;
-			return 1;
-		}
-		else
-			return 0;
-	}	
+	else
+		return -1;
 }
 
 unsigned char* readECCPubKey(void)
 {
-	unsigned char buf[KEY_BLOCK_SIZE];
-	static unsigned char pub[160];
-	iotex_local_storage_load(SID_ECC_KEY,buf,sizeof(buf));	
-	hex2str(PUBKEY_BUF_ADDRESS(buf)+65, 33, pub);
+	unsigned char buf[MODEM_READ_BUF_SIZE];
+	static unsigned char pub[PUB_STR_BUF_SIZE];
+	uint8_t *pbuf;
+	pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
+	memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
+	pub[64] = 0;
+	//printk("pub:%s \n", pub);
 	return pub;
 }
 
@@ -121,68 +139,6 @@ unsigned char* readECCPubKey(void)
 */
 int startup_check_ecc_key(void)
 {
-	char buf[KEY_BLOCK_SIZE];	
-	uint8_t key[16];
-	uint8_t encrypted_buf[66];
-	uint16_t crc;
-	int ret,i;
-
-	uint8_t read[16];
-
-	memset(buf, 0, sizeof(buf));	
-	iotex_local_storage_load(SID_ECC_KEY,buf,sizeof(encrypted_buf));	
-	crc = *(uint16_t *)(buf+64);
-	printk("crc :0x%x\n", crc);	
-	if((CRC16(buf, 64) != crc) || (!crc))
-	//if(1)
-	{
-		int  ret_len1 = sizeof(buf), ret_len2 = 80;
-		if((ret = gen_ecc_key(buf,&ret_len1, PUBKEY_BUF_ADDRESS(buf), &ret_len2))==0)
-		{				
-			printk("ret_len1:%d,ret_len2:%d, cmp: %d \n", ret_len1, ret_len2&0x0000FFFF, (ret_len2&0xFFFF0000)>>16);
-			ret = (ret_len2&0xFFFF0000)>>16;
-			for(i = 0; i <ret; i++ )
-			{
-				printk("%02x", (PUBKEY_BUF_ADDRESS(buf)+(ret_len2&0x0000FFFF))[i]);
-			}
-			printk("\n");
-
-			genAESKey(key, sizeof(key));
-			ret = store_key_in_kmu(AES_KMU_SLOT, key, read);
-			if(ret)	{
-				printk("write key into kmu slot:%d erro:%d\n",AES_KMU_SLOT,ret);
-				return -1;
-			}
-			//printk("To be encrypt_priv :0x%x,0x%x,0x%x,0x%x\n", buf[0],buf[1],buf[2],buf[3]);
-			//printk("To be encrypt_pub :0x%x,0x%x,0x%x,0x%x\n", PUBKEY_BUF_ADDRESS(buf)[0],PUBKEY_BUF_ADDRESS(buf)[1],PUBKEY_BUF_ADDRESS(buf)[2],PUBKEY_BUF_ADDRESS(buf)[3]);
-
-			for(i = 0; i <4; i++){
-				if(ret = cc3xx_encrypt(AES_KMU_SLOT, buf+(i<<4), encrypted_buf+(i<<4))){
-					printk("cc3xx_encrypt erro: 0x%x\n", ret);
-					return -2;						
-				}
-			}
-#if 0				
-			buf[0]=0;buf[1]=0;buf[2]=0;buf[3]=0;			
-			for(i = 0; i <4; i++){
-				if(ret = cc3xx_decrypt(AES_KMU_SLOT, buf+(i<<4), encrypted_buf+(i<<4))){
-					printk("cc3xx_encrypt erro: 0x%x\n", ret);
-					return -2;						
-				}
-			}
-			printk("Dencrypted :0x%x,0x%x,0x%x,0x%x\n", buf[0],buf[1],buf[2],buf[3]);
-			return -1;
-#endif
-			crc = CRC16(encrypted_buf, 64);			
-			*(uint16_t *)(encrypted_buf+64) = crc;
-			memcpy(buf, encrypted_buf, sizeof(encrypted_buf));				
-			iotex_local_storage_save(SID_ECC_KEY,buf, sizeof(buf));
-		}
-		else {
-			printk("gen ecc return : 0x%x \n", ret);
-			return -3;
-		}			
-	}
 	if(get_ecc_key())
 	{
 		return -4;

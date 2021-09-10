@@ -30,6 +30,7 @@ target_sources(app PRIVATE src/hal/hal_gpio.c)
 
 # Modem
 target_sources(app PRIVATE src/modem/modem_helper.c)
+target_sources(app PRIVATE src/modem/modemStorage.c)
 # MQTT
 target_sources(app PRIVATE src/mqtt/mqtt.c)
 target_sources(app PRIVATE src/mqtt/config.c)
