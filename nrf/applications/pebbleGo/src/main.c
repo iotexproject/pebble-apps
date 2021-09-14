@@ -936,7 +936,6 @@ void main(void)
         printk("initECDSA_sep256r error\n");       
         return;        
     }
-
 	/* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
     iotex_local_storage_init();
 
@@ -945,8 +944,7 @@ void main(void)
         printk("check ecc key error\n");
         printk("system will not startup\n");
         return;
-    }  
-
+    } 
 
     iotex_hal_gpio_init();
     iotex_hal_adc_init();	

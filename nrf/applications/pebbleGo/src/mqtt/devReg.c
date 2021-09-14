@@ -102,8 +102,14 @@ int  SignAndSend(void)
     confirmAdd.owner.bytes[confirmAdd.owner.size+2] = (char)((uint_timestamp & 0x0000FF00) >> 8);
     confirmAdd.owner.bytes[confirmAdd.owner.size+3] = (char)(uint_timestamp & 0x000000FF);       
 
-    doESDA_sep256r_Sign(confirmAdd.owner.bytes,confirmAdd.owner.size+4,esdaSign,&sinLen);   
-
+//    printk("raw data:\n");
+//    for(int  i; i < confirmAdd.owner.size+4; i++)
+//    {
+//        printk("%02x ", confirmAdd.owner.bytes[i]);
+//    }
+//    printk("\n");
+    
+    doESDASign(confirmAdd.owner.bytes,confirmAdd.owner.size+4,esdaSign,&sinLen);   
     memcpy(confirmAdd.signature, esdaSign, 64);   
 
     confirmAdd.timestamp = uint_timestamp;

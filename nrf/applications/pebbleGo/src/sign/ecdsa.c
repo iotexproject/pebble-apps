@@ -41,13 +41,14 @@
 
 #define   PUB_STR_BUF_SIZE		197
 
-#define  KEY_HEX_SIZE		164
+#define  KEY_HEX_SIZE		184
 #define  PRIV_HEX_SIZE		66
 #define  PUB_HEX_SIZE		(KEY_HEX_SIZE - PRIV_HEX_SIZE)
 
 #define  PUB_HEX_ADDR(a)	(a+PRIV_HEX_SIZE)
 #define  PUB_STR_ADDR(a)	(a+PRIV_STR_LEN)
 #define  COM_PUB_STR_ADD(a)  (a+PRIV_STR_LEN+130)
+#define  UNCOM_PUB_STR_ADD(a) (a+PRIV_STR_LEN)
 
 
 static uint16_t CRC16(uint8_t *data, size_t len) {
@@ -91,12 +92,27 @@ int get_ecc_key(void)
 				return -1;				
 			}
 		}
-		decrypted_buf[64] = 0;	
+		decrypted_buf[64] = 0;
+#ifdef TEST_VERFY_SIGNATURE	
+		printk("priv: ");
+		for(int  i = 0 ; i < 64; i++)
+		{
+			printk("%02x", decrypted_buf[i]);
+		}	
+		printk("\n");
+		memcpy(pub, UNCOM_PUB_STR_ADD(pbuf)+2, 128);
+		pub[128] = 0;
+		SetEccPrivKey(decrypted_buf, pub);		
+		printk("pub:%s \n", pub);		
+#else
+		memcpy(pub, UNCOM_PUB_STR_ADD(pbuf), 130);
+		pub[130] = 0;		
+		printk("pub:%s \n", pub);	
 		SetEccPrivKey(decrypted_buf);
-
-		memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
-		pub[64] = 0;
-		printk("pub:%s \n", pub);			
+	
+#endif
+		//memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
+		//pub[64] = 0;			
 	}
 	else
 		return 1;
@@ -127,8 +143,10 @@ unsigned char* readECCPubKey(void)
 	static unsigned char pub[PUB_STR_BUF_SIZE];
 	uint8_t *pbuf;
 	pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
-	memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
-	pub[64] = 0;
+	//memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
+	//pub[64] = 0;
+	memcpy(pub, UNCOM_PUB_STR_ADD(pbuf), 130);
+	pub[130] = 0;	
 	//printk("pub:%s \n", pub);
 	return pub;
 }
@@ -164,9 +182,13 @@ void hex2str(char* buf_hex, int len, char *str)
 
 int doESDASign(char *inbuf, uint32_t len, char *buf, int* sinlen)
 {
-	int ret;
-	//ret = doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
+	int ret = 0;
+#ifdef TEST_VERFY_SIGNATURE	
+	ret = doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
+	printk("doESDA_sep256r_Sign return :%x \n", ret);
+#else	
 	doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
+#endif
 	LowsCalc(buf+32, buf+32);
 	return ret;
 }
