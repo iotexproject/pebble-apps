@@ -305,6 +305,7 @@ void error_handler(enum error_type err_type, int err_code)
 
 #endif /* CONFIG_DEBUG */
 }
+
 static void send_agps_request(struct k_work *work)
 {
 	ARG_UNUSED(work);
@@ -341,6 +342,7 @@ void bsd_recoverable_error_handler(uint32_t err)
 {
 	error_handler(ERROR_BSD_RECOVERABLE, (int)err);
 }
+
 #if(!EXTERN_GPS)
 static void send_gps_data_work_fn(struct k_work *work)
 {
@@ -478,6 +480,7 @@ static const size_t cert_len[] = {
 	sizeof(NRF_CLOUD_CA_CERTIFICATE) - 1, sizeof(NRF_CLOUD_CLIENT_PRIVATE_KEY) - 1,
 	sizeof(NRF_CLOUD_CLIENT_PUBLIC_CERTIFICATE) - 1
 };
+
 static int provision_certificates(void)
 {
 	int err;
@@ -504,19 +507,19 @@ static int provision_certificates(void)
 	return 0;
 }
 #endif
+
 #if(!EXTERN_GPS)
 static char *get_mqtt_payload_gps(enum mqtt_qos qos) {
-    static uint8_t payload[SENSOR_PAYLOAD_MAX_LEN] ;
+    static char payload[SENSOR_PAYLOAD_MAX_LEN];
 
     printf("{GPS latitude:%f, longitude:%f, timestamp %s\n", latitude, longitude, gps_timestamp.data);
     snprintf(payload, sizeof(payload), "{\"Device\":\"%s\",\"latitude\":%f,\"longitude\":%f, \"timestamp\":%s}",
              "GPS", latitude, longitude, gps_timestamp.data);
     return payload;
 }
+
 void publish_gps_data() {
     int rc;
-    printk("[%s:%d]\n", __func__, __LINE__);
-
     if (iotex_mqtt_is_connected()) {
         SUCCESS_OR_BREAK(mqtt_ping(&client));
         rc = iotex_mqtt_publish_data(&client, 0, get_mqtt_payload_gps(0));
@@ -525,63 +528,63 @@ void publish_gps_data() {
 }
 #endif
 
-#if 1 
 #include <drivers/pwm.h>
-static int Iotex_buzzer_test(void)
+static int iotex_buzzer_test(void)
 {
 	const char *dev_name = "PWM_1";
-	int err = 0;
-    struct device *pwm_dev;
-
-	pwm_dev = device_get_binding(dev_name);
+    struct device *pwm_dev = device_get_binding(dev_name);
 	if (!pwm_dev) {
 		printk("Could not bind to device %s", dev_name);
-		err = -ENODEV;
+		return -ENODEV;
 	}
-        pwm_pin_set_usec(pwm_dev, 11,370, 185, 0);//2.7kHz ==370us  185/370=50% duty
-
-	k_sleep(K_MSEC(500));  //1.5S delay
-
-        pwm_pin_set_usec(pwm_dev, 11, 0, 0, 0);
-	return err;
+    
+    // 2.7kHz ==370us  185/370=50% duty
+    pwm_pin_set_usec(pwm_dev, 11,370, 185, 0);
+	k_sleep(K_MSEC(500));
+    pwm_pin_set_usec(pwm_dev, 11, 0, 0, 0);
+	return 0;
 }
-#endif
+
 // check if mqtt session is connected
 static bool ismqttOffline(void)
 {
-    return (mqttSentCount < MQTT_NO_RESPONSE_MAX_COUNT ? false : true);
+    return mqttSentCount >= MQTT_NO_RESPONSE_MAX_COUNT;
 }
+
 static void mqttSentOnce(void)
 {
     mqttSentCount++;
 }
+
 void mqttGetResponse(void)
 {
     mqttSentCount = 0;
 }
-static void periodic_publish_sensors_data() {
+
+static void periodic_publish_sensors_data(void) {
     int rc;
-    char *pbuf=NULL;
-    printk("[%s:%d]\n", __func__, __LINE__);
+    char *pbuf = NULL;
+
     if (iotex_mqtt_is_connected() && !ismqttOffline()) {
-        SUCCESS_OR_BREAK(mqtt_ping(&client));  
-        pbuf = malloc(DATA_BUFFER_SIZE);           
-        if(rc = SensorPackage(iotex_mqtt_get_data_channel(), pbuf)) {      
-            rc = iotex_mqtt_publish_data(&client, 0, pbuf, rc);            
-            printk("mqtt_publish_devicedata: %d \n", rc);  
+        SUCCESS_OR_BREAK(mqtt_ping(&client));
+        pbuf = (char *)malloc(DATA_BUFFER_SIZE);
+        if (!pbuf) {
+            printk("malloc buffer failed\n");
+            return;
         }
-        else
-        {
+        if (rc = SensorPackage(iotex_mqtt_get_data_channel(), pbuf)) {
+            rc = iotex_mqtt_publish_data(&client, 0, pbuf, rc);
+            printk("mqtt_publish_devicedata: %d \n", rc);
+        } else {
             printk("mqtt package error ! \n");
         }
-        free(pbuf);              
-    }
-    else
-    {
+        free(pbuf);
+    } else {
         printk("periodic_publish_sensors_data mqttSentCount : %d \n", mqttSentCount);
         sys_reboot(0);
     }
-} 
+}
+
 int publish_dev_ownership(char *buf, int len)
 {
     return iotex_mqtt_publish_ownership(&client, 0, buf, len);
@@ -598,7 +601,7 @@ static bool motion_activity_is_active(void)
 	return (last_activity_state == MOTION_ACTIVITY_ACTIVE);
 }
 
-static void motion_trigger_gps(motion_data_t  motion_data)
+static void motion_trigger_gps(motion_data_t motion_data)
 {
 	static bool initial_run = true;
 
@@ -611,7 +614,7 @@ static void motion_trigger_gps(motion_data_t  motion_data)
 	}
 
 	if (motion_activity_is_active() && gps_control_is_enabled()) {
-		static s64_t next_active_time;
+		static s64_t next_active_time = 0;
 		s64_t last_active_time = gps_last_active_time / 1000;
 		s64_t now = k_uptime_get() / 1000;
 		s64_t time_since_fix_attempt = now - last_active_time;
@@ -654,6 +657,7 @@ static void motion_trigger_gps(motion_data_t  motion_data)
 	}
 }
 #endif
+
 static void long_press_handler(struct k_work *work)
 {
     if (!atomic_get(&send_data_enable)) {
@@ -671,6 +675,7 @@ static void long_press_handler(struct k_work *work)
     }
 #endif    
 }
+
 void heartbeat_work_fn(struct k_work *work) 
 {
     iotex_mqtt_heart_beat(&client, 0);
@@ -681,6 +686,7 @@ void heartbeat_work_fn(struct k_work *work)
 //{    
 //    gpio_poweroff();
 //}
+
 /**@brief Initializes and submits delayed work. */
 static void work_init(void)
 {
@@ -693,6 +699,7 @@ static void work_init(void)
 	//k_delayed_work_init(&power_off_button_work, power_off_handler);
     k_delayed_work_init(&heartbeat_work, heartbeat_work_fn);
 }
+
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
@@ -710,7 +717,7 @@ static void modem_configure(void)
         printk("Connecting to LTE network. ");
         printk("This may take several minutes.\n");
         //ui_led_set_pattern(UI_LTE_CONNECTING);
-//        ui_led_deactive(LTE_CONNECT_MASK,1);
+        //ui_led_deactive(LTE_CONNECT_MASK,1);
         err = lte_lc_init_and_connect();
 
         if (err) {
@@ -719,7 +726,7 @@ static void modem_configure(void)
         }
 
         printk("Connected to LTE network\n");
-//        ui_led_active(LTE_CONNECT_MASK,1);
+        //ui_led_active(LTE_CONNECT_MASK,1);
         sta_SetMeta(LTE_LINKER, STA_LINKER_ON);
     }
 
@@ -728,10 +735,10 @@ static void modem_configure(void)
 
 /**@brief Initializes the sensors that are used by the application. */
 static void sensors_init(void)
-{	
+{
 #if(EXTERN_GPS)
     //exGPSInit();
-#else  
+#else
     int err;
     //gps_control_init(gps_trigger_handler);
 	err = gps_control_init(&application_work_q, gps_handler);
@@ -756,33 +763,28 @@ static void ui_evt_handler(struct ui_evt evt)
 
     if (IS_ENABLED(CONFIG_GPS_CONTROL_ON_LONG_PRESS) &&
        (evt.button == UI_BUTTON_1)) {
-        if(IsDevReg())
-        {
-            if(devRegGet() == 1)
-            {
+        if (IsDevReg()) {
+            if (devRegGet() == 1) {
                 devRegSet(DEV_REG_SIGN_SEND);
-                //SetIndicator(UI_WAIT_ACK);
+                // SetIndicator(UI_WAIT_ACK);
                 hintString(htRegWaitACK,HINT_TIME_FOREVER);
             }
-        }
-        else
-        {
+        } else {
             if (evt.type == UI_EVT_BUTTON_ACTIVE) {
                 k_delayed_work_submit(&long_press_button_work,
-                K_SECONDS(2));// chang 5S to 2S 
- //               k_delayed_work_submit(&power_off_button_work,K_SECONDS(5));
+                K_SECONDS(2));// chang 5S to 2S
+                // k_delayed_work_submit(&power_off_button_work,K_SECONDS(5));
             } else {
                 k_delayed_work_cancel(&long_press_button_work);
-//                k_delayed_work_cancel(&power_off_button_work);
+                // k_delayed_work_cancel(&power_off_button_work);
             }
         }
     }
 
-
 #if defined(CONFIG_LTE_LINK_CONTROL)
 
     if ((evt.button == UI_SWITCH_2) &&
-            IS_ENABLED(CONFIG_POWER_OPTIMIZATION_ENABLE)) {
+        IS_ENABLED(CONFIG_POWER_OPTIMIZATION_ENABLE)) {
         int err;
 
         if (evt.type == UI_EVT_BUTTON_ACTIVE) {
@@ -842,11 +844,14 @@ void handle_bsdlib_init_ret(void)
 	}
 	#endif /* CONFIG_BSD_LIBRARY */
 }
+
 void iotex_mqtt_bulk_upload_sampling_data(uint16_t channel) {
     int rc;
     struct mqtt_payload msg;
-	uint8_t buffer[128];		
+	uint8_t buffer[128];
+    // TODO: should be removed
 }
+
 static void sampling_and_store_sensor_data(void) {
     /* Data sampling mode */ 
     if (iotex_mqtt_is_need_sampling()) {
@@ -877,20 +882,21 @@ static void sampling_and_store_sensor_data(void) {
     }
 }
 
-const uint8_t  test_string[]="{\"message\":{\"deviceAvatar\":\"w232342342432\",\"deviceName\":\"777777777\",\"imei\":\"352656103381102\",\"walletAddress\":\"io1zgdezueqq2ekjlp0v3ur7l5r7djuh6yrsuzsws\"}}";
-
+const uint8_t test_string[]="{\"message\":{\"deviceAvatar\":\"w232342342432\",\"deviceName\":\"777777777\",\"imei\":\"352656103381102\",\"walletAddress\":\"io1zgdezueqq2ekjlp0v3ur7l5r7djuh6yrsuzsws\"}}";
 
 void sendHearBeat(void)
 {
-    k_delayed_work_submit_to_queue(&application_work_q, &heartbeat_work, K_NO_WAIT); 
+    k_delayed_work_submit_to_queue(&application_work_q, &heartbeat_work, K_NO_WAIT);
 }
+
 void stopHeartBeat(void)
 {
     k_delayed_work_cancel(&heartbeat_work);
 }
+
 void stopMqtt(void)
 {
-    mqtt_disconnect(&client);    
+    mqtt_disconnect(&client);
 }
 
 void StartSendEnvData(uint32_t sec)
@@ -900,23 +906,26 @@ void StartSendEnvData(uint32_t sec)
 }
 
 extern void sta_Refresh(void);
+
 void data_test(void)
 {
-    char *pbuf=NULL;
+    char *pbuf = NULL;
     int rc;
     printk("[%s:%d]\n", __func__, __LINE__);
-    pbuf = malloc(DATA_BUFFER_SIZE);
-    /* Upload selected channel data */        
-    if(rc = SensorPackage(iotex_mqtt_get_data_channel(), pbuf)) {           
-        printk("mqtt_publish_devicedata: %d \n", rc);  
+    pbuf = (char *)malloc(DATA_BUFFER_SIZE);
+    if (!pbuf) {
+        printk("malloc failed\n");
+        return;
     }
-    else
-    {
+
+    /* Upload selected channel data */
+    if (rc = SensorPackage(iotex_mqtt_get_data_channel(), pbuf)) {
+        printk("mqtt_publish_devicedata: %d \n", rc);
+    } else {
         printk("mqtt package error ! \n");
     }
-    free(pbuf);    
+    free(pbuf);
 }
-
 
 void main(void)
 {
@@ -926,28 +935,28 @@ void main(void)
 	k_work_q_start(&application_work_q, application_stack_area,
 		       K_THREAD_STACK_SIZEOF(application_stack_area),
 		       CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
-	if (IS_ENABLED(CONFIG_WATCHDOG)) { 
-		watchdog_init_and_start(&application_work_q);        
+	if (IS_ENABLED(CONFIG_WATCHDOG)) {
+		watchdog_init_and_start(&application_work_q);
 	}
-    //  init ECDSA 
+
+    //  init ECDSA
     InitLowsCalc();
-    if(initECDSA_sep256r())
-    {
-        printk("initECDSA_sep256r error\n");       
-        return;        
+    if (initECDSA_sep256r()) {
+        printk("initECDSA_sep256r error\n");
+        return;
     }
+
 	/* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
     iotex_local_storage_init();
 
-    if(startup_check_ecc_key())
-    {
+    if (startup_check_ecc_key()) {
         printk("check ecc key error\n");
         printk("system will not startup\n");
         return;
-    } 
+    }
 
     iotex_hal_gpio_init();
-    iotex_hal_adc_init();	
+    iotex_hal_adc_init();
     /* Iotex Init BME680 */
     iotex_bme680_init();
     /* Iotex Init TSL2572 */
@@ -958,15 +967,14 @@ void main(void)
 #if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
     provision_certificates();
 #endif /* CONFIG_USE_PROVISIONED_CERTIFICATES  */
-	
+
 	iotex_key_init();
     updateLedPattern();
 	work_init();
-    
+
     ssd1306_init();
 
     MainMenu();
-    
 
     sta_Refresh();
 
@@ -984,13 +992,15 @@ void main(void)
 
     initOTA();
     sta_Refresh();
-    while(true){
+
+    while (true) {
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             printk("ERROR: mqtt_connect %d, rebooting...\n", err);
             k_sleep(K_MSEC(500));
             sys_reboot(0);
             return;
-        }       
+        }
+        // TODO: MUST break if error
         iotexDevBinding(&fds,&client);
         k_delayed_work_cancel(&send_env_data_work);
         devRegSet(DEV_REG_START);
@@ -1015,5 +1025,5 @@ void main(void)
     k_sleep(K_MSEC(500));
     iotex_hal_gpio_set(LED_RED, LED_OFF);
     k_sleep(K_MSEC(500));
-    sys_reboot(0);	
+    sys_reboot(0);
 }
