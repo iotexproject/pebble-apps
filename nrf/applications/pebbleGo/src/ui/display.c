@@ -102,6 +102,7 @@ void ssd1306_display_off(void)
     ssd1306_write_byte(0x10, SSD1306_CMD); 
     ssd1306_write_byte(0xAE, SSD1306_CMD);  
 }
+
 void ssd1306_refresh_gram(void)
 {
     uint8_t i, j;
@@ -115,6 +116,7 @@ void ssd1306_refresh_gram(void)
         }
     }  
 }
+
 /*
 void ssd1306_display_logo(void)
 {
@@ -131,6 +133,7 @@ void ssd1306_display_logo(void)
     }  
 }
 */
+
 void ssd1306_clear_screen(uint8_t chFill)  
 { 
     memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer));
@@ -141,6 +144,7 @@ void ssd1306_clear_buffer(uint8_t chFill)
 { 
     memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer)); 
 }
+
 /**
   * @brief  Draws a piont on the screen
   *        
@@ -163,7 +167,6 @@ void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint)
     
     if (chPoint) {
         s_chDispalyBuffer[chXpos][chPos] |= chTemp;
-        
     } else {
         s_chDispalyBuffer[chXpos][chPos] &= ~chTemp;
     }
@@ -292,7 +295,6 @@ void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchSt
 
 void ssd1306_init(void)
 {
-
     if (!(__i2c_dev_CD1306 = device_get_binding(I2C_DEV_BME680))) {
         printk("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
         return ;
@@ -372,4 +374,3 @@ void ssd1306_display_logo(void)
     }   
     ssd1306_refresh_lines(0,5);
 }
-

@@ -16,7 +16,7 @@
 #include <dfu/mcuboot.h>
 #include "keyBoard.h"
 #include "display.h"
-#include  "mqtt/devReg.h"
+#include "mqtt/devReg.h"
 
 //#define LED_PORT	DT_GPIO_LABEL(DT_ALIAS(led0), gpios)
 #define  LED_PORT   "GPIO_0"
@@ -36,9 +36,9 @@
 #define gpio_pin_write  gpio_pin_set
 
 static const struct	device *gpiob;
-static struct		gpio_callback gpio_cb;
-static struct k_work	fota_work;
-static struct k_delayed_work	fota_status_check;
+static struct gpio_callback gpio_cb;
+static struct k_work fota_work;
+static struct k_delayed_work fota_status_check;
 static int aliveCnt = 0;
 
 const struct device *dev;
@@ -49,6 +49,7 @@ void bsd_recoverable_error_handler(uint32_t err)
 	printk("bsdlib recoverable error: %u\n", err);
 }
 */
+
 int cert_provision(void)
 {
 	static const char cert[] = {
@@ -92,70 +93,68 @@ int cert_provision(void)
 
 	return 0;
 }
+
 static void show_led(int r, int g, int b)
 {
-
     gpio_pin_write(dev, LED_GREEN, g);	//p0.00 == LED_GREEN ON
     gpio_pin_write(dev, LED_BLUE, b);	//p0.00 == LED_BLUE OFF
-	gpio_pin_write(dev, LED_RED, r);	
+	gpio_pin_write(dev, LED_RED, r);
 }
+
 /**@brief Start transfer of the file. */
 static void app_dfu_transfer_start(struct k_work *unused)
 {
 	int retval;
 	int sec_tag;
 	char *apn = NULL;
-printk("app_dfu_transfer_start\n ");
+	printk("app_dfu_transfer_start\n ");
 #ifndef CONFIG_USE_HTTPS
 	sec_tag = -1;
 #else
 	sec_tag = TLS_SEC_TAG;
 #endif
 	//show_led(LED_OFF,LED_ON,LED_OFF);
-	retval = fota_download_start(CONFIG_DOWNLOAD_HOST,CONFIG_DOWNLOAD_FILE,sec_tag,apn,0);
+	retval = fota_download_start(CONFIG_DOWNLOAD_HOST, CONFIG_DOWNLOAD_FILE, sec_tag, apn, 0);
 	if (retval != 0) {
 		/* Re-enable button callback */
 		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
-
 		//show_led(LED_ON,LED_OFF,LED_OFF);
-		printk("fota_download_start() failed, err %d\n",
-			retval);
+		printk("fota_download_start() failed, err %d\n", retval);
 		//sys_reboot(0);
-	}	
+	}
 	printk("fota_download_start over\n");
 }
 
 static void fota_status(struct k_work *unused)
 {
 	aliveCnt++;
-	if(aliveCnt > 12){
-		aliveCnt=0;
+	if (aliveCnt > 12){
+		aliveCnt = 0;
 		printk("Received hangup from fota_download\n");
 		hintString(htRegRequest,HINT_TIME_FOREVER);
-		devRegSet(DEV_UPGRADE_CONFIRM);				
-	}
-	else
-	{
+		devRegSet(DEV_UPGRADE_CONFIRM);
+	} else {
 		k_delayed_work_submit(&fota_status_check, K_MSEC(10000));
 	}
-	printk("aliveCnt:%d\n", aliveCnt);	
+	printk("aliveCnt:%d\n", aliveCnt);
 }
+
 /**@brief Turn on LED0 and LED1 if CONFIG_APPLICATION_VERSION
  * is 2 and LED0 otherwise.
  */
 static int led_app_version(void)
 {
-//	const struct device *dev;
+	// const struct device *dev;
 
 	dev = device_get_binding(LED_PORT);
-	if (dev == 0) {
+	if (!dev) {
 		printk("Nordic nRF GPIO driver was not found!\n");
 		return 1;
 	}
 
-//	gpio_pin_configure(dev, DT_GPIO_PIN(DT_ALIAS(led0), gpios),
-//			   GPIO_OUTPUT_ACTIVE |
-//			   DT_GPIO_FLAGS(DT_ALIAS(led0), gpios));
+	//	gpio_pin_configure(dev, DT_GPIO_PIN(DT_ALIAS(led0), gpios),
+	//			   GPIO_OUTPUT_ACTIVE |
+	//			   DT_GPIO_FLAGS(DT_ALIAS(led0), gpios));
 
     gpio_pin_configure(dev, LED_GREEN, GPIO_DIR_OUT); 	//p0.00 == LED_GREEN
     gpio_pin_configure(dev, LED_BLUE, GPIO_DIR_OUT);	//p0.01 == LED_BLUE
@@ -174,9 +173,7 @@ static int led_app_version(void)
 	return 0;
 }
 
-
-void dfu_button_pressed(const struct device *gpiob, struct gpio_callback *cb,
-			uint32_t pins)
+void dfu_button_pressed(const struct device *gpiob, struct gpio_callback *cb, uint32_t pins)
 {
 	k_work_submit(&fota_work);
 	k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
@@ -196,49 +193,48 @@ static int dfu_button_init(void)
 				 GPIO_INPUT |
 				 DT_GPIO_FLAGS(DT_ALIAS(sw0), gpios));
 	if (err == 0) {
-*/        
-		gpio_init_callback(&gpio_cb, dfu_button_pressed,
-			BIT(DT_GPIO_PIN(DT_ALIAS(sw0), gpios)));
-		err = gpio_add_callback(gpiob, &gpio_cb);
+*/
+	gpio_init_callback(&gpio_cb, dfu_button_pressed, BIT(DT_GPIO_PIN(DT_ALIAS(sw0), gpios)));
+	err = gpio_add_callback(gpiob, &gpio_cb);
 //	}
 	if (err == 0) {
 		err = gpio_pin_interrupt_configure(gpiob,
-						   DT_GPIO_PIN(DT_ALIAS(sw0),
-							       gpios),
+						   DT_GPIO_PIN(DT_ALIAS(sw0), gpios),
 						   GPIO_INT_EDGE_TO_ACTIVE);
 	}
+
 	if (err != 0) {
 		printk("Unable to configure SW0 GPIO pin!\n");
 		return 1;
 	}
+
 	return 0;
 }
+
 static int initSw0(void)
 {
-    	int err;
+    int err;
 
 	gpiob = device_get_binding(DT_GPIO_LABEL(DT_ALIAS(sw0), gpios));
-	if (gpiob == 0) {
+	if (!gpiob) {
 		printk("Nordic nRF GPIO driver was not found!\n");
 		return 1;
 	}
 	err = gpio_pin_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios),
 				 GPIO_INPUT |
 				 DT_GPIO_FLAGS(DT_ALIAS(sw0), gpios));
-    if(err != 0){        
-        return -1;
-    }
-    else
-        return 0;
+
+	return (err != 0) ? -1 : 0;
 }
-static int  readSw0(void)
+
+static int readSw0(void)
 {
     u32_t io_lev;
     //io_lev = gpio_pin_get(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios));	
     //if(io_lev)
     //{        
         io_lev = gpio_pin_get(gpiob, IO_UP_KEY);
-        if(io_lev){
+        if (io_lev) {
 			printk("ok start upgrading now !");
 			//return 0;
 			return 1;
@@ -252,13 +248,13 @@ void fota_dl_handler(const struct fota_download_evt *evt)
 	switch (evt->id) {
 	case FOTA_DOWNLOAD_EVT_ERROR:
 		printk("Received error from fota_download\n");
-		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);		
+		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
 		//show_led(LED_ON,LED_OFF,LED_OFF);
 		break;
 		/* Fallthrough */
 	case FOTA_DOWNLOAD_EVT_ERASE_PENDING:
 		printk("Received timeout from fota_download\n");
-		//gpio_pin_interrupt_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);		
+		//gpio_pin_interrupt_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
 		//show_led(LED_ON,LED_OFF,LED_OFF);
 		break;
 	case FOTA_DOWNLOAD_EVT_FINISHED:
@@ -266,13 +262,12 @@ void fota_dl_handler(const struct fota_download_evt *evt)
 		k_delayed_work_cancel(&fota_status_check);
 		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
 		//show_led(LED_ON,LED_ON,LED_ON);
-		devRegSet(DEV_UPGRADE_COMPLETE);	
+		devRegSet(DEV_UPGRADE_COMPLETE);
 		break;
 	case FOTA_DOWNLOAD_EVT_PROGRESS:
 		//printk("fota alive \n");
-		aliveCnt=0;
+		aliveCnt = 0;
 		break;
-
 	default:
 		break;
 	}
@@ -326,23 +321,19 @@ static int application_init(void)
 	}
 */
 	err = fota_download_init(fota_dl_handler);
-	if (err != 0) {
-		return err;
-	}
-
-	return 0;
+	return (err != 0) ? err : 0;
 }
 
-static  void getHost(uint8_t *url, uint8_t *host, uint8_t *file)
-{    
-    sscanf(url, "http://%99[^/]/%99[^\n]", host,file);
+static void getHost(uint8_t *url, uint8_t *host, uint8_t *file)
+{
+    sscanf(url, "http://%99[^/]/%99[^\n]", host, file);
 }
 
 void ota_update(void)
 {
 	int err;
 
-    if(initSw0()||readSw0())
+    if (initSw0() || readSw0())
         return;
 
 	printk("HTTP application update sample started\n");
@@ -389,7 +380,7 @@ void ota_update(void)
 
 	printk("Press Button 1 to start the FOTA download\n");
 	//show_led(LED_OFF,LED_OFF,LED_ON);
-    while(1)
+    while (1)
     {
         k_sleep(K_MSEC(100000));
     }
@@ -402,11 +393,11 @@ void initOTA(void)
 	err = application_init();
 	if (err != 0) {
 		return;
-	}	
+	}
 }
 
 void startOTA(uint8_t *url)
 {
 	k_work_submit(&fota_work);
-	k_delayed_work_submit(&fota_status_check, K_MSEC(2000));		
+	k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
 }

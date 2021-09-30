@@ -36,6 +36,7 @@ const uint8_t modem_mode_m[]={0x0F,0x08,0x04,0x02,0x04,0x08,0x0F};
 const uint8_t modem_mode_n[]={0x0F,0x04,0x02,0x0F};
 
 extern uint8_t s_chDispalyBuffer[128][8];
+
 void sta_LoadIcon(void)
 {
     memcpy(staBar.sig_icon, Signal, sizeof(Signal));
@@ -155,14 +156,11 @@ void sta_Refresh(void)
         }    
     }
     
-    i = 128-sizeof(power);
-    for ( j = 0; j < sizeof(power);j++,i++ )
-    {
+    i = 128 - sizeof(power);
+    for (j = 0; j < sizeof(power); j++, i++) {
         s_chDispalyBuffer[i][7] = staBar.power_icon[j];
     }
     //ssd1306_refresh_gram();
     ssd1306_refresh_lines(7,7);
     sys_mutex_unlock(&iotex_hint_mutex);
 }
-
-
