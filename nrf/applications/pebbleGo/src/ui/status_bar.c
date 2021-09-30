@@ -104,10 +104,41 @@ void sta_Refresh(void)
     //printk("val:%d\n", val);
     if (val < 9)
         memset(staBar.power_icon+val + 4, 0x42, 9 - val);
-
-    clearDisBuf(6, 7);
-    for (i = 0; i < sizeof(Signal); i++) {
-        s_chDispalyBuffer[i][7] = staBar.sig_icon[i];
+    if(!staBar.val[LTE_LINKER])
+    {
+    //   printk("linking ......\n");
+        index++;
+        if(index > 8)
+            index = 0;
+        //memset(staBar.sig_icon, 0, sizeof(staBar.sig_icon));
+        for(i=0;i<index*4;i++)
+        {
+            s_chDispalyBuffer[i++][7]=0x18;
+            s_chDispalyBuffer[i++][7]=0x18;
+            s_chDispalyBuffer[i++][7]=0x0;
+            s_chDispalyBuffer[i++][7]=0x0;
+        }
+    }
+    else{    
+        for ( i=0; i < sizeof(Signal);i++)
+        {
+            s_chDispalyBuffer[i][7] = staBar.sig_icon[i];
+        }
+        index = 0;
+        //i += 3;
+        if(isNB())
+        {
+            for ( j = 0; j < sizeof(modem_mode_n);j++,i++ )
+            {
+                s_chDispalyBuffer[i][7] = modem_mode_n[j];
+            }  
+        }
+        else
+        {
+            for ( j = 0; j < sizeof(modem_mode_m);j++,i++ )
+            {
+                s_chDispalyBuffer[i][7] = modem_mode_m[j];
+            }  
     }
 
         i += 10;    
