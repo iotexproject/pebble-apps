@@ -32,6 +32,18 @@ enum E_STATUS_BAR{
 #define    HT_LANG_CN_SIZE  2
 
 
+// display left align or  centralized
+#define   ALIGN_CENTRALIZED     0
+#define   ALIGN_LEFT            1
+
+// display revert ?
+#define  DIS_NORMAL             1
+#define  DIS_REVERT             0
+#define  DIS_CURSOR(a, b)       ((a) == (b) ? DIS_REVERT:DIS_NORMAL)
+
+
+
+
 // hints
 extern const uint8_t *htNetConnected[];
 extern const uint8_t *htRegRequest[];

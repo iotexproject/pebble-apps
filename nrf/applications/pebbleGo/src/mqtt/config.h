@@ -102,7 +102,7 @@ bool iotex_mqtt_is_bulk_upload_over(void);
 void config_mutex_lock(void);
 void config_mutex_unlock(void);
 int packDevConf(uint8_t *buffer, uint32_t size_t);
-int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len);
-uint8_t *getOTAUrl(void);
+int  iotex_mqtt_update_url(const uint8_t *payload, uint32_t len);
+uint8_t * getOTAUrl(void);
 
 #endif /* _IOTEX_MQTT_CONFIG_H_ */

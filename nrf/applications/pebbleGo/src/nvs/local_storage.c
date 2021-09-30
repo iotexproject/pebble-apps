@@ -94,9 +94,7 @@ int iotex_local_storage_readall(iotex_storage_id id, void *data, size_t size, si
 
     return read_cnt;
 }
-
 #define KEY_ID 2
-
 void testNVS(void)
 {
     static struct nvs_fs fs;
@@ -124,26 +122,24 @@ void testNVS(void)
 		printk("Flash Init failed\n");
 	}
 
-	key[0] = 0xFF;
-	key[1] = 0xFE;
-	key[2] = 0xFD;
-	key[3] = 0xFC;
-	key[4] = 0xFB;
-	key[5] = 0xFA;
-	key[6] = 0xF9;
-	key[7] = 0xF8;
-
-	rc = nvs_write(&fs, KEY_ID, key, sizeof(key));
-	printk("writ in : %d\n", rc);
-	key[0] = 0;
-	key[1] = 0;
-	key[2] = 0;
-	key[3] = 0;
-	key[4] = 0;
-	key[5] = 0;
-	key[6] = 0;
-	key[7] = 0;
-
+		key[0] = 0xFF;
+		key[1] = 0xFE;
+		key[2] = 0xFD;
+		key[3] = 0xFC;
+		key[4] = 0xFB;
+		key[5] = 0xFA;
+		key[6] = 0xF9;
+		key[7] = 0xF8;
+		rc = nvs_write(&fs, KEY_ID, key, sizeof(key));
+		printk("writ in : %d\n", rc);	
+		key[0] = 0;
+		key[1] = 0;
+		key[2] = 0;
+		key[3] = 0;
+		key[4] = 0;
+		key[5] = 0;
+		key[6] = 0;
+		key[7] = 0;		
 	rc = nvs_read(&fs, KEY_ID, key, sizeof(key));
 	printk("read out : %d\n", rc);
 	if (rc > 0) { /* item was found, show it */
@@ -152,5 +148,6 @@ void testNVS(void)
 			printk("%x ", key[n]);
 		}
 		printk("\n");
-	}
+	}	
+	return;	   
 }

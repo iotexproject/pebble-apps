@@ -10,7 +10,7 @@
 
 #define   AES_KMU_SLOT			  2
 
-//#define	  TEST_VERFY_SIGNATURE	
+#define	  TEST_VERFY_SIGNATURE	
 
 #define TV_NAME(name) name " -- [" __FILE__ ":" STRINGIFY(__LINE__) "]"
 #define  CHECK_RESULT(exp_res,chk) \
@@ -55,9 +55,9 @@ static uint16_t CRC16(uint8_t *data, size_t len) {
 	uint16_t crc = 0x0000;
 	size_t j;
 	int i;
-	for (j = len; j > 0; j--) {
+	for (j=len; j>0; j--) {
 		crc ^= (uint16_t)(*data++) << 8;
-		for (i = 0; i < 8; i++) {
+		for (i=0; i<8; i++) {
 			if (crc & 0x8000) crc = (crc<<1) ^ 0x8005;
 			else crc <<= 1;
 		}
@@ -75,9 +75,9 @@ int get_ecc_key(void)
 
 	memset(buf, 0, sizeof(buf));
 	pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
-	if (pbuf) {
+	if(pbuf != NULL){
 		memcpy(decrypted_buf, pbuf, PRIV_STR_LEN);
-		decrypted_buf[PRIV_STR_LEN] = 0;
+		decrypted_buf[PRIV_STR_LEN] = 0;		
 		hexStr2Bin(decrypted_buf, binBuf);
 		//printk("binary:\n");
 		//for(i = 0; i < 66; i++ )
@@ -86,28 +86,37 @@ int get_ecc_key(void)
 		//crc = *(uint16_t *)(binBuf+64);
 		//printk("read crc:%04x\n", crc);
 		//printk("calc crc:%04x\n", CRC16(binBuf, 64));
-		for (int i = 0; i < 4; i++) {
-			if (cc3xx_decrypt(AES_KMU_SLOT, decrypted_buf+(i<<4), binBuf+(i<<4))) {
+		for(int i = 0; i <4; i++){
+			if(cc3xx_decrypt(AES_KMU_SLOT, decrypted_buf+(i<<4), binBuf+(i<<4))){
 				printk("cc3xx_decrypt erro\n");
-				return -1;
+				return -1;				
 			}
 		}
 		decrypted_buf[64] = 0;
-#ifdef TEST_VERFY_SIGNATURE
-		printk("priv: ");
-		for (int  i = 0 ; i < 64; i++) {
-			printk("%02x", decrypted_buf[i]);
-		}
-		printk("\n");
-		memcpy(pub, UNCOM_PUB_STR_ADD(pbuf) + 2, 128);
+#ifdef TEST_VERFY_SIGNATURE	
+		//printk("priv: ");
+		//for(int  i = 0 ; i < 64; i++)
+		//{
+		//	printk("%02x", decrypted_buf[i]);
+		//}	
+		//printk("\n");
+		memcpy(pub, UNCOM_PUB_STR_ADD(pbuf)+2, 128);
 		pub[128] = 0;
-		SetEccPrivKey(decrypted_buf, pub);
-		printk("pub:%s \n", pub);
+		SetEccPrivKey(decrypted_buf, pub);		
+		printk("pub:%s \n", pub);		
 #else
+//		printk("priv: ");
+//		for(int  i = 0 ; i < 64; i++)
+//		{
+//			printk("%02x", decrypted_buf[i]);
+//		}	
+//		printk("\n");
+
 		memcpy(pub, UNCOM_PUB_STR_ADD(pbuf), 130);
-		pub[130] = 0;
-		printk("pub:%s \n", pub);
+		pub[130] = 0;		
+		printk("pub:%s \n", pub);	
 		SetEccPrivKey(decrypted_buf);
+	
 #endif
 		//memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
 		//pub[64] = 0;			
@@ -116,34 +125,35 @@ int get_ecc_key(void)
 		return 1;
 	//printk("decrypted : 0x%x, 0x%x,0x%x,0x%x\n", decrypted_buf[0],decrypted_buf[1],decrypted_buf[2],decrypted_buf[3]);
 	//test_case_ecdsa_data.p_x = (const char *)decrypted_buf;
-
+    
 	return  0;
 }
-
 unsigned char* readECCPubKey(void);
-
 /*
 pub : ecc public key, sizeof pub not less than 129 bytes
 */
-int get_ecc_public_key(char *pub)
+int  get_ecc_public_key(char *pub)
 {
-	unsigned char *pbuf = readECCPubKey();
-	if (pbuf) {
+	unsigned char  *pbuf;
+	pbuf = readECCPubKey();
+	if(pbuf != NULL){
 		memcpy(pub, pbuf, 64);
-		return 0;
-	} else
+		return  0;
+	}
+	else
 		return -1;
 }
 
-unsigned char *readECCPubKey(void)
+unsigned char* readECCPubKey(void)
 {
 	unsigned char buf[MODEM_READ_BUF_SIZE];
 	static unsigned char pub[PUB_STR_BUF_SIZE];
-	uint8_t *pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
+	uint8_t *pbuf;
+	pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
 	//memcpy(pub, COM_PUB_STR_ADD(pbuf), 64);
 	//pub[64] = 0;
 	memcpy(pub, UNCOM_PUB_STR_ADD(pbuf), 130);
-	pub[130] = 0;
+	pub[130] = 0;	
 	//printk("pub:%s \n", pub);
 	return pub;
 }
@@ -154,34 +164,39 @@ unsigned char *readECCPubKey(void)
 */
 int startup_check_ecc_key(void)
 {
-	return get_ecc_key() ? -4 : 0;
+	if(get_ecc_key())
+	{
+		return -4;
+	}
+	return  0;
 }
 
 
 void hex2str(char* buf_hex, int len, char *str)
 {
-	int i, j;
+	int i,j;
     const char hexmap[] = {
         '0', '1', '2', '3', '4', '5', '6', '7',
         '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
     };	
-
-	for (i = 0, j = 0; i < len; i++) {
-		str[j++] = hexmap[buf_hex[i] >> 4];	
-		str[j++] = hexmap[buf_hex[i] & 0x0F];
+	for(i =0,j=0; i< len; i++)
+	{		
+		str[j++] = hexmap[buf_hex[i]>>4];	
+		str[j++] = hexmap[buf_hex[i]&0x0F];
 	}
 	str[j] = 0;	
 }
 
-int doESDASign(char *inbuf, uint32_t len, char *buf, int *sinlen)
+int doESDASign(char *inbuf, uint32_t len, char *buf, int* sinlen)
 {
 	int ret = 0;
-#ifdef TEST_VERFY_SIGNATURE
+#ifdef TEST_VERFY_SIGNATURE	
 	ret = doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
 	printk("doESDA_sep256r_Sign return :%x \n", ret);
-#else
+#else	
 	doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
 #endif
 	LowsCalc(buf+32, buf+32);
 	return ret;
 }
+

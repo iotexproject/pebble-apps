@@ -184,6 +184,8 @@ static struct k_work send_gps_data_work;
 static struct k_delayed_work send_env_data_work;
 static struct k_delayed_work long_press_button_work;
 static struct k_delayed_work   heartbeat_work;
+static struct k_delayed_work   animation_work;
+atomic_val_t stop_animation_work;
 
 #if defined(CONFIG_AT_CMD)
 #define MODEM_AT_CMD_BUFFER_LEN (CONFIG_AT_CMD_RESPONSE_MAX_LEN + 1)
@@ -467,7 +469,8 @@ static void gps_handler(struct device *dev, struct gps_event *evt)
 }
 #endif
 
-#if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
+#if 0
+//#if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
 
 #warning Not for prodcution use. This should only be used once to provisioning the certificates please deselect the provision certificates configuration and compile again.
 #define MAX_OF_2 MAX(sizeof(NRF_CLOUD_CA_CERTIFICATE),\
@@ -480,7 +483,6 @@ static const size_t cert_len[] = {
 	sizeof(NRF_CLOUD_CA_CERTIFICATE) - 1, sizeof(NRF_CLOUD_CLIENT_PRIVATE_KEY) - 1,
 	sizeof(NRF_CLOUD_CLIENT_PUBLIC_CERTIFICATE) - 1
 };
-
 static int provision_certificates(void)
 {
 	int err;
@@ -508,6 +510,34 @@ static int provision_certificates(void)
 }
 #endif
 
+void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root )
+{
+    u8_t *certificates[]={root, key, cert};
+    size_t cert_len[] = { strlen(root),strlen(key),strlen(cert)};
+	int err;
+	sec_tag_t sec_tag = CONFIG_CLOUD_CERT_SEC_TAG;
+	enum modem_key_mgnt_cred_type cred[] = {
+		MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
+		MODEM_KEY_MGMT_CRED_TYPE_PRIVATE_CERT,
+		MODEM_KEY_MGMT_CRED_TYPE_PUBLIC_CERT,
+	};
+    disableModem();
+	/* Delete certificates */
+	for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
+		err = modem_key_mgmt_delete(sec_tag, type);
+		printk("modem_key_mgmt_delete(%u, %d) => result=%d\n",
+				sec_tag, type, err);
+	}
+
+	/* Write certificates */
+	for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
+		err = modem_key_mgmt_write(sec_tag, cred[type],
+				certificates[type], cert_len[type]);
+		printk("modem_key_mgmt_write => result=%d\n", err);                        
+	}
+	return;    
+}
+
 #if(!EXTERN_GPS)
 static char *get_mqtt_payload_gps(enum mqtt_qos qos) {
     static char payload[SENSOR_PAYLOAD_MAX_LEN];
@@ -532,7 +562,10 @@ void publish_gps_data() {
 static int iotex_buzzer_test(void)
 {
 	const char *dev_name = "PWM_1";
-    struct device *pwm_dev = device_get_binding(dev_name);
+	int err = 0;
+    struct device *pwm_dev;
+
+	pwm_dev = device_get_binding(dev_name);
 	if (!pwm_dev) {
 		printk("Could not bind to device %s", dev_name);
 		return -ENODEV;
@@ -682,6 +715,14 @@ void heartbeat_work_fn(struct k_work *work)
     k_delayed_work_submit_to_queue(&application_work_q, &heartbeat_work, K_SECONDS(20)); 
 }
 
+void animation_work_fn(struct k_work *work)
+{      
+    if(atomic_get(&stop_animation_work))
+        return;
+    sta_Refresh();
+    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_SECONDS(1));     
+}
+
 //static void power_off_handler(struct k_work *work)
 //{    
 //    gpio_poweroff();
@@ -698,6 +739,7 @@ static void work_init(void)
 	k_delayed_work_init(&long_press_button_work, long_press_handler);
 	//k_delayed_work_init(&power_off_button_work, power_off_handler);
     k_delayed_work_init(&heartbeat_work, heartbeat_work_fn);
+    k_delayed_work_init(&animation_work, animation_work_fn);
 }
 
 /**@brief Configures modem to provide LTE link. Blocks until link is
@@ -962,12 +1004,7 @@ void main(void)
     /* Iotex Init TSL2572 */
     iotex_TSL2572_init(GAIN_1X); 
     /* Iotex Init ICM42605 */
-    iotex_icm42605_init();
-
-#if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
-    provision_certificates();
-#endif /* CONFIG_USE_PROVISIONED_CERTIFICATES  */
-
+    iotex_icm42605_init();	
 	iotex_key_init();
     updateLedPattern();
 	work_init();
@@ -976,9 +1013,15 @@ void main(void)
 
     MainMenu();
 
-    sta_Refresh();
+    atomic_set(&stop_animation_work, 0);
+    
+    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_MSEC(100));
 
 	modem_configure();
+    atomic_set(&stop_animation_work, 1);
+    k_delayed_work_cancel(&animation_work);
+
+
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&bsdlib_initialized, K_FOREVER);
 #else
@@ -992,20 +1035,17 @@ void main(void)
 
     initOTA();
     sta_Refresh();
-
-    do {
+    while(true){
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             printk("ERROR: mqtt_connect %d, rebooting...\n", err);
             k_sleep(K_MSEC(500));
             sys_reboot(0);
             return;
-        }
-        // TODO: MUST break if error
-        iotexDevBinding(&fds, &client)
+        }       
+        iotexDevBinding(&fds,&client);
         k_delayed_work_cancel(&send_env_data_work);
         devRegSet(DEV_REG_START);
-    } while (0);
-
+    }
 #if defined(CONFIG_LWM2M_CARRIER)
 	LOG_INF("Waiting for LWM2M carrier to complete initialization...");
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);

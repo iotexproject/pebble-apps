@@ -82,7 +82,7 @@ void iotex_hal_gpio_init(void) {
     gpio_pin_configure(__gpio0_dev, LED_RED, GPIO_DIR_OUT); 	//p0.02 == LED_RED
 
     gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_ON);	//p0.31 == POWER_ON
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);	//p0.00 == LED_GREEN ON
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);	//p0.00 == LED_GREEN ON
     gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);	//p0.00 == LED_BLUE OFF
     gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);	//p0.00 == LED_RED
 

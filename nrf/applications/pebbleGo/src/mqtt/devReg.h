@@ -1,6 +1,7 @@
 #ifndef __DEV_REG_H__
 #define __DEV_REG_H__
 
+
 #define  DEV_REG_ENDPOINT   "a11homvea4zo8t-ats.iot.ap-east-1.amazonaws.com"
 
 enum DEV_REG_STA {
@@ -23,7 +24,10 @@ enum DEV_REG_STA {
 
 bool IsDevReg(void);
 void devRegSet(enum DEV_REG_STA esta);
-//int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client);
+//void  iotexDevBinding(struct pollfd *fds, struct mqtt_client *client);
 int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len);
 
-#endif // #ifndef __DEV_REG_H__
+
+
+
+#endif

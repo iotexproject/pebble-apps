@@ -29,6 +29,10 @@
 
 // define  system parameters
 #define   PEBBLE_SYS_PARAM_SEC   (CERT_START_SEC+12)
+// Device serial number
+#define   PEBBLE_DEVICE_SN        (CERT_START_SEC+13)
+// mqtt cert index
+#define   MQTT_CERT_INDEX          (CERT_START_SEC+14)
 
 
 typedef enum {
