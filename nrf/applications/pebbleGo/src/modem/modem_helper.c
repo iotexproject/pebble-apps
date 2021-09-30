@@ -10,8 +10,7 @@ static bool isLeap(uint32_t year) {
     return (((year % 4) == 0) && (((year % 100) != 0) || ((year % 400) == 0)));
 }
 
-const char *iotex_modem_get_imei() {
-
+const char *iotex_modem_get_imei(void) {
     int err;
     enum at_cmd_state at_state;
     static char imei_buf[MODEM_IMEI_LEN + 5];
@@ -20,18 +19,17 @@ const char *iotex_modem_get_imei() {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
         return "Unknown";
     }
-    imei_buf[15]=0;
-    return imei_buf;
+
+    imei_buf[MODEM_IMEI_LEN] = 0;
+    return (const char *)imei_buf;
 }
 
-int iotex_model_get_signal_quality() {
-
+int iotex_model_get_signal_quality(void) {
     enum at_cmd_state at_state;
-    char snr_ack[32], snr[4]={0};
-    char *p=snr_ack;
+    char snr_ack[32], snr[4] = {0};
+    char *p = snr_ack;
 
     int err = at_cmd_write("AT+CESQ", snr_ack, 32, &at_state);
-
     if (err) {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
     }
@@ -44,19 +42,17 @@ int iotex_model_get_signal_quality() {
     //snr[0]=p[0];
     //snr[1]=p[1];  
     //snr[2]=0 ;
-    int i =0;
-    while(*p != ',')
-    {
-        snr[i++] = *p++;        
+    int i = 0;
+    while(*p != ',') {
+        snr[i++] = *p++;
     }
-//printk("snr_ack:%s\n", snr_ack);    
-//printk("snr:%s, %d\n", snr, atoi(snr));
+    //printk("snr_ack:%s\n", snr_ack);
+    //printk("snr:%s, %d\n", snr, atoi(snr));
     return atoi(snr);
 }
 
 
 const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
-
     double epoch;
     enum at_cmd_state at_state;
     uint32_t YY, MM, DD, hh, mm, ss;
@@ -66,7 +62,6 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
     int daysPerMonth[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     int err = at_cmd_write("AT+CCLK?", cclk_r_buf, sizeof(cclk_r_buf), &at_state);
-
     if (err) {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
     }
@@ -102,10 +97,10 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
         return stamp->data;
     }
 
-    return epoch_buf;
+    return (const char *)epoch_buf;
 }
-double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
 
+double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
     double epoch;
     enum at_cmd_state at_state;
     uint32_t YY, MM, DD, hh, mm, ss;
@@ -158,18 +153,16 @@ uint32_t iotex_modem_get_battery_voltage(void)
 {   
     enum at_cmd_state at_state;
     char vbat_ack[32], vbat[5];
-    char *p=vbat_ack;
+    char *p = vbat_ack;
 
-    int err = at_cmd_write("AT%XVBAT", vbat_ack, 32, &at_state); 
-
+    int err = at_cmd_write("AT%XVBAT", vbat_ack, 32, &at_state);
     if (err) {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
     }
 
     p = strchr(p, ':') + 1;
-    p++;   
-    for(err=0; err < 4; err++)
-    {
+    p++;
+    for (err = 0; err < 4; err++) {
         vbat[err] = p[err];
     }
     vbat[4] = 0;
@@ -180,125 +173,117 @@ void CheckPower(void)
 {
     volatile float adc_voltage = 0;
     adc_voltage = iotex_modem_get_battery_voltage();
-    if(adc_voltage < 3.3)
-    {
+    if (adc_voltage < 3.3) {
         printk("power lower than 3.3 \n");
         PowerOffIndicator();
     }
 }
+
 void dectCard(void)
 {
     enum at_cmd_state at_state;
-    char vbat_ack[32]; 
-    int err;
-
-    err = at_cmd_write("AT%XSIM=1", vbat_ack, 32, &at_state);   
-    if (err) {
-        printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
-    }      
-}
-bool cardExist(void)
-{
-    enum at_cmd_state at_state;
-    char vbat_ack[32]; 
-    int err; 
-    memset(vbat_ack, 0, sizeof(vbat_ack));
-    err = at_cmd_write("AT%XSIM?", vbat_ack, 32, &at_state);   
+    char vbat_ack[32];
+    int err = at_cmd_write("AT%XSIM=1", vbat_ack, 32, &at_state);
     if (err) {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
     }
-    if(vbat_ack[7] == '1')
-        return  true;
-    else
-        return  false;
+}
+
+bool cardExist(void)
+{
+    enum at_cmd_state at_state;
+    char vbat_ack[32];
+    int err;
+
+    memset(vbat_ack, 0, sizeof(vbat_ack));
+    err = at_cmd_write("AT%XSIM?", vbat_ack, 32, &at_state);
+    if (err) {
+        printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+    }
+
+    return (vbat_ack[7] == '1');
 }
 
 bool getModeVer(uint8_t *buf)
-{    
+{
     enum at_cmd_state at_state;
-    char vbat_ack[32]; 
-    int err; 
+    char vbat_ack[32];
+    int err;
+
     memset(vbat_ack, 0, sizeof(vbat_ack));
-    err = at_cmd_write("AT%SHORTSWVER", vbat_ack, 32, &at_state);   
+    err = at_cmd_write("AT%SHORTSWVER", vbat_ack, 32, &at_state);
     if (err) {
         printk("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
         return false;
-    }    
-    sprintf(buf, vbat_ack+13);
+    }
+
+    sprintf(buf, vbat_ack + 13);
     err = strlen(buf);
-    buf[err-1] = 0;
-    buf[err-2] = 0;
+    buf[err - 1] = 0;
+    buf[err - 2] = 0;
     //printk("last char :%c \n", buf[strlen(buf)-2]);
     return true;
 }
-void disableModem(void)
-{   
-    enum at_cmd_state at_state;
-    char vbat_ack[32]; 
-    int err;   
-    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);    
-    memset(vbat_ack, 0, sizeof(vbat_ack));  
-}
 
-bool  WritDataIntoModem(uint32_t sec, uint8_t *str)
+void disableModem(void)
 {
     enum at_cmd_state at_state;
-    int err; 
     char vbat_ack[32];
-    char  *cmd = NULL;
-    unsigned int  size;
+    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);
+    memset(vbat_ack, 0, sizeof(vbat_ack));
+    // TODO: bug ?
+}
 
-    size = strlen(str)+32;
-    cmd = malloc(size);
-    if(cmd == NULL)
-    {
+bool WritDataIntoModem(uint32_t sec, uint8_t *str)
+{
+    enum at_cmd_state at_state;
+    int err;
+    char vbat_ack[32];
+    char *cmd = NULL;
+    unsigned int size;
+
+    size = strlen(str) + 32;
+    cmd = (char *)malloc(size);
+    if (!cmd) {
         //printk("line %d space not enough\n", __LINE__);
         return false;
     }
 
     //bsdlib_shutdown();
     //printk("WritDataIntoModem \n");
-    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);    
+    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);
     memset(vbat_ack, 0, sizeof(vbat_ack));
     memset(cmd, 0, size);
     strcpy(cmd, "AT%CMNG=");
-    sprintf(cmd+strlen(cmd), "0,%d,0,\"%s\"", sec, str);
+    sprintf(cmd + strlen(cmd), "0,%d,0,\"%s\"", sec, str);
     //printk("write cmd :%s\n",cmd);
-    err = at_cmd_write(cmd, vbat_ack, 32, &at_state); 
-    free(cmd);   
-    if(err){
-        //printk("write erro\n");
-        return false;
-    }
-    else{
-        //printk("write over\n");
-        return true;  
-    }
+    err = at_cmd_write(cmd, vbat_ack, 32, &at_state);
+    free(cmd);
+    return err == 0;
 }
 
-uint8_t* ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len)
+uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len)
 {
     enum at_cmd_state at_state;
-    int err; 
-    char  cmd[32];
-    
+    int err;
+    char cmd[32];
+
     //bsdlib_shutdown();
-    if(len < 79){
+    if (len < 79) {
         //printk("read buf not enough \n");
         return NULL;
     }
+
     strcpy(cmd, "AT%CMNG=");
-    sprintf(cmd+strlen(cmd), "2,%d,0", sec);
+    sprintf(cmd + strlen(cmd), "2,%d,0", sec);
     //printk("read cmd :%s\n",cmd);
-    err = at_cmd_write(cmd, buf, len, &at_state); 
-    if(err){
+    err = at_cmd_write(cmd, buf, len, &at_state);
+    if (err) {
         //printk("read erro\n");
         return NULL;
     }
-    else 
-    {
-        //printk("err:%d, read:%s\n", err, buf);
-        //printk("ret_buf:%s\n", buf+80);
-        return (buf+80); 
-    }
+
+    //printk("err:%d, read:%s\n", err, buf);
+    //printk("ret_buf:%s\n", buf+80);
+    return (buf + 80);
 }

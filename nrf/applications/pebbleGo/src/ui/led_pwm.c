@@ -329,12 +329,13 @@ void SetIndicator(int indct)
 void updateLedPattern(void)
 {	
 	checkCHRQ();
-//	patternIndex &= ALL_UI_MASK;
-//	if(leds.effect != &effect[ui_pattern[patternIndex]])
-//		ui_led_set_effect(ui_pattern[patternIndex]);
+	//	patternIndex &= ALL_UI_MASK;
+	//	if(leds.effect != &effect[ui_pattern[patternIndex]])
+	//		ui_led_set_effect(ui_pattern[patternIndex]);
 }
 
 struct device *beep_pwm_dev = NULL;
+
 int onBeepMePressed(int ms)
 {
 	int err = 0;
@@ -342,8 +343,9 @@ int onBeepMePressed(int ms)
 		//printk("Could not bind to device %s", beep_pwm_dev);
 		//err = -ENODEV;
 		beep_pwm_dev = device_get_binding("PWM_1");		
-	}	
-	pwm_pin_set_usec(beep_pwm_dev, 11,370, 185, 0);//2.7kHz ==370us  185/370=50% duty
+	}
+
+	pwm_pin_set_usec(beep_pwm_dev, 11, 370, 185, 0);//2.7kHz ==370us  185/370=50% duty
 
 	k_sleep(K_MSEC(ms));  //1.5S delay
 
