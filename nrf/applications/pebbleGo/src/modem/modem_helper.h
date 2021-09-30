@@ -24,6 +24,6 @@ uint8_t* ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len);
 
 bool WritDataIntoModem(uint32_t sec, uint8_t *str);
 
-void getSysInfor(uint8_t *buf);
+void getSysInfo(uint8_t *buf);
 
 #endif //_IOTEX_MODEM_H_

@@ -49,7 +49,7 @@ static int_fast32_t formatSysParam(PebbleSYSParam *psys)
     psys->boot_ver[sizeof(psys->boot_ver) - 1] = 0;
 }
 
-void getSysInfor(uint8_t *buf)
+void getSysInfo(uint8_t *buf)
 {
     PebbleSYSParam sysParam;
     formatSysParam(&sysParam);

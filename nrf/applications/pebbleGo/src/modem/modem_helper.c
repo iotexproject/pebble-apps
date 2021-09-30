@@ -162,7 +162,7 @@ uint32_t iotex_modem_get_battery_voltage(void)
 
     p = strchr(p, ':') + 1;
     p++;
-    for (err=0; err < 4; err++) {
+    for (err = 0; err < 4; err++) {
         vbat[err] = p[err];
     }
     vbat[4] = 0;
@@ -255,7 +255,7 @@ bool WritDataIntoModem(uint32_t sec, uint8_t *str)
     memset(vbat_ack, 0, sizeof(vbat_ack));
     memset(cmd, 0, size);
     strcpy(cmd, "AT%CMNG=");
-    sprintf(cmd+strlen(cmd), "0,%d,0,\"%s\"", sec, str);
+    sprintf(cmd + strlen(cmd), "0,%d,0,\"%s\"", sec, str);
     //printk("write cmd :%s\n",cmd);
     err = at_cmd_write(cmd, vbat_ack, 32, &at_state);
     free(cmd);

@@ -993,7 +993,7 @@ void main(void)
     initOTA();
     sta_Refresh();
 
-    while (true) {
+    do {
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             printk("ERROR: mqtt_connect %d, rebooting...\n", err);
             k_sleep(K_MSEC(500));
@@ -1001,10 +1001,11 @@ void main(void)
             return;
         }
         // TODO: MUST break if error
-        iotexDevBinding(&fds,&client);
+        iotexDevBinding(&fds, &client)
         k_delayed_work_cancel(&send_env_data_work);
         devRegSet(DEV_REG_START);
-    }
+    } while (0);
+
 #if defined(CONFIG_LWM2M_CARRIER)
 	LOG_INF("Waiting for LWM2M carrier to complete initialization...");
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);

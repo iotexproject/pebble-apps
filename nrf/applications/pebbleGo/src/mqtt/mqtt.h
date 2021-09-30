@@ -6,13 +6,15 @@
 #include <zephyr.h>
 #include <net/socket.h>
 
+#define DATA_BUFFER_SIZE   500
+
 extern atomic_val_t send_data_enable;
 
 struct mqtt_payload {
     char *buf;
     size_t len;
 };
-#define  DATA_BUFFER_SIZE   500
+
 /* Get MQTT client id */
 const uint8_t *iotex_mqtt_get_client_id(void);
 

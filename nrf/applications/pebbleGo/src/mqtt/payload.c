@@ -18,33 +18,29 @@
 
 extern double latitude;
 extern double longitude;
+
 int json_add_obj(cJSON *parent, const char *str, cJSON *item) {
     cJSON_AddItemToObject(parent, str, item);
     return 0;
 }
 
 static int json_add_str(cJSON *parent, const char *str, const char *item) {
-
     cJSON *json_str;
     json_str = cJSON_CreateString(item);
-
-    if (json_str == NULL) {
+    if (!json_str)
         return -ENOMEM;
-    }
 
     return json_add_obj(parent, str, json_str);
 }
 
-
 int iotex_mqtt_get_devinfo_payload(struct mqtt_payload *output) {
-
     int ret = 0;
     cJSON *root_obj = cJSON_CreateObject();
     cJSON *vbat_obj = cJSON_CreateNumber(iotex_modem_get_battery_voltage());
     cJSON *snr_obj = cJSON_CreateNumber(iotex_model_get_signal_quality());
-
     if (!root_obj || !vbat_obj || !snr_obj) {
-        goto out;
+        ret = -ENOMEM;
+        goto cleanup;
     }
 
     /* Format device info */
@@ -54,22 +50,23 @@ int iotex_mqtt_get_devinfo_payload(struct mqtt_payload *output) {
     ret += json_add_obj(root_obj, "SNR", snr_obj);
 
     if (ret != 0) {
-        goto out;
+        goto cleanup;
     }
 
     output->buf = cJSON_PrintUnformatted(root_obj);
     output->len = strlen(output->buf);
-    cJSON_Delete(root_obj);
 
-    return 0;
-
-out:
-    cJSON_Delete(root_obj);
-    return -ENOMEM;
+cleanup:
+    if (root_obj)
+        cJSON_Delete(root_obj);
+    if (vbat_obj)
+        cJSON_Delete(vbat_obj);
+    if (snr_obj)
+        cJSON_Delete(snr_obj);
+    return ret;
 }
 
 int iotex_mqtt_get_env_sensor_payload(struct mqtt_payload *output) {
-
     iotex_storage_bme680 data;
 
     if (iotex_bme680_get_sensor_data(&data)) {
@@ -85,7 +82,8 @@ int iotex_mqtt_get_env_sensor_payload(struct mqtt_payload *output) {
     cJSON *gas_resistance = cJSON_CreateNumber(data.gas_resistance);
 
     if (!root_obj || !humidity || !pressure || !temperature || !gas_resistance) {
-        goto out;
+        ret = -ENOMEM;
+        goto cleanup;
     }
 
     ret += json_add_str(root_obj, "Device", device);
@@ -96,28 +94,34 @@ int iotex_mqtt_get_env_sensor_payload(struct mqtt_payload *output) {
     ret += json_add_str(root_obj, "timestamp", iotex_modem_get_clock(NULL));
 
     if (ret != 0) {
-        goto out;
+        goto cleanup;
     }
 
     output->buf = cJSON_PrintUnformatted(root_obj);
     output->len = strlen(output->buf);
-    cJSON_Delete(root_obj);
-    return 0;
 
-out:
-    cJSON_Delete(root_obj);
-    return -ENOMEM;
+cleanup:
+    if (root_obj)
+        cJSON_Delete(root_obj);
+    if (humidity)
+        cJSON_Delete(humidity);
+    if (pressure)
+        cJSON_Delete(pressure);
+    if (temperature)
+        cJSON_Delete(temperature);
+    if (gas_resistance)
+        cJSON_Delete(gas_resistance);
+    return ret;
 }
 
 int iotex_mqtt_get_action_sensor_payload(struct mqtt_payload *output) {
-
     int i;
     int ret = 0;
     const char *device = "ICM42605";
-
     iotex_storage_icm42605 data;
     int gyroscope[ARRAY_SIZE(data.gyroscope)];
     int accelerometer[ARRAY_SIZE(data.accelerometer)];
+
     if (iotex_icm42605_get_sensor_data(&data)) {
         return -1;
     }
@@ -136,7 +140,8 @@ int iotex_mqtt_get_action_sensor_payload(struct mqtt_payload *output) {
     cJSON *accelerometer_obj = cJSON_CreateIntArray(accelerometer, ARRAY_SIZE(accelerometer));
 
     if (!root_obj || !temperature_obj || !gyroscope_obj || !accelerometer_obj) {
-        goto out;
+        ret = -ENOMEM;
+        goto cleanup;
     }
 
     ret += json_add_str(root_obj, "Device", device);
@@ -146,19 +151,22 @@ int iotex_mqtt_get_action_sensor_payload(struct mqtt_payload *output) {
     ret += json_add_str(root_obj, "timestamp", iotex_modem_get_clock(NULL));
 
     if (ret != 0) {
-        goto out;
+        goto cleanup;
     }
 
     output->buf = cJSON_PrintUnformatted(root_obj);
     output->len = strlen(output->buf);
-    cJSON_Delete(root_obj);
-    return 0;
 
-out:
-    cJSON_Delete(root_obj);
-    return -ENOMEM;
-
-    return 0;
+cleanup:
+    if (root_obj)
+        cJSON_Delete(root_obj);
+    if (temperature_obj)
+        cJSON_Delete(temperature_obj);
+    if (gyroscope_obj)
+        cJSON_Delete(gyroscope_obj);
+    if (accelerometer_obj)
+        cJSON_Delete(accelerometer_obj);
+    return ret;
 }
 
 bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
@@ -198,32 +206,28 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
     /* Vbatx100 */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
         vol_Integer = (uint16_t)(iotex_modem_get_battery_voltage() * 1000);
-        buffer[write_cnt++] = (uint8_t)(vol_Integer&0x00FF);
-        buffer[write_cnt++] = (uint8_t)((vol_Integer>>8)&0x00FF);
+        buffer[write_cnt++] = (uint8_t)(vol_Integer & 0x00FF);
+        buffer[write_cnt++] = (uint8_t)((vol_Integer>>8) & 0x00FF);
     }
 
     /* TODO GPS */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
-        int i = getGPS(&latitude,&longitude); 
-        char *pDat = &latitude; 
-        if(!i){
-            for(i=0; i < sizeof(latitude); i++)
-            {
+        int i = getGPS(&latitude, &longitude);
+        char *pDat = &latitude;
+        if (!i) {
+            for (i = 0; i < sizeof(latitude); i++) {
                 buffer[write_cnt++] = *pDat++;
             }
             pDat = &longitude;
-            for(i=0; i < sizeof(longitude); i++)
-            {
+            for (i = 0; i < sizeof(longitude); i++) {
                 buffer[write_cnt++] = *pDat++;
-            }            
+            }
+        } else {
+            for (i = 0; i < sizeof(latitude); i++) {
+                buffer[write_cnt++] = 0xFF;
+                buffer[write_cnt++] = 0xFF;
+            }
         }
-        else{
-            for(i=0; i < sizeof(latitude); i++)
-            {
-                buffer[write_cnt++] = 0xFF;
-                buffer[write_cnt++] = 0xFF;
-            }           
-        }  
     }
 
     /* Env sensor gas */
@@ -249,12 +253,14 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
         memcpy(buffer + write_cnt, &env_sensor.humidity, sizeof(env_sensor.humidity));
         write_cnt += sizeof(env_sensor.humidity);
     }
+
     /* Env sensor light */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_LIGHT_SENSOR)) {
-        AmbientLight=iotex_Tsl2572ReadAmbientLight();
+        AmbientLight = iotex_Tsl2572ReadAmbientLight();
         memcpy(buffer + write_cnt, &AmbientLight, sizeof(AmbientLight));
         write_cnt += sizeof(AmbientLight);
-    }  
+    }
+
     /* Action sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP2)) {
         memcpy(buffer + write_cnt, &action_sensor.temperature, sizeof(action_sensor.temperature));
@@ -274,7 +280,7 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
     }
 
 	// save timestamp
-	timestamp = iotex_modem_get_clock_raw(NULL);	
+	timestamp = iotex_modem_get_clock_raw(NULL);
 	memcpy(buffer + write_cnt, &timestamp, sizeof(timestamp));
 	write_cnt += sizeof(timestamp);
 	//printk("write_cnt:%d\n", write_cnt);
@@ -288,127 +294,138 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
 
 int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *output) {
     int i;
+    int ret = -ENOMEM;
     iotex_storage_bme680 env_sensor;
     iotex_storage_icm42605 action_sensor;
     char esdaSign[65];
     char jsStr[130];
-    int  sinLen;
-    float AmbientLight=0.0;
+    int sinLen;
+    float AmbientLight = 0.0;
     char random[17];
     cJSON *root_obj = cJSON_CreateObject();
-    cJSON * msg_obj = cJSON_CreateObject();
-    
-    if (!root_obj||!msg_obj) {
-        goto out;
+    cJSON *msg_obj = cJSON_CreateObject();
+    cJSON *snr = NULL;
+    cJSON *vbat = NULL;
+    cJSON *lat = NULL;
+    cJSON *lon = NULL;
+    cJSON *gas_resistance = NULL;
+    cJSON *temperature = NULL;
+    cJSON *pressure = NULL;
+    cJSON *humidity = NULL;
+    cJSON *light = NULL;
+    cJSON *temperature2 = NULL;
+    cJSON *gyroscope_obj = NULL;
+    cJSON *accelerometer_obj = NULL;
+    cJSON *random_obj = NULL;
+    cJSON *ecc_pub_obj = NULL;
+    cJSON *sign_obj = NULL;
+    cJSON *esdaSign_r_Obj = NULL;
+    cJSON *esdaSign_s_Obj = NULL;
+
+    if (!root_obj || !msg_obj) {
+        goto cleanup;
     }
-    cJSON_AddItemToObject(root_obj, "message", msg_obj);        
+
+    cJSON_AddItemToObject(root_obj, "message", msg_obj);
     if (DATA_CHANNEL_ENV_SENSOR & channel) {
         if (iotex_bme680_get_sensor_data(&env_sensor)) {
-             goto out;
+            goto cleanup;
         }
     }
 
     if (DATA_CHANNEL_ACTION_SENSOR & channel) {
         if (iotex_icm42605_get_sensor_data(&action_sensor)) {
-             goto out;
+            goto cleanup;
         }
     }
 
     /* Snr */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_SNR)) {
-        cJSON *snr = cJSON_CreateNumber(iotex_model_get_signal_quality());
-
+        snr = cJSON_CreateNumber(iotex_model_get_signal_quality());
         if (!snr || json_add_obj(msg_obj, "snr", snr)) {
-            goto out;
+            goto cleanup;
         }
     }
 
     /* Vbat */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
-        cJSON *vbat = cJSON_CreateNumber(iotex_modem_get_battery_voltage());
-
+        vbat = cJSON_CreateNumber(iotex_modem_get_battery_voltage());
         if (!vbat || json_add_obj(msg_obj, "vbat", vbat)) {
-            goto out;
+            goto cleanup;
         }
     }
+
     /* TODO GPS */
-    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {        
-        int i = getGPS(&latitude,&longitude);     
-        if(!i){
-            cJSON *lat = cJSON_CreateNumber(latitude);
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
+        int i = getGPS(&latitude,&longitude);
+        if (!i) {
+            lat = cJSON_CreateNumber(latitude);
             if (!lat || json_add_obj(msg_obj, "latitude", lat)) {
-                goto out;
+                goto cleanup;
             }    
-            cJSON *lon = cJSON_CreateNumber(longitude);
+            lon = cJSON_CreateNumber(longitude);
             if (!lon || json_add_obj(msg_obj, "longitude", lon)) {
-                goto out;
+                goto cleanup;
             } 
-        }
-        else{
-            cJSON *lat = cJSON_CreateNumber(20000.00);
+        } else {
+            lat = cJSON_CreateNumber(20000.00);
             if (!lat || json_add_obj(msg_obj, "latitude", lat)) {
-                goto out;
+                goto cleanup;
             }    
-            cJSON *lon = cJSON_CreateNumber(20000.00);
+            lon = cJSON_CreateNumber(20000.00);
             if (!lon || json_add_obj(msg_obj, "longitude", lon)) {
-                goto out;
+                goto cleanup;
             }             
         }                    
     }
 
     /* Env sensor gas */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
-        cJSON *gas_resistance = cJSON_CreateNumber(env_sensor.gas_resistance);
-
+        gas_resistance = cJSON_CreateNumber(env_sensor.gas_resistance);
         if (!gas_resistance || json_add_obj(msg_obj, "gasResistance", gas_resistance)) {
-            goto out;
+            goto cleanup;
         }
     }
 
     /* Env sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP)) {
-        cJSON *temperature = cJSON_CreateNumber(env_sensor.temperature);
-
+        temperature = cJSON_CreateNumber(env_sensor.temperature);
         if (!temperature || json_add_obj(msg_obj, "temperature", temperature)) {
-            goto out;
+            goto cleanup;
         }
     }
 
     /* Env sensor pressure */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_PRESSURE)) {
-        cJSON *pressure = cJSON_CreateNumber(env_sensor.pressure);
-
+        pressure = cJSON_CreateNumber(env_sensor.pressure);
         if (!pressure || json_add_obj(msg_obj, "pressure", pressure)) {
-            goto out;
+            goto cleanup;
         }
 
     }
 
     /* Env sensor humidity */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_HUMIDITY)) {
-        cJSON *humidity = cJSON_CreateNumber(env_sensor.humidity);
-
+        humidity = cJSON_CreateNumber(env_sensor.humidity);
         if (!humidity || json_add_obj(msg_obj, "humidity", humidity)) {
-            goto out;
+            goto cleanup;
         }
     }
 
     /* Env sensor light */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_LIGHT_SENSOR)) {
-        AmbientLight=iotex_Tsl2572ReadAmbientLight();      
-        cJSON *light = cJSON_CreateNumber(AmbientLight);
-
+        AmbientLight=iotex_Tsl2572ReadAmbientLight();
+        light = cJSON_CreateNumber(AmbientLight);
         if (!light || json_add_obj(msg_obj, "light", light)) {
-            goto out;
+            goto cleanup;
         }
     }    
 
     /* Action sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP2)) {
-        cJSON *temperature = cJSON_CreateNumber(action_sensor.temperature);
-
-        if (!temperature || json_add_obj(msg_obj, "temperature2", temperature)) {
-            goto out;
+        temperature2 = cJSON_CreateNumber(action_sensor.temperature);
+        if (!temperature2 || json_add_obj(msg_obj, "temperature2", temperature2)) {
+            goto cleanup;
         }
     }
 
@@ -420,10 +437,9 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
             gyroscope[i] = action_sensor.gyroscope[i];
         }
 
-        cJSON *gyroscope_obj = cJSON_CreateIntArray(gyroscope, ARRAY_SIZE(gyroscope));
-
+        gyroscope_obj = cJSON_CreateIntArray(gyroscope, ARRAY_SIZE(gyroscope));
         if (!gyroscope_obj || json_add_obj(msg_obj, "gyroscope", gyroscope_obj)) {
-            goto out;
+            goto cleanup;
         }
     }
 
@@ -435,71 +451,88 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
             accelerometer[i] = action_sensor.accelerometer[i];
         }
 
-        cJSON *accelerometer_obj = cJSON_CreateIntArray(accelerometer, ARRAY_SIZE(accelerometer));
-
+        accelerometer_obj = cJSON_CreateIntArray(accelerometer, ARRAY_SIZE(accelerometer));
         if (!accelerometer_obj || json_add_obj(msg_obj, "accelerometer", accelerometer_obj)) {
-            goto out;
+            goto cleanup;
         }
     }
 
     /* Add timestamp */
     if (json_add_str(msg_obj, "timestamp", iotex_modem_get_clock(NULL))) {
-        goto out;
-    }  
+        goto cleanup;
+    }
+
     // get random number
     GenRandom(random);
     random[sizeof(random)-1] = 0;
-    cJSON *random_obj = cJSON_CreateString(random); 
-    if(!random_obj  || json_add_obj(msg_obj, "random", random_obj))
-    {
-        goto out;
+    random_obj = cJSON_CreateString(random); 
+    if (!random_obj || json_add_obj(msg_obj, "random", random_obj)) {
+        goto cleanup;
     }
+
     // ecc public key
-    if(get_ecc_public_key(NULL))
-    {
+    if (get_ecc_public_key(NULL)) {
         get_ecc_public_key(jsStr);
         jsStr[128] = 0;
-        cJSON *ecc_pub_obj = cJSON_CreateString(jsStr);
-        if(!ecc_pub_obj  || json_add_obj(msg_obj, "eccPubkey", ecc_pub_obj))
-        {
-            goto out;
+        ecc_pub_obj = cJSON_CreateString(jsStr);
+        if (!ecc_pub_obj || json_add_obj(msg_obj, "eccPubkey", ecc_pub_obj)) {
+            goto cleanup;
         }        
     }
+
     //output->buf = cJSON_PrintUnformatted(msg_obj);  
     output->buf = cJSON_PrintUnformatted(root_obj);
-//printk("sign_string:%s\n", output->buf);             
-    doESDA_sep256r_Sign(output->buf,strlen(output->buf),esdaSign,&sinLen);   
-//printk("doESDA_sep256r_Sign :0x%x \n", i); 
+    //printk("sign_string:%s\n", output->buf);             
+    doESDA_sep256r_Sign(output->buf, strlen(output->buf), esdaSign, &sinLen);   
+    //printk("doESDA_sep256r_Sign :0x%x \n", i); 
 
-    hex2str(esdaSign, sinLen,jsStr);
+    hex2str(esdaSign, sinLen, jsStr);
     cJSON_free(output->buf);
-    memcpy(esdaSign,jsStr,64);
-    esdaSign[64] = 0;    
-    cJSON * sign_obj = cJSON_CreateObject();
-    if(!sign_obj)
-        goto out;
+    memcpy(esdaSign, jsStr, 64);
+    esdaSign[64] = 0;
+    sign_obj = cJSON_CreateObject();
+    if (!sign_obj)
+        goto cleanup;
+
     cJSON_AddItemToObject(root_obj, "signature", sign_obj);  
-    cJSON *esdaSign_r_Obj = cJSON_CreateString(esdaSign);
-    if(!esdaSign_r_Obj  || json_add_obj(sign_obj, "r", esdaSign_r_Obj))
-        goto out;
-    cJSON *esdaSign_s_Obj = cJSON_CreateString(jsStr+64);
-    if(!esdaSign_s_Obj  || json_add_obj(sign_obj, "s", esdaSign_s_Obj))
-        goto out; 
-                
+    esdaSign_r_Obj = cJSON_CreateString(esdaSign);
+    if (!esdaSign_r_Obj || json_add_obj(sign_obj, "r", esdaSign_r_Obj))
+        goto cleanup;
+
+    esdaSign_s_Obj = cJSON_CreateString(jsStr + 64);
+    if (!esdaSign_s_Obj || json_add_obj(sign_obj, "s", esdaSign_s_Obj))
+        goto cleanup;
+
     //memset(output->buf, 0, strlen(output->buf));   
-    output->buf = cJSON_PrintUnformatted(root_obj);    
+    output->buf = cJSON_PrintUnformatted(root_obj);
     output->len = strlen(output->buf);
-    cJSON_Delete(root_obj);  
-printk("json package: %d bytes\n", output->len);
-//TestProtobufFloat(channel);    
 
-    return 0;
+    printk("json package: %d bytes\n", output->len);
+    //TestProtobufFloat(channel);
+    ret = 0;
 
-out:
-    cJSON_Delete(root_obj);
-    return -ENOMEM;
+cleanup:
+    if (root_obj) cJSON_Delete(root_obj);
+    if (msg_obj) cJSON_Delete(msg_obj);
+    if (snr) cJSON_Delete(snr);
+    if (vbat) cJSON_Delete(vbat);
+    if (lat) cJSON_Delete(lat);
+    if (lon) cJSON_Delete(lon);
+    if (gas_resistance) cJSON_Delete(gas_resistance);
+    if (temperature) cJSON_Delete(temperature);
+    if (pressure) cJSON_Delete(pressure);
+    if (humidity) cJSON_Delete(humidity);
+    if (light) cJSON_Delete(light);
+    if (temperature2) cJSON_Delete(temperature2);
+    if (gyroscope_obj) cJSON_Delete(gyroscope_obj);
+    if (accelerometer_obj) cJSON_Delete(accelerometer_obj);
+    if (random_obj) cJSON_Delete(random_obj);
+    if (ecc_pub_obj) cJSON_Delete(ecc_pub_obj);
+    if (sign_obj) cJSON_Delete(sign_obj);
+    if (esdaSign_r_Obj) cJSON_Delete(esdaSign_r_Obj);
+    if (esdaSign_s_Obj) cJSON_Delete(esdaSign_s_Obj);
+    return ret;
 }
-
 
 int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payload *output)
 {	
@@ -508,132 +541,144 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
 	double  timestamp;
 	float  tmp;
 	int i;
+    int ret = -ENOMEM;
     char esdaSign[65];
     char jsStr[130];
     int  sinLen;
     char random[17];
     uint16_t vol_Integer;
     cJSON *root_obj = cJSON_CreateObject();
-    cJSON * msg_obj = cJSON_CreateObject();
-    cJSON * sign_obj = cJSON_CreateObject();
-    if (!root_obj||!msg_obj||!sign_obj) {
-        goto out;
-    }
-	
-    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_SNR)) {
-        cJSON *snr = cJSON_CreateNumber(buffer[write_cnt++]);
+    cJSON *msg_obj = cJSON_CreateObject();
+    cJSON *sign_obj = cJSON_CreateObject();
+    cJSON *snr = NULL;
+    cJSON *vbat = NULL;
+    cJSON *lat = NULL;
+    cJSON *lon = NULL;
+    cJSON *gas_resistance = NULL;
+    cJSON *temperature = NULL;
+    cJSON *pressure = NULL;
+    cJSON *humidity = NULL;
+    cJSON *light = NULL;
+    cJSON *temperature2 = NULL;
+    cJSON *gyroscope_obj = NULL;
+    cJSON *accelerometer_obj = NULL;
+    cJSON *random_obj = NULL;
+    cJSON *esdaSign_r_Obj = NULL;
+    cJSON *esdaSign_s_Obj = NULL;
 
+    if (!root_obj || !msg_obj || !sign_obj) {
+        goto cleanup;
+    }
+
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_SNR)) {
+        snr = cJSON_CreateNumber(buffer[write_cnt++]);
         if (!snr || json_add_obj(msg_obj, "SNR", snr)) {
-            goto out;
-        }         
+            goto cleanup;
+        }
     }
 
     /* Vbatx100 */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
-        vol_Integer = (uint16_t)(buffer[write_cnt++] | (buffer[write_cnt++]<<8));
-        cJSON *vbat = cJSON_CreateNumber((double)(vol_Integer/1000.0));
+        vol_Integer = (uint16_t)(buffer[write_cnt++] | (buffer[write_cnt++] << 8));
+        vbat = cJSON_CreateNumber((double)(vol_Integer/1000.0));
         if (!vbat || json_add_obj(msg_obj, "VBAT", vbat)) {
-            goto out;
+            goto cleanup;
         }
     }
 
     /* TODO GPS */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
-        char *pDat =   &latitude;
+        char *pDat = &latitude;
         int i;
         char j;
-        for(i = 0; i < sizeof(latitude);i++)
-        {
-            *pDat++ = buffer[write_cnt++];            
+        for (i = 0; i < sizeof(latitude); i++) {
+            *pDat++ = buffer[write_cnt++];
         }
-        pDat =   &longitude;
-        for(i = 0,j = 0xFF; i < sizeof(longitude);i++)
-        {
-            *pDat = buffer[write_cnt++]; 
+        pDat = &longitude;
+        for (i = 0,j = 0xFF; i < sizeof(longitude); i++) {
+            *pDat = buffer[write_cnt++];
             j &= *pDat;
             pDat++;
-        }                
-        if(j != 0xFF){
-            cJSON *lat = cJSON_CreateNumber(latitude);
-            if (!lat || json_add_obj(msg_obj, "latitude", lat)) {
-                goto out;
-            }    
-            cJSON *lon = cJSON_CreateNumber(longitude);
-            if (!lon || json_add_obj(msg_obj, "longitude", lon)) {
-                goto out;
-            } 
         }
-        else{
-            cJSON *lat = cJSON_CreateNumber(20000.00);
+        if (j != 0xFF) {
+            lat = cJSON_CreateNumber(latitude);
             if (!lat || json_add_obj(msg_obj, "latitude", lat)) {
-                goto out;
-            }    
-            cJSON *lon = cJSON_CreateNumber(20000.00);
+                goto cleanup;
+            }
+            lon = cJSON_CreateNumber(longitude);
             if (!lon || json_add_obj(msg_obj, "longitude", lon)) {
-                goto out;
-            }             
-        }  
+                goto cleanup;
+            }
+        } else {
+            lat = cJSON_CreateNumber(20000.00);
+            if (!lat || json_add_obj(msg_obj, "latitude", lat)) {
+                goto cleanup;
+            }
+            lon = cJSON_CreateNumber(20000.00);
+            if (!lon || json_add_obj(msg_obj, "longitude", lon)) {
+                goto cleanup;
+            }
+        }
     }
 
     /* Env sensor gas */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
 		memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
 		write_cnt += sizeof(tmp);
-        cJSON *gas_resistance = cJSON_CreateNumber(tmp);
+        gas_resistance = cJSON_CreateNumber(tmp);
         if (!gas_resistance || json_add_obj(msg_obj, "gasResistance", gas_resistance)) {
-            goto out;
-        }	   
+            goto cleanup;
+        }
     }
 
     /* Env sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP)) {
         memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
-        write_cnt += sizeof(tmp);		
-        cJSON *temperature = cJSON_CreateNumber(tmp);
+        write_cnt += sizeof(tmp);
+        temperature = cJSON_CreateNumber(tmp);
         if (!temperature || json_add_obj(msg_obj, "temperature", temperature)) {
-            goto out;
-        }		
-
+            goto cleanup;
+        }
     }
 
     /* Env sensor pressure */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_PRESSURE)) {
         memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
-        write_cnt += sizeof(tmp);		
-        cJSON *pressure = cJSON_CreateNumber(tmp);
+        write_cnt += sizeof(tmp);
+        pressure = cJSON_CreateNumber(tmp);
         if (!pressure || json_add_obj(msg_obj, "pressure", pressure)) {
-            goto out;
-        }		
+            goto cleanup;
+        }
     }
 
     /* Env sensor humidity */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_HUMIDITY)) {
         memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
-        write_cnt += sizeof(tmp);		
-        cJSON *humidity = cJSON_CreateNumber(tmp);
+        write_cnt += sizeof(tmp);
+        humidity = cJSON_CreateNumber(tmp);
         if (!humidity || json_add_obj(msg_obj, "humidity", humidity)) {
-            goto out;
-        }		
+            goto cleanup;
+        }
     }
 
     /* Env sensor light */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_HUMIDITY)) {
         memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
-        write_cnt += sizeof(tmp);		
-        cJSON *light = cJSON_CreateNumber(tmp);
+        write_cnt += sizeof(tmp);
+        light = cJSON_CreateNumber(tmp);
         if (!light || json_add_obj(msg_obj, "light", light)) {
-            goto out;
-        }        
-    }    
+            goto cleanup;
+        }
+    }
 
     /* Action sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP2)) {
         memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
-        write_cnt += sizeof(tmp);		
-        cJSON *temperature = cJSON_CreateNumber(tmp);
-        if (!temperature || json_add_obj(msg_obj, "temperature2", temperature)) {
-            goto out;
-        }		
+        write_cnt += sizeof(tmp);
+        temperature2 = cJSON_CreateNumber(tmp);
+        if (!temperature2 || json_add_obj(msg_obj, "temperature2", temperature2)) {
+            goto cleanup;
+        }
     }
 
     /* Action sensor gyroscope data */
@@ -645,9 +690,9 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
         for (i = 0; i < ARRAY_SIZE(gyroscope); i++) {
             gyroscope[i] = buf[i];
         }
-        cJSON *gyroscope_obj = cJSON_CreateIntArray(gyroscope, ARRAY_SIZE(gyroscope));
+        gyroscope_obj = cJSON_CreateIntArray(gyroscope, ARRAY_SIZE(gyroscope));
         if (!gyroscope_obj || json_add_obj(msg_obj, "gyroscope", gyroscope_obj)) {
-            goto out;
+            goto cleanup;
         }
     }
 
@@ -656,55 +701,75 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
         int accelerometer[3];
 		int16_t buf[3];
 		memcpy(buf, buffer + write_cnt, sizeof(buf));
-		write_cnt += sizeof(buf);		
+		write_cnt += sizeof(buf);
         for (i = 0; i < ARRAY_SIZE(accelerometer); i++) {
             accelerometer[i] = buf[i];
         }
-        cJSON *accelerometer_obj = cJSON_CreateIntArray(accelerometer, ARRAY_SIZE(accelerometer));
+        accelerometer_obj = cJSON_CreateIntArray(accelerometer, ARRAY_SIZE(accelerometer));
         if (!accelerometer_obj || json_add_obj(msg_obj, "accelerometer", accelerometer_obj)) {
-            goto out;
+            goto cleanup;
         }
     }
+
     /* Add timestamp */
 	memcpy(&timestamp, buffer + write_cnt, sizeof(timestamp));
 	//snprintf(epoch_buf, sizeof(epoch_buf), "%.0f", timestamp);
 	//printk("UTC epoch %s, write_cnt:%d\n", epoch_buf, write_cnt+sizeof(timestamp));
     if (json_add_str(msg_obj, "timestamp", epoch_buf)) {
-        goto out;
+        goto cleanup;
     }
     // get random number
     GenRandom(random);
-    random[sizeof(random)-1] = 0;
-    cJSON *random_obj = cJSON_CreateString(random); 
-    if(!random_obj  || json_add_obj(msg_obj, "random", random_obj))
-    {
-        goto out;
+    random[sizeof(random) - 1] = 0;
+    random_obj = cJSON_CreateString(random); 
+    if (!random_obj  || json_add_obj(msg_obj, "random", random_obj)) {
+        goto cleanup;
     }
 
     cJSON_AddItemToObject(root_obj, "message", msg_obj);
     output->buf = cJSON_PrintUnformatted(msg_obj);
-    doESDA_sep256r_Sign(output->buf,strlen(output->buf),esdaSign,&sinLen);   
+    doESDA_sep256r_Sign(output->buf, strlen(output->buf), esdaSign,&sinLen);   
     hex2str(esdaSign, sinLen,jsStr);
     free(output->buf);
     memcpy(esdaSign, jsStr, 64);
     esdaSign[64]= 0;
-    cJSON *esdaSign_r_Obj = cJSON_CreateString(esdaSign); 
-    if(!esdaSign_r_Obj  || json_add_obj(sign_obj, "r", esdaSign_r_Obj))
-        goto out;
-    cJSON *esdaSign_s_Obj = cJSON_CreateString(jsStr+64); 
+    
+    esdaSign_r_Obj = cJSON_CreateString(esdaSign); 
+    if (!esdaSign_r_Obj  || json_add_obj(sign_obj, "r", esdaSign_r_Obj))
+        goto cleanup;
+
+    esdaSign_s_Obj = cJSON_CreateString(jsStr + 64);
     if(!esdaSign_s_Obj  || json_add_obj(sign_obj, "s", esdaSign_s_Obj))
-        goto out;        
+        goto cleanup;
+
     cJSON_AddItemToObject(root_obj, "signature", sign_obj);
     //memset(output->buf, 0, strlen(output->buf));        
     output->buf = cJSON_PrintUnformatted(root_obj);
     output->len = strlen(output->buf);
-    cJSON_Delete(root_obj);
 
-    return 0;
+    ret = 0;
 
-out:
-    cJSON_Delete(root_obj);
-    return -ENOMEM;	
+cleanup:
+    if (root_obj) cJSON_Delete(root_obj);
+    if (msg_obj) cJSON_Delete(msg_obj);
+    if (sign_obj) cJSON_Delete(sign_obj);
+    if (snr) cJSON_Delete(snr);
+    if (vbat) cJSON_Delete(vbat);
+    if (lat) cJSON_Delete(lat);
+    if (lon) cJSON_Delete(lon);
+    if (gas_resistance) cJSON_Delete(gas_resistance);
+    if (temperature) cJSON_Delete(temperature);
+    if (pressure) cJSON_Delete(pressure);
+    if (humidity) cJSON_Delete(humidity);
+    if (light) cJSON_Delete(light);
+    if (temperature2) cJSON_Delete(temperature2);
+    if (gyroscope_obj) cJSON_Delete(gyroscope_obj);
+    if (accelerometer_obj) cJSON_Delete(accelerometer_obj);
+    if (random_obj) cJSON_Delete(random_obj);
+    if (esdaSign_r_Obj) cJSON_Delete(esdaSign_r_Obj);
+    if (esdaSign_s_Obj) cJSON_Delete(esdaSign_s_Obj);
+
+    return ret;
 }
 // protoc --nanopb_out=.  package.proto
 
@@ -715,15 +780,13 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     iotex_storage_icm42605 action_sensor;
     char esdaSign[65];
     char jsStr[130];
-    int  sinLen;
-    float AmbientLight=0.0;
-    uint32_t  uint_timestamp;
+    int sinLen;
+    float AmbientLight = 0.0;
+    uint32_t uint_timestamp;
     //char random[17];
-    
-
     BinPackage binpack = BinPackage_init_zero;
-    
     SensorData sensordat = SensorData_init_zero;
+
     // Initialize buffer
     memset(buffer, 0, DATA_BUFFER_SIZE);
     if (DATA_CHANNEL_ENV_SENSOR & channel) {
@@ -740,115 +803,115 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     /* Snr */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_SNR)) {
-        sensordat.snr = (uint32_t)(iotex_model_get_signal_quality()*100);
+        sensordat.snr = (uint32_t)(iotex_model_get_signal_quality() * 100);
         printk("SNR:%d\n", sensordat.snr);
         sensordat.has_snr=true;
     }
 
     /* Vbat */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
-        sensordat.vbat = (uint32_t)(iotex_modem_get_battery_voltage()/10);
+        sensordat.vbat = (uint32_t)(iotex_modem_get_battery_voltage() / 10);
         sensordat.has_vbat = true;
     }
 
     /* TODO GPS */
-    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {        
-        int i = getGPS(&latitude,&longitude);     
-        if(!i){
-            sensordat.latitude = (uint32_t)(latitude*10000000);
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
+        int i = getGPS(&latitude,&longitude);
+        if (!i) {
+            sensordat.latitude = (uint32_t)(latitude * 10000000);
             sensordat.has_latitude = true;
-            sensordat.longitude = (uint32_t)(longitude*10000000);
+            sensordat.longitude = (uint32_t)(longitude * 10000000);
             sensordat.has_longitude = true;
-        }
-        else{
+        } else {
             sensordat.latitude = 2000000000;
             sensordat.has_latitude = true;
             sensordat.longitude = 2000000000;
             sensordat.has_longitude = true;
-        }                    
+        }
     }
+
     /* Env sensor gas */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
-        sensordat.gasResistance = (uint32_t)(env_sensor.gas_resistance*100);
+        sensordat.gasResistance = (uint32_t)(env_sensor.gas_resistance * 100);
         sensordat.has_gasResistance = true;
         //printk("sensordat.gasResistance:%d\n", sensordat.gasResistance);
     }
 
     /* Env sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP)) {
-        sensordat.temperature = (uint32_t)(env_sensor.temperature*100);
+        sensordat.temperature = (uint32_t)(env_sensor.temperature * 100);
         sensordat.has_temperature = true;
     }
 
     /* Env sensor pressure */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_PRESSURE)) {
-        sensordat.pressure = (uint32_t)(env_sensor.pressure*100);
-        sensordat.has_pressure = true;        
+        sensordat.pressure = (uint32_t)(env_sensor.pressure * 100);
+        sensordat.has_pressure = true;
     }
 
     /* Env sensor humidity */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_HUMIDITY)) {
-        sensordat.humidity = (uint32_t)(env_sensor.humidity*100);
+        sensordat.humidity = (uint32_t)(env_sensor.humidity * 100);
         sensordat.has_humidity = true;
     }
+
     /* Env sensor light */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_LIGHT_SENSOR)) {
-        AmbientLight=iotex_Tsl2572ReadAmbientLight();      
-        sensordat.light = (uint32_t)(AmbientLight*100);
+        AmbientLight = iotex_Tsl2572ReadAmbientLight();
+        sensordat.light = (uint32_t)(AmbientLight * 100);
         sensordat.has_light = true;
-    }    
+    }
 
     /* Action sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP2)) {
-        sensordat.temperature2 = (uint32_t)(action_sensor.temperature*100);
+        sensordat.temperature2 = (uint32_t)(action_sensor.temperature * 100);
         sensordat.has_temperature2 = true;
     }
 
     /* Action sensor gyroscope data */
-    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GYROSCOPE)) { 
+    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GYROSCOPE)) {
         for (i = 0; i < ARRAY_SIZE(action_sensor.gyroscope); i++) {
             sensordat.gyroscope[i] = (int32_t)(action_sensor.gyroscope[i]);
         }
     }
+
     /* Action sensor accelerometer */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_ACCELEROMETER)) {
         for (i = 0; i < ARRAY_SIZE(action_sensor.accelerometer); i++) {
             sensordat.accelerometer[i] = (int32_t)(action_sensor.accelerometer[i]);
         }
     }
+
     /* Add timestamp */
     uint_timestamp = atoi(iotex_modem_get_clock(NULL));
     // get random number
     GenRandom(sensordat.random);
-    sensordat.random[sizeof(sensordat.random)-1] = 0;
+    sensordat.random[sizeof(sensordat.random) - 1] = 0;
     sensordat.has_random = true;
 
     pb_ostream_t enc_datastream;
-	enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));	
-	if (!pb_encode(&enc_datastream, SensorData_fields, &sensordat))
-	{
-		//encode error happened
+	enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
+	if (!pb_encode(&enc_datastream, SensorData_fields, &sensordat)) {
 		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
 		return 0;
 	}
+
     binpack.data.size = enc_datastream.bytes_written;
     binpack.data.bytes[enc_datastream.bytes_written] = (char)((uint_timestamp & 0xFF000000) >> 24);
-    binpack.data.bytes[enc_datastream.bytes_written+1] = (char)((uint_timestamp & 0x00FF0000) >> 16);
-    binpack.data.bytes[enc_datastream.bytes_written+2] = (char)((uint_timestamp & 0x0000FF00) >> 8);
-    binpack.data.bytes[enc_datastream.bytes_written+3] = (char)(uint_timestamp & 0x000000FF);
+    binpack.data.bytes[enc_datastream.bytes_written + 1] = (char)((uint_timestamp & 0x00FF0000) >> 16);
+    binpack.data.bytes[enc_datastream.bytes_written + 2] = (char)((uint_timestamp & 0x0000FF00) >> 8);
+    binpack.data.bytes[enc_datastream.bytes_written + 3] = (char)(uint_timestamp & 0x000000FF);
     *(uint32_t*)buffer = BinPackage_PackageType_DATA;
-    memcpy(buffer+4,  binpack.data.bytes, enc_datastream.bytes_written+4);
+    memcpy(buffer + 4,  binpack.data.bytes, enc_datastream.bytes_written + 4);
     printk("uint_timestamp:%d \n",uint_timestamp);
-    doESDASign(buffer,enc_datastream.bytes_written + 8,esdaSign,&sinLen);
-printk("sinLen:%d\n", sinLen);           
-    memcpy(binpack.signature, esdaSign, 64);      
-    binpack.timestamp = uint_timestamp; 
+    doESDASign(buffer, enc_datastream.bytes_written + 8, esdaSign, &sinLen);
+    printk("sinLen:%d\n", sinLen);
+    memcpy(binpack.signature, esdaSign, 64);
+    binpack.timestamp = uint_timestamp;
     binpack.type = BinPackage_PackageType_DATA;
     pb_ostream_t enc_packstream;
-	enc_packstream = pb_ostream_from_buffer(buffer, DATA_BUFFER_SIZE);	
-	if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack))
-	{
-		//encode error happened
+	enc_packstream = pb_ostream_from_buffer(buffer, DATA_BUFFER_SIZE);
+	if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack)) {
 		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
 		return 0;
 	}
@@ -887,19 +950,20 @@ printk("sinLen:%d\n", sinLen);
     }
 #endif
 
-    return  enc_packstream.bytes_written;
+    return enc_packstream.bytes_written;
 }
+
 void PrintSensorData(SensorData *sen, BinPackage *pack)
 {
     printk("protobuf decode : \n");
-printk("sen->snr:%d\n", sen->snr);
-    printk("snr:%d.%02d vbat:%d.%02d latitude:%d.%05d longitude:%d.%05d \n" , sen->snr/100,sen->snr%100, \
-    sen->vbat/100,sen->vbat%100,sen->latitude/100000,sen->latitude%100000,\
-    sen->longitude/100000,sen->longitude%100000);
+    printk("sen->snr:%d\n", sen->snr);
+    printk("snr:%d.%02d vbat:%d.%02d latitude:%d.%05d longitude:%d.%05d \n", sen->snr / 100,sen->snr % 100, \
+    sen->vbat / 100,sen->vbat % 100, sen->latitude / 100000, sen->latitude % 100000,\
+    sen->longitude / 100000, sen->longitude % 100000);
 
-    printk("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n",sen->gasResistance/100,sen->gasResistance%100,\
-    sen->temperature/100,sen->temperature%100,sen->pressure/100,sen->pressure%100,\
-    sen->humidity/100,sen->humidity%100);
+    printk("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n", sen->gasResistance / 100, sen->gasResistance % 100,\
+    sen->temperature / 100, sen->temperature % 100, sen->pressure / 100, sen->pressure % 100,\
+    sen->humidity / 100, sen->humidity % 100);
 
     printk("light:%d.%02d temperature2:%d.%02d gyroscope:%d,%d,%d \n",sen->light/100,sen->light%100,\
     sen->temperature2/100,sen->temperature2%100,sen->gyroscope[0],sen->gyroscope[1],sen->gyroscope[2]);
@@ -911,9 +975,9 @@ printk("sen->snr:%d\n", sen->snr);
     printk("randoms: %s\n", sen->random);
 
     printk("signature:");
-    for(int i =0; i <64; i++)
-    {
+
+    for (int i = 0; i <64; i++) {
         printk("%02x", pack->signature[i]);
     }
-    printk("\n");   
+    printk("\n");
 }
