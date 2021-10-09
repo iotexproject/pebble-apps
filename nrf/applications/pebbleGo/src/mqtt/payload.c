@@ -814,7 +814,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
         sensordat.has_vbat = true;
     }
 
-    /* TODO GPS */
+    /* GPS */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
         int i = getGPS(&latitude,&longitude);
         if (!i) {

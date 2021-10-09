@@ -149,8 +149,7 @@ double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
     return epoch;
 }
 
-uint32_t iotex_modem_get_battery_voltage(void)
-{   
+uint32_t iotex_modem_get_battery_voltage(void) {   
     enum at_cmd_state at_state;
     char vbat_ack[32], vbat[5];
     char *p = vbat_ack;
@@ -169,8 +168,7 @@ uint32_t iotex_modem_get_battery_voltage(void)
     return (atoi(vbat));
 }
 
-void CheckPower(void)
-{
+void CheckPower(void) {
     volatile float adc_voltage = 0;
     adc_voltage = iotex_modem_get_battery_voltage();
     if (adc_voltage < 3.3) {
@@ -179,8 +177,7 @@ void CheckPower(void)
     }
 }
 
-void dectCard(void)
-{
+void dectCard(void) {
     enum at_cmd_state at_state;
     char vbat_ack[32];
     int err = at_cmd_write("AT%XSIM=1", vbat_ack, 32, &at_state);
@@ -189,8 +186,7 @@ void dectCard(void)
     }
 }
 
-bool cardExist(void)
-{
+bool cardExist(void) {
     enum at_cmd_state at_state;
     char vbat_ack[32];
     int err;
@@ -204,8 +200,7 @@ bool cardExist(void)
     return (vbat_ack[7] == '1');
 }
 
-bool getModeVer(uint8_t *buf)
-{
+bool getModeVer(uint8_t *buf) {
     enum at_cmd_state at_state;
     char vbat_ack[32];
     int err;
@@ -225,8 +220,7 @@ bool getModeVer(uint8_t *buf)
     return true;
 }
 
-bool mqttCertExist(void)
-{
+bool mqttCertExist(void) {
     char  *vback = NULL, *p = NULL;
     const  char *pkey = "%CMNG:";
     enum at_cmd_state at_state;
@@ -252,17 +246,11 @@ bool mqttCertExist(void)
         return false;
 }
 
-void disableModem(void)
-{
-    enum at_cmd_state at_state;
-    char vbat_ack[32];
-    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);
-    memset(vbat_ack, 0, sizeof(vbat_ack));
-    // TODO: bug ?
+void disableModem(void) {
+    at_cmd_write("AT+CFUN=4", NULL, 0, NULL);
 }
 
-bool WritDataIntoModem(uint32_t sec, uint8_t *str)
-{
+bool WritDataIntoModem(uint32_t sec, uint8_t *str) {
     enum at_cmd_state at_state;
     int err;
     char vbat_ack[32];
@@ -289,8 +277,7 @@ bool WritDataIntoModem(uint32_t sec, uint8_t *str)
     return err == 0;
 }
 
-uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len)
-{
+uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len) {
     enum at_cmd_state at_state;
     int err;
     char cmd[32];
@@ -324,8 +311,7 @@ uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len)
     }
 }
 
-bool isNB(void)
-{
+bool isNB(void) {
     enum at_cmd_state at_state;
     char vbat_ack[32]; 
     int err; 

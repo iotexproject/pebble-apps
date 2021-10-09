@@ -282,7 +282,6 @@ static int iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_m
 
 cleanup:
     cJSON_Delete(root_obj);
-    // TODO: should bulk_upload... be deleted?
     return ret;
 }
 
