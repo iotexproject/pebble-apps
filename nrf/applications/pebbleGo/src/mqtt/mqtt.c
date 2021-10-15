@@ -353,6 +353,12 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                 //SetIndicator(UI_WAIT_FOR_WALLET);
                 //hintString(htNetConnected,HINT_TIME_FOREVER);
             }
+            else
+            {
+                if(devRegGet() == DEV_UPGRADE_ENTRY) {
+                    devRegSet(DEV_UPGRADE_CONFIRM);
+                }
+            }
             // get upgrade url
             subscribe_config_topic(c);
             // send heartbeat
@@ -396,7 +402,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                         if (!IsDevReg()) {
                             iotex_mqtt_update_url(payload_buf, p->message.payload.len);
                             hintString(htconfirmUpgrade,HINT_TIME_FOREVER);
-                            devRegSet(DEV_UPGRADE_CONFIRM);
+                            devRegSet(DEV_UPGRADE_STARTED);
                         }
                     }
                 }
@@ -526,9 +532,10 @@ int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos)
     param.message.topic.qos = qos;
     param.message.topic.topic.utf8 = pub_topic;
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
-    len = packDevState(payload, sizeof(payload));
-    printk("iotex_mqtt_heart_beat:%s\n",payload);
-    param.message.payload.data = payload;//"a";
+    //len = packDevState(payload, sizeof(payload));
+    //printk("iotex_mqtt_heart_beat:%s\n",payload);
+    printk("iotex_mqtt_heart_beat\n");
+    param.message.payload.data = /*payload;*/"a";
     param.message.payload.len = len;
     param.message_id = iotex_random(); //sys_rand32_get();
     param.dup_flag = 0U;

@@ -50,6 +50,13 @@ bool isUpKeyStartupPressed(void)
     return key == 0;
 }
 
+
+bool isDownKeyStartupPressed(void)
+{
+    u32_t key = gpio_pin_get(__gpio0_dev, IO_DOWN_KEY);
+    return key == 0;
+}
+
 static void up_key_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
     u32_t key = gpio_pin_get(port, IO_UP_KEY);
     if (key > 0) {

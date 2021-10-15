@@ -33,6 +33,8 @@
 #define   PEBBLE_DEVICE_SN        (CERT_START_SEC+13)
 // mqtt cert index
 #define   MQTT_CERT_INDEX          (CERT_START_SEC+14)
+// modem  startup mode , LTE-M or  NB-IOT
+#define   MODEM_MODE_SEL          (CERT_START_SEC+15)
 
 
 typedef enum {

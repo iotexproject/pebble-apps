@@ -7,6 +7,7 @@
 #include <console/console.h>
 #include <power/reboot.h>
 #include <sys/mutex.h>
+#include <modem/lte_lc.h>
 
 #include "hints_data.h"
 #include "display.h"
@@ -14,6 +15,7 @@
 #include "ver.h"
 #include "keyBoard.h"
 #include "nvs/local_storage.h"
+#include "devReg.h"
 
 #define HINT_WIDTH    128
 #define HINT_HEIGHT  56
@@ -68,6 +70,13 @@ uint8_t hintTimeDec(void)
     }
 
     return hintAliveTime;
+}
+
+void clrHint(void) {
+    if(hintAliveTime) {
+        hintAliveTime = 0;
+        ssd1306_display_logo();
+    }
 }
 
 void hintString(uint8_t *str[], uint8_t tim)
@@ -169,7 +178,7 @@ void dis_OnelineText(uint32_t line, uint32_t flg, uint8_t *str, uint8_t revert)
 
 bool checkMenuEntry(void)
 {
-    return isUpKeyStartupPressed();
+    return isDownKeyStartupPressed();
 }
 
 void updateCert(int selArea)
@@ -237,6 +246,82 @@ void initBrokeHost(void)
     }        
 }
 
+void modemSettings(void) {
+    uint8_t   modemMode[3][20] = {
+        "NB-IOT         ",
+        "LTE-M          ",    
+        "Exit           ", 
+    };
+    uint8_t buf[100];
+    uint8_t *pbuf;
+    int  cursor = 0, last_cur = 0, selArea = 0, first = 0,i; 
+    uint8_t index[5];  
+    
+    ssd1306_clear_screen(0);
+    pbuf = ReadDataFromModem(MODEM_MODE_SEL, buf, sizeof(buf));
+    if(pbuf != NULL)
+    {
+        pbuf[1] = 0;
+        selArea = atoi(pbuf);
+    }
+    modemMode[selArea][15]='X';
+    for(i = 0; i < sizeof(modemMode)/sizeof(modemMode[0]); i++)
+    {
+        dis_OnelineText(i,ALIGN_CENTRALIZED, modemMode[i],DIS_CURSOR(i, cursor)); 
+    } 
+    modemMode[selArea][15]=' '; 
+    ClearKey();
+    while(true)
+    {    
+        last_cur = cursor;     
+        if(IsUpPressed())
+        {
+            ClearKey();
+            cursor--;
+            if(cursor < 0)
+                cursor = 0;
+        }
+        else if(IsDownPressed())
+        {
+            ClearKey();
+            cursor++;
+            if(cursor > (sizeof(modemMode)/sizeof(modemMode[0])-1))
+                cursor = (sizeof(modemMode)/sizeof(modemMode[0])-1);
+        }        
+        else if(IsEnterPressed())
+        {
+            ClearKey();
+            if(cursor == (sizeof(modemMode)/sizeof(modemMode[0])-1))
+                break;
+            else if(cursor == 0)
+            {
+                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+            }
+            else if(cursor == 1)
+            {
+                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+            }
+            // read modem and writing into  sec
+            if(selArea != cursor) {
+                itoa(cursor, index, 10);
+                index[1] = 0;
+                WritDataIntoModem(MODEM_MODE_SEL, index);
+            }               
+            selArea = cursor;
+            last_cur = cursor+1;
+        }        
+        if(last_cur != cursor)
+        {
+            modemMode[selArea][15]='X';
+            for(i = 0; i < sizeof(modemMode)/sizeof(modemMode[0]); i++)
+            {
+                dis_OnelineText(i,ALIGN_CENTRALIZED, modemMode[first+i],DIS_CURSOR(first+i, cursor)); 
+            } 
+            modemMode[selArea][15]=' ';
+        }                
+        k_sleep(K_MSEC(100));           
+    }      
+}
 void selectArea(void)
 {
     uint8_t   allArea[6][20] = {
@@ -307,9 +392,7 @@ printk("read index:%d\n", selArea);
             allArea[selArea][15]=' ';
         }                
         k_sleep(K_MSEC(100));           
-    }    
-
-
+    }
 }
 
 void pebbleInfor(void)
@@ -358,7 +441,8 @@ void pebbleInfor(void)
     //memset(buf, 0, sizeof(buf));
     sprintf(buf[6], "MD:%s", sysInfo+60);
     //dis_OnelineText(3, ALIGN_LEFT, buf);  
-
+    // open test com port
+    ComToolInit();
     ClearKey();
     while(true)
     {
@@ -391,16 +475,85 @@ void pebbleInfor(void)
             dis_OnelineText(2, ALIGN_LEFT, buf[cursor+2],DIS_NORMAL);
             dis_OnelineText(3, ALIGN_LEFT, buf[cursor+3],DIS_NORMAL);
         }
+        k_sleep(K_MSEC(100)); 
+        outputSn();          
+    }
+    stopTestCom();
+}
+void sysSet(void)
+{
+    const char mainMenu[3][20]={
+        "Modem settings",
+        "Select area   ",
+        "Exit          ",               
+    };
+    int  cursor = 0, last_cur = 0, i;
+
+  // clear screen
+    ssd1306_clear_screen(0);
+    // main menu
+    for(i = 0; i < sizeof(mainMenu)/sizeof(mainMenu[0]); i++)
+    {
+        dis_OnelineText(i,ALIGN_LEFT, mainMenu[i],DIS_CURSOR(i, cursor)); 
+    } 
+    ClearKey();
+    while(true)
+    {
+        last_cur = cursor;
+        if(IsUpPressed())
+        {
+            ClearKey();
+            cursor--;
+            if(cursor < 0)
+                cursor = 0;
+        }
+        else if(IsDownPressed())
+        {
+            ClearKey();
+            cursor++;
+            if(cursor > (sizeof(mainMenu)/sizeof(mainMenu[0] - 1)))
+                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0] - 1));         
+        }        
+        else if(IsEnterPressed())
+        {
+            ClearKey();
+            if(cursor == 0)
+            {
+                modemSettings();
+                last_cur = cursor+1;
+            }
+            else if(cursor == 1)
+            {
+                selectArea();
+                last_cur = cursor+1;
+            }
+            else if(cursor == 2)
+            {
+                break;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if(last_cur != cursor)
+        {
+            for(i = 0; i < sizeof(mainMenu)/sizeof(mainMenu[0]); i++)
+            {
+                dis_OnelineText(i,ALIGN_LEFT, mainMenu[i],DIS_CURSOR(i, cursor)); 
+            } 
+            dis_OnelineText(3,ALIGN_LEFT, " ",DIS_NORMAL);
+        }         
         k_sleep(K_MSEC(100));           
     }
+    
 }
-
 void MainMenu(void)
 {
-    const char mainMenu[4][20]={
-        "Select area",
-        "About      ",
-        "Exit       ",        
+    const char mainMenu[3][20]={
+        "System settings",
+        "About          ",
+        "Startup        ",        
     };
     int  cursor = 0, last_cur = 0, i;
 
@@ -429,15 +582,15 @@ void MainMenu(void)
         {
             ClearKey();
             cursor++;
-            if(cursor > 2)
-                cursor = 2;          
+            if(cursor > (sizeof(mainMenu)/sizeof(mainMenu[0] - 1)))
+                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0] - 1));          
         }        
         else if(IsEnterPressed())
         {
             ClearKey();
             if(cursor == 0)
             {
-                selectArea();
+                sysSet();
                 last_cur = cursor+1;
             }
             else if(cursor == 1)
@@ -467,4 +620,15 @@ void MainMenu(void)
     ssd1306_clear_screen(0); 
     ssd1306_display_logo(); 
     ssd1306_display_on();  
+}
+
+void appEntryDetect(void) {
+    // system  startup check proposer status 
+    devRegSet(DEV_REG_START /*DEV_REG_STOP*/);
+    // Need to upgrade?
+    if(isUpKeyStartupPressed()) {
+        // system will be upgraded via OTA
+        hintString(htConnecting, HINT_TIME_FOREVER); 
+        devRegSet(DEV_UPGRADE_ENTRY);
+    }
 }

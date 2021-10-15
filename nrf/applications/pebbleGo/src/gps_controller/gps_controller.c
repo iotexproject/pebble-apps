@@ -26,6 +26,7 @@ LOG_MODULE_REGISTER(gps_control, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 // board v2.0  extern gps
 #if(EXTERN_GPS)
 static  struct device *guart_dev_gps;
+struct device *gpsPower;
 static u8_t uart_buf1[128];
 static u8_t pos1=0;
 
@@ -172,10 +173,22 @@ int getGPS(double *lat, double *lon)
             intpart= rmc.longitude/100;
             fractpart=((rmc.longitude/100)-intpart)/0.6; 
 			if(rmc.lon == 'W')                     
-			*lon = (intpart+fractpart)*-1; 
+				*lon = (intpart+fractpart)*-1; 
 			else	
 				*lon = intpart+fractpart; 												
 			ret = 0;						
+			// gps  Mosaic needed ?
+			fractpart = *lat * 100;
+			intpart = fractpart / 1;
+			fractpart -= intpart;
+			fractpart /= 100.0;
+			*lat -= fractpart;
+
+			fractpart = *lon * 100;
+			intpart = fractpart / 1;
+			fractpart -= intpart;
+			fractpart /= 100.0;
+			*lon -= fractpart;			
 		}
 		printit = 0;
 	}
@@ -196,15 +209,21 @@ void exGPSStop(void)
 	uart_irq_rx_disable(guart_dev_gps);
 }
 
-void exGPSInit(void)
-{
-       struct device *dev;
-       dev = device_get_binding("GPIO_0");
-       gpio_pin_configure(dev, GPS_EN, GPIO_DIR_OUT); 
-       gpio_pin_write(dev, GPS_EN, 1);
-       guart_dev_gps=device_get_binding(UART_GPS);
-       uart_irq_callback_set(guart_dev_gps, uart_gps_cb);
-       uart_irq_rx_enable(guart_dev_gps);
+void exGPSInit(void) {
+	
+	gpsPower = device_get_binding("GPIO_0");
+	gpio_pin_configure(gpsPower, GPS_EN, GPIO_DIR_OUT); 
+	gpio_pin_write(gpsPower, GPS_EN, 1);
+	guart_dev_gps=device_get_binding(UART_GPS);
+	uart_irq_callback_set(guart_dev_gps, uart_gps_cb);
+	uart_irq_rx_enable(guart_dev_gps);
+}
+
+void gpsPowerOn(void) {
+	gpio_pin_write(gpsPower, GPS_EN, 1);
+}
+void gpsPowerOff(void) {
+	gpio_pin_write(gpsPower, GPS_EN, 0);
 }
 
 

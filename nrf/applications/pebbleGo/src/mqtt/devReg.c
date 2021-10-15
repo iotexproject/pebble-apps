@@ -120,26 +120,31 @@ int SignAndSend(void)
     return 0;
 }
 
-void waitForOtaOver(void)
-{
+void waitForOtaOver(void) {
+    uint8_t disOTAProgress[30];
+    dis_OnelineText(1, ALIGN_LEFT, " ",DIS_NORMAL);
+    dis_OnelineText(2, ALIGN_LEFT, " ",DIS_NORMAL);
+    dis_OnelineText(3, ALIGN_LEFT, " ",DIS_NORMAL);
+    strcpy(disOTAProgress, "Downloaded: ");    
     while (devRegGet() != DEV_UPGRADE_COMPLETE) {
-        if (devRegGet() == DEV_UPGRADE_STARED) {
-            startOTA(getOTAUrl());
-            devRegSet(DEV_UPGRADE_DOWNLOADING);
-        }
-        k_sleep(K_MSEC(5000));
+        //if (devRegGet() == DEV_UPGRADE_STARTED) {
+        //    startOTA(getOTAUrl());
+        //    devRegSet(DEV_UPGRADE_DOWNLOADING);
+        //}
+        k_sleep(K_MSEC(300));
+        sprintf(disOTAProgress+12, "%d", getOTAProgress());
+        strcpy(disOTAProgress+strlen(disOTAProgress), "%");
+        dis_OnelineText(2, ALIGN_LEFT, disOTAProgress,DIS_NORMAL);
     }
 }
 
-void stopTaskBeforeOTA(void)
-{
+void stopTaskBeforeOTA(void) {
     stopWatchdog();
     stopHeartBeat();
     stopMqtt();
 }
 
-void mainStatus(struct mqtt_client *client)
-{
+void mainStatus(struct mqtt_client *client) {
     switch (devRegGet()) {
         case DEV_REG_STATUS:
             publish_dev_query("", 0);
@@ -174,18 +179,31 @@ void mainStatus(struct mqtt_client *client)
             //devRegSet(DEV_REG_SUCCESS);
             break;
         case DEV_REG_SUCCESS:
-            hintString(htRegSuccess, HINT_TIME_DEFAULT);
-            StartSendEnvData(30);
+            hintString(htRegSuccess, HINT_TIME_DEFAULT);          
+            //StartSendEnvData(30);
+            k_sleep(K_SECONDS(3));
             devRegSet(DEV_REG_STOP);
             break;
-        case DEV_UPGRADE_STARED:
+        case DEV_UPGRADE_ENTRY:
+            hintString(htConnecting, HINT_TIME_FOREVER); 
+            break;
+        case DEV_UPGRADE_CONFIRM:
+            hintString(htSelectApp, HINT_TIME_FOREVER); 
+            //sendHearBeat();  
+            //devRegSet(DEV_UPGRADE_STARTED);                      
+            break;
+        case DEV_UPGRADE_STARTED:
             stopTaskBeforeOTA();
             startOTA(getOTAUrl());
+            //startOTA("https://pebble-ota.s3.ap-east-1.amazonaws.com/app_update.bin");
             devRegSet(DEV_REG_STOP);
-            hintString(htUpgrading, HINT_TIME_DEFAULT);
-            printk("will restart ???\n");
+            //hintString(htUpgrading, HINT_TIME_DEFAULT);
+            printk("waiting for upgrade\n");
             waitForOtaOver();
             //iotex_mqtt_upgrade_over(client,0);
+            printk("upgrade over, system reboot\n");
+            k_sleep(K_MSEC(500));
+            sys_reboot(0);            
             break;
         case DEV_REG_STOP:
             break;
@@ -239,10 +257,13 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client)
         if (!hintTimeDec()) {
             ssd1306_display_logo();
         }
+        if(devRegGet() == DEV_REG_STOP) {
+            clrHint();
+            err = (err == -EAGAIN ? 0 : err);
+            break;
+        }
         // check  registration  status every 1s
         //k_sleep(K_MSEC(1000));
     }
-
-    mqtt_disconnect(client);
     return err;
 }

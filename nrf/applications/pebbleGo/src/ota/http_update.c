@@ -40,8 +40,17 @@ static struct gpio_callback gpio_cb;
 static struct k_work fota_work;
 static struct k_delayed_work fota_status_check;
 static int aliveCnt = 0;
+static  uint8_t otaHost[100];
+static  uint8_t otaFile[200];
+static  int otaProgress = 0;
+//static  uint8_t otaVer[100];
 
 const struct device *dev;
+
+
+int getOTAProgress(void) {
+	return  otaProgress;
+}
 
 /**@brief Recoverable BSD library error. 
 void bsd_recoverable_error_handler(uint32_t err)
@@ -114,7 +123,7 @@ static void app_dfu_transfer_start(struct k_work *unused)
 	sec_tag = TLS_SEC_TAG;
 #endif
 	//show_led(LED_OFF,LED_ON,LED_OFF);
-	retval = fota_download_start(CONFIG_DOWNLOAD_HOST, CONFIG_DOWNLOAD_FILE, sec_tag, apn, 0);
+	retval = fota_download_start(otaHost, otaFile, sec_tag, apn, 0);
 	if (retval != 0) {
 		/* Re-enable button callback */
 		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
@@ -131,8 +140,10 @@ static void fota_status(struct k_work *unused)
 	if (aliveCnt > 12){
 		aliveCnt = 0;
 		printk("Received hangup from fota_download\n");
-		hintString(htRegRequest,HINT_TIME_FOREVER);
-		devRegSet(DEV_UPGRADE_CONFIRM);
+		//hintString(htRegRequest,HINT_TIME_FOREVER);
+		//devRegSet(DEV_UPGRADE_CONFIRM);
+		k_work_submit(&fota_work);
+		k_delayed_work_submit(&fota_status_check, K_MSEC(2000));		
 	} else {
 		k_delayed_work_submit(&fota_status_check, K_MSEC(10000));
 	}
@@ -266,6 +277,8 @@ void fota_dl_handler(const struct fota_download_evt *evt)
 		break;
 	case FOTA_DOWNLOAD_EVT_PROGRESS:
 		//printk("fota alive \n");
+		//printk("progress:%d\%100\n", evt->progress);
+		otaProgress = evt->progress;
 		aliveCnt = 0;
 		break;
 	default:
@@ -326,7 +339,9 @@ static int application_init(void)
 
 static void getHost(uint8_t *url, uint8_t *host, uint8_t *file)
 {
-    sscanf(url, "http://%99[^/]/%99[^\n]", host, file);
+    sscanf(url, "https://%99[^/]/%99[^\n]", host, file);
+
+	printk("host:%s, file:%s\n", host, file);
 }
 
 void ota_update(void)
@@ -392,12 +407,15 @@ void initOTA(void)
 	boot_write_img_confirmed();
 	err = application_init();
 	if (err != 0) {
+		printk("initOTA err \n");
 		return;
 	}
 }
 
 void startOTA(uint8_t *url)
 {
+	getHost(url,otaHost,otaFile);
+
 	k_work_submit(&fota_work);
 	k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
 }

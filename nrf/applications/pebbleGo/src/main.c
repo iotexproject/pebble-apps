@@ -67,6 +67,9 @@ Z_GENERIC_SECTION(.openocd_dbg.5) __attribute__((used)) const  uint8_t AppVersio
 const uint8_t firmwareVersion[] = APP_VERSION;
 
 
+#define   ENABLE_PSM_MODE       1
+#define   DISABLE_PSM_MODE      (!(ENABLE_PSM_MODE))
+
 //#if defined(CONFIG_BSD_LIBRARY)
 //#include "nrf_inbuilt_key.h"
 //#endif
@@ -379,6 +382,20 @@ static void send_env_data_work_fn(struct k_work *work) {
     }
     config_mutex_unlock();
     return;
+}
+
+static void uploadSensorData(void) {
+    if (!atomic_get(&send_data_enable)) {
+        return;
+    }
+    config_mutex_lock();
+    if (iotex_mqtt_is_bulk_upload()) {
+        sampling_and_store_sensor_data();
+    }
+    else {
+        periodic_publish_sensors_data();
+    }
+    config_mutex_unlock();   
 }
 
 void RestartEnvWork(int s)
@@ -757,7 +774,12 @@ static void modem_configure(void)
         int err;
 
         printk("Connecting to LTE network. ");
-        printk("This may take several minutes.\n");
+        printk("This may take several minutes.\n");  
+        err = lte_lc_psm_req(true);
+        if (err) {
+            printk("lte_lc_psm_req erro:%d\n", err);
+            error_handler(ERROR_LTE_LC, err);
+        }              
         //ui_led_set_pattern(UI_LTE_CONNECTING);
         //ui_led_deactive(LTE_CONNECT_MASK,1);
         err = lte_lc_init_and_connect();
@@ -928,7 +950,8 @@ const uint8_t test_string[]="{\"message\":{\"deviceAvatar\":\"w232342342432\",\"
 
 void sendHearBeat(void)
 {
-    k_delayed_work_submit_to_queue(&application_work_q, &heartbeat_work, K_NO_WAIT);
+    //k_delayed_work_submit_to_queue(&application_work_q, &heartbeat_work, K_NO_WAIT);
+    iotex_mqtt_heart_beat(&client, 0);
 }
 
 void stopHeartBeat(void)
@@ -971,7 +994,7 @@ void data_test(void)
 
 void main(void)
 {
-    int err;
+    int err, errCounts = 0;
 
 	LOG_INF("Asset tracker started");
 	k_work_q_start(&application_work_q, application_stack_area,
@@ -1012,6 +1035,7 @@ void main(void)
     ssd1306_init();
 
     MainMenu();
+    appEntryDetect();
 
     atomic_set(&stop_animation_work, 0);
     
@@ -1030,30 +1054,46 @@ void main(void)
 #ifdef CONFIG_UNITTEST
     unittest();
 #endif
-    exGPSInit();
-    devRegSet(DEV_REG_START);
-
+    exGPSInit(); 
     initOTA();
-    sta_Refresh();
+    sta_Refresh();    
+
     while(true){
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
+            errCounts++;
+            if(errCounts < 3)
+                continue;
             printk("ERROR: mqtt_connect %d, rebooting...\n", err);
             k_sleep(K_MSEC(500));
             sys_reboot(0);
             return;
-        }       
-        iotexDevBinding(&fds,&client);
-        k_delayed_work_cancel(&send_env_data_work);
-        devRegSet(DEV_REG_START);
+        }
+        //printf("GPS latitude:%lf, longitude:%lf\n", latitude, longitude);
+        errCounts = 0;      
+        if(!iotexDevBinding(&fds,&client)) {
+            printk("upload sensor data\n");            
+            uploadSensorData();
+            k_sleep(K_MSEC(200));
+            mqtt_disconnect(&client); 
+            gpsPowerOff();
+            printk("start sleep\n");                     
+            k_sleep(K_SECONDS(270));
+            gpsPowerOn();
+            k_sleep(K_SECONDS(30));
+            printk("wake up\n"); 
+        }
+        //k_delayed_work_cancel(&send_env_data_work);
+        if(devRegGet() != DEV_REG_STOP) {
+            devRegSet(DEV_REG_START);
+            ssd1306_display_logo();
+        }        
     }
 #if defined(CONFIG_LWM2M_CARRIER)
 	LOG_INF("Waiting for LWM2M carrier to complete initialization...");
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);
 #endif
-
 	//connect_to_cloud(0);
     printk("Disconnecting MQTT client...\n");
-
     err = mqtt_disconnect(&client);
 
     if (err) {
