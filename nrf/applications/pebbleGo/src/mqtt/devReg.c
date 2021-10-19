@@ -252,7 +252,7 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client)
         }
 
         mainStatus(client);
-        sta_Refresh();
+        //sta_Refresh();
 
         if (!hintTimeDec()) {
             ssd1306_display_logo();

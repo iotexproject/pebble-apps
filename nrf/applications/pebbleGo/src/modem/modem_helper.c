@@ -165,6 +165,7 @@ uint32_t iotex_modem_get_battery_voltage(void) {
         vbat[err] = p[err];
     }
     vbat[4] = 0;
+    //printk("vol: %s\n", vbat);
     return (atoi(vbat));
 }
 

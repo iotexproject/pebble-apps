@@ -42,8 +42,6 @@ enum E_STATUS_BAR{
 #define  DIS_CURSOR(a, b)       ((a) == (b) ? DIS_REVERT:DIS_NORMAL)
 
 
-
-
 // hints
 extern const uint8_t *htNetConnected[];
 extern const uint8_t *htRegRequest[];
@@ -67,6 +65,8 @@ void hintInit(void);
 uint8_t hintTimeDec(void);
 void  hintString(uint8_t *str[], uint8_t tim);
 void MainMenu(void);
+void dashBoard(void);
+void ctrlOLED(bool on_off);
 
 
 

@@ -188,7 +188,6 @@ static struct k_delayed_work send_env_data_work;
 static struct k_delayed_work long_press_button_work;
 static struct k_delayed_work   heartbeat_work;
 static struct k_delayed_work   animation_work;
-atomic_val_t stop_animation_work;
 
 #if defined(CONFIG_AT_CMD)
 #define MODEM_AT_CMD_BUFFER_LEN (CONFIG_AT_CMD_RESPONSE_MAX_LEN + 1)
@@ -395,6 +394,7 @@ static void uploadSensorData(void) {
     else {
         periodic_publish_sensors_data();
     }
+    pubOnePack();
     config_mutex_unlock();   
 }
 
@@ -708,8 +708,7 @@ static void motion_trigger_gps(motion_data_t motion_data)
 }
 #endif
 
-static void long_press_handler(struct k_work *work)
-{
+static void long_press_handler(struct k_work *work) {
     if (!atomic_get(&send_data_enable)) {
         printk("Link not ready, long press disregarded\n");
         return;
@@ -734,10 +733,8 @@ void heartbeat_work_fn(struct k_work *work)
 
 void animation_work_fn(struct k_work *work)
 {      
-    if(atomic_get(&stop_animation_work))
-        return;
     sta_Refresh();
-    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_SECONDS(1));     
+    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_SECONDS(1));
 }
 
 //static void power_off_handler(struct k_work *work)
@@ -751,11 +748,11 @@ static void work_init(void)
 #if(!EXTERN_GPS)     
 	k_work_init(&send_gps_data_work, send_gps_data_work_fn);
 #endif
-	k_delayed_work_init(&send_env_data_work, send_env_data_work_fn);
+	//k_delayed_work_init(&send_env_data_work, send_env_data_work_fn);
 	//k_delayed_work_init(&send_agps_request_work, send_agps_request);
 	k_delayed_work_init(&long_press_button_work, long_press_handler);
 	//k_delayed_work_init(&power_off_button_work, power_off_handler);
-    k_delayed_work_init(&heartbeat_work, heartbeat_work_fn);
+    //k_delayed_work_init(&heartbeat_work, heartbeat_work_fn);
     k_delayed_work_init(&animation_work, animation_work_fn);
 }
 
@@ -1003,7 +1000,6 @@ void main(void)
 	if (IS_ENABLED(CONFIG_WATCHDOG)) {
 		watchdog_init_and_start(&application_work_q);
 	}
-
     //  init ECDSA
     InitLowsCalc();
     if (initECDSA_sep256r()) {
@@ -1029,7 +1025,7 @@ void main(void)
     /* Iotex Init ICM42605 */
     iotex_icm42605_init();	
 	iotex_key_init();
-    updateLedPattern();
+    //updateLedPattern();
 	work_init();
 
     ssd1306_init();
@@ -1037,14 +1033,8 @@ void main(void)
     MainMenu();
     appEntryDetect();
 
-    atomic_set(&stop_animation_work, 0);
-    
     k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_MSEC(100));
-
 	modem_configure();
-    atomic_set(&stop_animation_work, 1);
-    k_delayed_work_cancel(&animation_work);
-
 
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&bsdlib_initialized, K_FOREVER);
@@ -1056,7 +1046,7 @@ void main(void)
 #endif
     exGPSInit(); 
     initOTA();
-    sta_Refresh();    
+    sta_Refresh();        
 
     while(true){
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
@@ -1076,11 +1066,15 @@ void main(void)
             k_sleep(K_MSEC(200));
             mqtt_disconnect(&client); 
             gpsPowerOff();
-            printk("start sleep\n");                     
+            printk("start sleep\n");  
+            setModemSleep(1);
+            lte_lc_psm_req(true);                       
             k_sleep(K_SECONDS(270));
             gpsPowerOn();
             k_sleep(K_SECONDS(30));
+            lte_lc_psm_req(false);  
             printk("wake up\n"); 
+            setModemSleep(0);
         }
         //k_delayed_work_cancel(&send_env_data_work);
         if(devRegGet() != DEV_REG_STOP) {

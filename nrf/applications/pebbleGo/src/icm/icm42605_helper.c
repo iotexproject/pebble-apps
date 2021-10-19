@@ -145,8 +145,9 @@ int iotex_icm42605_init(void)
                                      ICM426XX_GYRO_CONFIG0_FS_SEL_2000dps,
                                      ICM426XX_ACCEL_CONFIG0_ODR_1_KHZ,
                                      ICM426XX_GYRO_CONFIG0_ODR_1_KHZ,
-                                     (uint8_t)TMST_CLKIN_32K);
+                                     (uint8_t)TMST_CLKIN_32K);                                     
 */
+    womConf();
     return   icm426xxConfig(ACT_RAW);                                  
 }
 

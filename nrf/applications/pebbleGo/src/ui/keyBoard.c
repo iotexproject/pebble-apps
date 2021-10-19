@@ -103,7 +103,7 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
 static void power_off_handler(struct k_work *work)
 {
     b_poweroff = true;     /* qhm add 0830*/
-    gpio_poweroff();
+    gpio_poweroffNotice();
 }
 
 void iotex_key_init(void) {

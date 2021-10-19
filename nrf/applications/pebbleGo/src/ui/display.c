@@ -31,6 +31,7 @@
 
 #include <drivers/gpio.h>
 #include <drivers/i2c.h>
+#include <sys/mutex.h>
 #include "dis_data.h"
 #include "bme/bme680_helper.h"
 
@@ -63,7 +64,7 @@ void ssd1306_init(void);
 uint8_t s_chDispalyBuffer[128][8];
 static struct device *__i2c_dev_CD1306;
 
-
+extern  struct sys_mutex iotex_hint_mutex;
 
 static void ssd1306_write_byte(uint8_t chData, uint8_t chCmd) 
 {
@@ -337,6 +338,13 @@ void ssd1306_init(void)
     hintInit();
 }
 
+void ctrlOLED(bool on_off) {
+    if(on_off)
+        ssd1306_write_byte(0xAF, SSD1306_CMD);
+    else
+        ssd1306_write_byte(0xAE, SSD1306_CMD);
+}
+
 void ssd1306_refresh_lines(uint8_t start_line, uint8_t stop_line)
 {
     uint8_t i, j;
@@ -365,7 +373,7 @@ void clearDisBuf(uint8_t start_line, uint8_t stop_line)
 void ssd1306_display_logo(void)
 {
     uint8_t i, j;
-    
+    sys_mutex_lock(&iotex_hint_mutex, K_FOREVER); 
     //clearDisBuf(0, 5);
     for (i = 0; i < 6; i ++) {    
         for (j = 0; j < 128; j ++) {
@@ -373,4 +381,5 @@ void ssd1306_display_logo(void)
         }
     }   
     ssd1306_refresh_lines(0,5);
+    sys_mutex_unlock(&iotex_hint_mutex);
 }

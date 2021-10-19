@@ -5,6 +5,7 @@
 #include "ui.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
+#include "display.h"
 
 
 #define GPIO_DIR_OUT  GPIO_OUTPUT
@@ -31,6 +32,8 @@ struct device *__gpio0_dev;
 static u32_t g_key_press_start_time;
 static struct gpio_callback chrq_gpio_cb, pwr_key_gpio_cb;
 
+//extern struct k_delayed_work  event_work;
+
 void checkCHRQ(void)
 {
     u32_t chrq;    
@@ -40,13 +43,22 @@ void checkCHRQ(void)
     if(!chrq)
     {// charging
  //       ui_led_active(BAT_CHARGING_MASK,0);
-        gpio_pin_write(__gpio0_dev, LED_RED, 0);
+        //gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+        gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
+        sta_SetMeta(PEBBLE_POWER, STA_LINKER_ON);
     }
     else
     {// not charging
 //        ui_led_deactive(BAT_CHARGING_MASK,0);
-        gpio_pin_write(__gpio0_dev, LED_RED, 1);
+        gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
+        //gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+        sta_SetMeta(PEBBLE_POWER, STA_LINKER_OFF);
     }    
+}
+
+void closeGrennLED(void)
+{
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
 }
 
 static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
@@ -114,6 +126,7 @@ void iotex_hal_gpio_init(void) {
     gpio_add_callback(__gpio0_dev, &chrq_gpio_cb);
     //gpio_pin_enable_callback(__gpio0_dev, IO_NCHRQ);
     gpio_pin_interrupt_configure(__gpio0_dev, IO_NCHRQ,GPIO_INT_EDGE_BOTH);
+    
 #if 0
     /* Power key pin configure */
     gpio_pin_configure(__gpio0_dev, POWER_KEY,
@@ -135,20 +148,32 @@ int iotex_hal_gpio_set(uint32_t pin, uint32_t value) {
     return gpio_pin_write(__gpio0_dev, pin, value);
 }
 
+void gpio_poweroffNotice(void)
+{
+    /* qhm add 0830*/
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+    k_sleep(K_MSEC(300));
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+    k_sleep(K_MSEC(300));
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+    k_sleep(K_MSEC(300));
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+    k_sleep(K_MSEC(300));
+}
 
 void gpio_poweroff(void)
 {
-      /* qhm add 0830*/
-     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
-     k_sleep(K_MSEC(300));
-     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
-     k_sleep(K_MSEC(300));
-     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
-     k_sleep(K_MSEC(300));
-     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
-     k_sleep(K_MSEC(300));
-      /*end of qhm add 0830*/
-    //gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_OFF);   delete by qhm 0830 
+    /* qhm add 0830*/
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+    k_sleep(K_MSEC(300));
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+    k_sleep(K_MSEC(300));
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+    k_sleep(K_MSEC(300));
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+    k_sleep(K_MSEC(300));
+    /*end of qhm add 0830*/
+    gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_OFF);
 }
 
 void PowerOffIndicator(void)

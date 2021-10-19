@@ -9,7 +9,7 @@
 #define SDK_VERSION "1.4.0"
 
 // application version
-#define APP_VERSION "pebbleGo v0.1.0"
+#define APP_VERSION "pebbleGo v0.1.1"
 
 #define APP_VERSION_INFO HW_VERSION"_"SDK_VERSION"_"APP_VERSION">"
 

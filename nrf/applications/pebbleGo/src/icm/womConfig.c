@@ -24,7 +24,7 @@
 #define WOM_THRESHOLD_INITIAL_MG 200
 
 /* WOM threshold to be applied to ICM, ranges from 1 to 255, in 4mg unit */
-static uint8_t wom_threshold = WOM_THRESHOLD_INITIAL_MG/4;
+static uint8_t wom_threshold = WOM_THRESHOLD_INITIAL_MG/8;
 
 static int ConfigureInvDevice_wom(uint8_t is_low_noise_mode, 
                        ICM426XX_ACCEL_CONFIG0_FS_SEL_t acc_fsr_g,
@@ -82,7 +82,7 @@ int womDetect(void)
         return  0;
     }	
 	if(int_status & (BIT_INT_STATUS2_WOM_X_INT|BIT_INT_STATUS2_WOM_Y_INT|BIT_INT_STATUS2_WOM_Z_INT)) {
-		printk("wom event detected\n");
-	}
-	return 1;
+		//printk("wom  detected");
+		return 1;
+	}	
 }

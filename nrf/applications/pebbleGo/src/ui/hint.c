@@ -30,6 +30,7 @@
 static uint8_t hintAliveTime;
 uint8_t htLanguage;
 struct sys_mutex iotex_hint_mutex;
+static uint32_t pubCounts = 0;
 
 extern uint8_t s_chDispalyBuffer[128][8];
 extern  const  uint8_t *pmqttBrokerHost;
@@ -49,6 +50,10 @@ const uint8_t *mqttBrokerHost[5]={
     "a11homvea4zo8t-ats.iot.us-east-1.amazonaws.com",
     "a11homvea4zo8t-ats.iot.sa-east-1.amazonaws.com"
 };
+
+void pubOnePack(void) {
+    pubCounts++;
+}
 
 void hintInit(void)
 {
@@ -75,7 +80,7 @@ uint8_t hintTimeDec(void)
 void clrHint(void) {
     if(hintAliveTime) {
         hintAliveTime = 0;
-        ssd1306_display_logo();
+        //ssd1306_display_logo();
     }
 }
 
@@ -173,6 +178,22 @@ void dis_OnelineText(uint32_t line, uint32_t flg, uint8_t *str, uint8_t revert)
     //ssd1306_refresh_lines(line*2,line*2+1);
     ssd1306_refresh_lines(6-2*line,7-2*line);
 }
+
+void dashBoard(void) {
+    uint8_t disBuf[20];
+
+    //ssd1306_clear_screen(0);
+    // app
+    strcpy(disBuf, APP_VERSION);    
+    dis_OnelineText(1, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
+    // packages
+    strcpy(disBuf, "Published: ");
+    sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
+    dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);
+    dis_OnelineText(3, ALIGN_LEFT, "",DIS_NORMAL);
+}
+
+
 
 // startup menu
 
@@ -511,8 +532,8 @@ void sysSet(void)
         {
             ClearKey();
             cursor++;
-            if(cursor > (sizeof(mainMenu)/sizeof(mainMenu[0] - 1)))
-                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0] - 1));         
+            if(cursor > (sizeof(mainMenu)/sizeof(mainMenu[0]) - 1))
+                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0]) - 1);         
         }        
         else if(IsEnterPressed())
         {
@@ -550,7 +571,7 @@ void sysSet(void)
 }
 void MainMenu(void)
 {
-    const char mainMenu[3][20]={
+    const char mainMenu[][20]={
         "System settings",
         "About          ",
         "Startup        ",        
@@ -582,8 +603,8 @@ void MainMenu(void)
         {
             ClearKey();
             cursor++;
-            if(cursor > (sizeof(mainMenu)/sizeof(mainMenu[0] - 1)))
-                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0] - 1));          
+            if(cursor > (sizeof(mainMenu)/sizeof(mainMenu[0]) - 1))
+                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0]) - 1);                     
         }        
         else if(IsEnterPressed())
         {
