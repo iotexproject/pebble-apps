@@ -56,9 +56,11 @@ void checkCHRQ(void)
     }    
 }
 
-void closeGrennLED(void)
-{
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+void CtrlGreenLED(bool on_off) {
+    if(on_off)
+        gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+    else
+        gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
 }
 
 static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
@@ -164,13 +166,13 @@ void gpio_poweroffNotice(void)
 void gpio_poweroff(void)
 {
     /* qhm add 0830*/
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+    gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
     k_sleep(K_MSEC(300));
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+    gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
     k_sleep(K_MSEC(300));
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+    gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
     k_sleep(K_MSEC(300));
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+    gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
     k_sleep(K_MSEC(300));
     /*end of qhm add 0830*/
     gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_OFF);

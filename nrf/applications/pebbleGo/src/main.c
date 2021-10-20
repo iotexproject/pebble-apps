@@ -1068,8 +1068,9 @@ void main(void)
             gpsPowerOff();
             printk("start sleep\n");  
             setModemSleep(1);
+            k_sleep(K_SECONDS(1));
             lte_lc_psm_req(true);                       
-            k_sleep(K_SECONDS(270));
+            k_sleep(K_SECONDS(269));
             gpsPowerOn();
             k_sleep(K_SECONDS(30));
             lte_lc_psm_req(false);  

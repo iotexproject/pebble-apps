@@ -818,9 +818,9 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
         int i = getGPS(&latitude,&longitude);
         if (!i) {
-            sensordat.latitude = (uint32_t)(latitude * 10000000);
+            sensordat.latitude = (uint32_t)(int32_t)(latitude * 10000000);
             sensordat.has_latitude = true;
-            sensordat.longitude = (uint32_t)(longitude * 10000000);
+            sensordat.longitude = (uint32_t)(int32_t)(longitude * 10000000);
             sensordat.has_longitude = true;
         } else {
             sensordat.latitude = 2000000000;
@@ -839,7 +839,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     /* Env sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP)) {
-        sensordat.temperature = (uint32_t)(env_sensor.temperature * 100);
+        sensordat.temperature = (uint32_t)(int32_t)(env_sensor.temperature * 100);
         sensordat.has_temperature = true;
     }
 
@@ -864,8 +864,8 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     /* Action sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP2)) {
-        sensordat.temperature2 = (uint32_t)(action_sensor.temperature * 100);
-        sensordat.has_temperature2 = true;
+        sensordat.temperature2 = sensordat.temperature/*(uint32_t)(action_sensor.temperature * 100)*/;
+        sensordat.has_temperature2 = true;      
     }
 
     /* Action sensor gyroscope data */
@@ -937,7 +937,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
         SensorData DecodeSensor = SensorData_init_zero;        
         /* Create a stream that reads from the buffer. */
-        pb_istream_t test_decode_stream = pb_istream_from_buffer(binpack.data.bytes, binpack.data.size);
+        pb_istream_t test_decode_stream = pb_istream_from_buffer(message.data.bytes, message.data.size);
         
         /* Check for errors... */
         if (!pb_decode(&test_decode_stream, SensorData_fields, &DecodeSensor))
@@ -946,7 +946,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
             return 0;
         }
 
-        PrintSensorData(&DecodeSensor);
+        PrintSensorData(&DecodeSensor,&message);
     }
 #endif
 
@@ -955,11 +955,11 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
 void PrintSensorData(SensorData *sen, BinPackage *pack)
 {
-    printk("protobuf decode : \n");
+    printk("*****************protobuf decode : ************************\n");
     printk("sen->snr:%d\n", sen->snr);
     printk("snr:%d.%02d vbat:%d.%02d latitude:%d.%05d longitude:%d.%05d \n", sen->snr / 100,sen->snr % 100, \
-    sen->vbat / 100,sen->vbat % 100, sen->latitude / 100000, sen->latitude % 100000,\
-    sen->longitude / 100000, sen->longitude % 100000);
+    sen->vbat / 100,sen->vbat % 100, sen->latitude / 10000000, sen->latitude % 10000000,\
+    sen->longitude / 10000000, sen->longitude % 10000000);
 
     printk("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n", sen->gasResistance / 100, sen->gasResistance % 100,\
     sen->temperature / 100, sen->temperature % 100, sen->pressure / 100, sen->pressure % 100,\
@@ -970,7 +970,7 @@ void PrintSensorData(SensorData *sen, BinPackage *pack)
 
     printk("accelerometer:%d,%d,%d \n", sen->accelerometer[0],sen->accelerometer[1],sen->accelerometer[2]);
 
-    printk("timestamp:%s \n", pack->timestamp);
+    printk("timestamp:%d \n", pack->timestamp);
 
     printk("randoms: %s\n", sen->random);
 
@@ -980,4 +980,5 @@ void PrintSensorData(SensorData *sen, BinPackage *pack)
         printk("%02x", pack->signature[i]);
     }
     printk("\n");
+    printk("***********************************************************\n");
 }

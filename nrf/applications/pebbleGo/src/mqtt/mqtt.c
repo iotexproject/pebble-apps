@@ -364,6 +364,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             // send heartbeat
             //sendHearBeat();
             cnt = 0;
+            sta_SetMeta(AWS_LINKER, STA_LINKER_ON);
             break;
         case MQTT_EVT_DISCONNECT:
             connected = 0;

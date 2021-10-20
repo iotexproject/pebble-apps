@@ -14,6 +14,7 @@ enum E_STATUS_BAR{
     LTE_LINKER,
     GPS_LINKER,
     PEBBLE_POWER,
+    AWS_LINKER,
     MAX_STATUS_ICO
 };
 

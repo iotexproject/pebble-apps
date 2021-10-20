@@ -35,6 +35,8 @@ static uint32_t pubCounts = 0;
 extern uint8_t s_chDispalyBuffer[128][8];
 extern  const  uint8_t *pmqttBrokerHost;
 
+extern  void ledFlahsWorkerInit(void);
+
 const uint8_t AreaSec[5][2]={
     {ASIA_PACIFIC_CERT_SEC, ASIA_PACIFIC_KEY_SEC},
     {EUROPE_FRANKFURT_CERT_SEC, EUROPE_FRANKFURT_KEY_SEC},
@@ -60,6 +62,7 @@ void hintInit(void)
     hintAliveTime = 0;
     htLanguage = HT_LANGUAGE_EN;
     sys_mutex_init(&iotex_hint_mutex);
+    ledFlahsWorkerInit();
 }
 
 uint8_t hintTimeDec(void)
@@ -257,6 +260,18 @@ void initBrokeHost(void)
         selArea = atoi(pbuf);
         pmqttBrokerHost = mqttBrokerHost[selArea];
     } 
+    pbuf = ReadDataFromModem(MODEM_MODE_SEL, buf, sizeof(buf));
+    if(pbuf != NULL)
+    {
+        pbuf[1] = 0;
+        selArea = atoi(pbuf);
+        if(selArea == 0) {
+            lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+        }
+        else {
+            lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+        }        
+    }
 
     if(!mqttCertExist())
     {
@@ -345,12 +360,14 @@ void modemSettings(void) {
 }
 void selectArea(void)
 {
-    uint8_t   allArea[6][20] = {
+    uint8_t   allArea[][20] = {
         "Asia            ",
+/*        
         "Europe          ",
         "Middle East     ",
         "North America   ",
         "South America   ",
+*/        
         "Exit            "
     };
     uint8_t buf[100];
@@ -387,15 +404,15 @@ printk("read index:%d\n", selArea);
         {
             ClearKey();
             cursor++;
-            if(cursor > 5)
-                cursor = 5;
+            if(cursor > (sizeof(allArea)/sizeof(allArea[0])-1))
+                cursor = (sizeof(allArea)/sizeof(allArea[0])-1);
             if(cursor > 3)
                 first = cursor-3;
         }        
         else if(IsEnterPressed())
         {
             ClearKey();
-            if(cursor == 5)
+            if(cursor == (sizeof(allArea)/sizeof(allArea[0])-1))
                 break;
             // read modem and writing into  sec
             if(selArea != cursor)

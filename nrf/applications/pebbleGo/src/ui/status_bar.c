@@ -39,9 +39,23 @@ const uint8_t modem_mode_n[]={0x0F,0x04,0x02,0x0F};
 
 atomic_val_t  is_modem_sleep;
 
+static struct k_delayed_work   led_flash;
+
+
 extern uint8_t s_chDispalyBuffer[128][8];
 
 extern void closeGrennLED(void);
+
+
+void led_flash_fn(struct k_work *work){
+    CtrlGreenLED(false);
+}
+
+
+void ledFlahsWorkerInit(void) {
+    k_delayed_work_init(&led_flash, led_flash_fn);
+}
+
 
 void sta_LoadIcon(void)
 {
@@ -71,22 +85,27 @@ void sta_Refresh(void)
 {
     int val;
     uint32_t vol;
-    int i,j ;
-    static uint8_t index = 0, ledTim = 0;
+    int i,j;
+    static uint8_t index = 0, oledLightTime = 0, ledTime = 0;
     // signal quality
     //val = iotex_model_get_signal_quality();
-    sys_mutex_lock(&iotex_hint_mutex, K_FOREVER);    
+    sys_mutex_lock(&iotex_hint_mutex, K_FOREVER);
+    ledTime++;
+    if(ledTime > 5) {
+        ledTime = 0;
+        if(!staBar.val[PEBBLE_POWER]) {
+            CtrlGreenLED(true);
+            k_delayed_work_submit(&led_flash, K_MSEC(300));
+        }
+    }    
     clearDisBuf(7,7);
-    if(!cardExist())
-    {
+    if(!cardExist()) {
         i = 128-sizeof(power)-10-sizeof(sim_card);
-        for ( j = 0; j < sizeof(sim_card);j++,i++ )
-        {
+        for ( j = 0; j < sizeof(sim_card);j++,i++ ) {
             s_chDispalyBuffer[i][7] = sim_card[j];
         }    
     }
-    else
-    {
+    else {
         if(!getModeSleep()) {
             val = iotex_model_get_signal_quality();      
             if(val == 255) val = 0;
@@ -129,44 +148,44 @@ void sta_Refresh(void)
         if (val < 9)
             memset(staBar.power_icon+val + 4, 0x42, 9 - val);
     }
-    if(!staBar.val[LTE_LINKER])
-    {
+    if(!staBar.val[LTE_LINKER]) {
     //   printk("linking ......\n");
         index++;
         if(index > 8)
             index = 0;
         //memset(staBar.sig_icon, 0, sizeof(staBar.sig_icon));
-        for(i=0;i<index*4;i++)
-        {
+        for(i=0;i<index*4;i++) {
             s_chDispalyBuffer[i++][7]=0x18;
             s_chDispalyBuffer[i++][7]=0x18;
             s_chDispalyBuffer[i++][7]=0x0;
             s_chDispalyBuffer[i++][7]=0x0;
         }
-        ledTim = 0;
+        oledLightTime = 0;
     }
     else{    
-        for ( i=0; i < sizeof(Signal);i++)
-        {
+        for ( i=0; i < sizeof(Signal);i++) {
             s_chDispalyBuffer[i][7] = staBar.sig_icon[i];
         }
         index = 0;
         //i += 3;
-        if(isNB())
-        {
-            for ( j = 0; j < sizeof(modem_mode_n);j++,i++ )
-            {
+        // N/M is closer to sig_icon
+        for( j = sizeof(Signal) - 1; j > 0;j--,i--) {
+            if(staBar.sig_icon[j])
+                break;
+        } 
+        i+=1;
+        if(isNB()) {
+            for ( j = 0; j < sizeof(modem_mode_n);j++,i++ ) {
                 s_chDispalyBuffer[i][7] = modem_mode_n[j];
             }  
         }
-        else
-        {
-            for ( j = 0; j < sizeof(modem_mode_m);j++,i++ )
-            {
+        else {
+            for ( j = 0; j < sizeof(modem_mode_m);j++,i++ ) {
                 s_chDispalyBuffer[i][7] = modem_mode_m[j];
             }  
+        }
     }
-
+    if(staBar.val[AWS_LINKER]) {
         i += 10;    
         for ( j = 0; j < sizeof(lte_pic);j++,i++ )
         {
@@ -175,8 +194,7 @@ void sta_Refresh(void)
     }
     if(staBar.val[GPS_LINKER]){
         i += 10;
-        for ( j = 0; j < sizeof(gps);j++,i++ )
-        {
+        for ( j = 0; j < sizeof(gps);j++,i++ ) {
             s_chDispalyBuffer[i][7] = gps[j];
         }    
     }
@@ -190,14 +208,14 @@ void sta_Refresh(void)
     
     if(womDetect()) {
         ctrlOLED(true);
-        ledTim = 0;
+        oledLightTime = 0;
         if(devRegGet() == DEV_REG_STOP)
             dashBoard();
     }
     else {
-        ledTim++;
-        if(ledTim > 10) {
-            ledTim = 0;
+        oledLightTime++;
+        if(oledLightTime > 10) {
+            oledLightTime = 0;
             if(devRegGet() == DEV_REG_STOP)
                 ctrlOLED(false);
         }
