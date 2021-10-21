@@ -184,8 +184,10 @@ void hex2str(char* buf_hex, int len, char *str)
 int doESDASign(char *inbuf, uint32_t len, char *buf, int *sinlen)
 {
 	int ret = 0;
-#ifdef TEST_VERFY_SIGNATURE
+#ifdef TEST_VERFY_SIGNATURE	
+	__disable_irq();
 	ret = doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
+	__enable_irq();
 	printk("doESDA_sep256r_Sign return :%x \n", ret);
 #else
 	doESDA_sep256r_Sign(inbuf, len, buf, sinlen);

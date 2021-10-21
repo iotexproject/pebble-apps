@@ -34,8 +34,7 @@ static struct gpio_callback chrq_gpio_cb, pwr_key_gpio_cb;
 
 //extern struct k_delayed_work  event_work;
 
-void checkCHRQ(void)
-{
+void checkCHRQ(void) {
     u32_t chrq;    
     chrq = gpio_pin_get(__gpio0_dev, IO_NCHRQ);
     //gpio_pin_write(port, LED_RED, chrq);    
@@ -56,11 +55,11 @@ void checkCHRQ(void)
     }    
 }
 
-void CtrlGreenLED(bool on_off) {
+void CtrlBlueLED(bool on_off) {
     if(on_off)
-        gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
+        gpio_pin_write(__gpio0_dev, LED_BLUE, LED_ON);
     else
-        gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+        gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);
 }
 
 static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {

@@ -48,7 +48,7 @@ extern void closeGrennLED(void);
 
 
 void led_flash_fn(struct k_work *work){
-    CtrlGreenLED(false);
+    CtrlBlueLED(false);
 }
 
 
@@ -94,7 +94,7 @@ void sta_Refresh(void)
     if(ledTime > 5) {
         ledTime = 0;
         if(!staBar.val[PEBBLE_POWER]) {
-            CtrlGreenLED(true);
+            CtrlBlueLED(true);
             k_delayed_work_submit(&led_flash, K_MSEC(300));
         }
     }    
