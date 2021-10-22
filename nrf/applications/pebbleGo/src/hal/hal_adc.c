@@ -5,10 +5,12 @@
 
 static struct device *__adc_dev;
 
+//#define CONFIG_DEBUG_ADC 
 
-float iotex_hal_adc_sample(void) {
+int iotex_hal_adc_sample(void) {
     int ret;
-    float adc_voltage = 0;
+    //float adc_voltage = 0;
+    int adc_voltage = 0;
     int16_t sample_buffer;
 
     const struct adc_sequence sequence = {
@@ -25,14 +27,15 @@ float iotex_hal_adc_sample(void) {
     ret = adc_read(__adc_dev, &sequence);
 
     if (ret || sample_buffer <= 0) {
-        return 0.0;
+        return 0;
     }
 
-    adc_voltage = sample_buffer / 1023.0 * 2 * 3600.0 / 1000.0;
+    //adc_voltage = sample_buffer / 1023.0 * 2 * 3600.0 / 1000.0;
+    adc_voltage = (sample_buffer * 7200) / 1023 ;
 
 #ifdef CONFIG_DEBUG_ADC
     printk("ADC raw value: %d\n", sample_buffer);
-    fprintf(stdout, "Measured voltage: %.2f mV\n", adc_voltage);
+    fprintf(stdout, "Measured voltage: %d mV\n", adc_voltage);
 #endif
     return adc_voltage;
 }

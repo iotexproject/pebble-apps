@@ -274,7 +274,7 @@ static void comtoolOut(uint8_t *buf, uint32_t len)
 void outputSn(void) {
     uint8_t sn[11];
     unsigned char *pub;
-    uint8_t package[200];
+    uint8_t package[500];
 
     if(testCmdReved){
         testCmdReved = 0;

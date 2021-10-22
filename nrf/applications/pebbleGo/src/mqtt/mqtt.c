@@ -20,7 +20,7 @@
 #define CLIENT_ID_LEN (sizeof(CONFIG_CLOUD_CLIENT_ID) - 1)
 #endif
 
-#define CLOUD_CONNACK_WAIT_DURATION	60 /*CONFIG_CLOUD_WAIT_DURATION*/
+#define CLOUD_CONNACK_WAIT_DURATION	 300 /*CONFIG_CLOUD_WAIT_DURATION*/
 
 
 #define  MQTT_TOPIC_SIZE    100
@@ -371,6 +371,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             atomic_set(&send_data_enable, 0);
             //iotex_hal_gpio_set(LED_BLUE, LED_OFF);
             //iotex_hal_gpio_set(LED_GREEN, LED_ON);
+            sta_SetMeta(AWS_LINKER, STA_LINKER_OFF);
             printk("[%s:%d] MQTT client disconnected %d\n", __func__, __LINE__, evt->result);
             break;
         case MQTT_EVT_PUBLISH: {

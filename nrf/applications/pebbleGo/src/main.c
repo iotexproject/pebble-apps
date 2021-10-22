@@ -1026,16 +1026,16 @@ void main(void)
     iotex_icm42605_init();	
 	iotex_key_init();
     //updateLedPattern();
-	work_init();
-
+	work_init();    
     ssd1306_init();
 
     MainMenu();
     appEntryDetect();
 
-    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_MSEC(100));
+    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_MSEC(10));
 	modem_configure();
 
+    exGPSInit(); 
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&bsdlib_initialized, K_FOREVER);
 #else
@@ -1043,10 +1043,9 @@ void main(void)
 #endif
 #ifdef CONFIG_UNITTEST
     unittest();
-#endif
-    exGPSInit(); 
+#endif    
     initOTA();
-    sta_Refresh();        
+    sta_Refresh();     
 
     while(true){
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
@@ -1057,7 +1056,7 @@ void main(void)
             k_sleep(K_MSEC(500));
             sys_reboot(0);
             return;
-        }
+        }       
         //printf("GPS latitude:%lf, longitude:%lf\n", latitude, longitude);
         errCounts = 0;      
         if(!iotexDevBinding(&fds,&client)) {
@@ -1070,9 +1069,9 @@ void main(void)
             setModemSleep(1);
             k_sleep(K_SECONDS(1));
             lte_lc_psm_req(true);                       
-            k_sleep(K_SECONDS(269));
+            k_sleep(K_SECONDS(239));
             gpsPowerOn();
-            k_sleep(K_SECONDS(30));
+            k_sleep(K_SECONDS(60));
             lte_lc_psm_req(false);  
             printk("wake up\n"); 
             setModemSleep(0);

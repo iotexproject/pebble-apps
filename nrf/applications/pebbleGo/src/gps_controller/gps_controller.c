@@ -11,6 +11,7 @@
 #include <drivers/gpio.h>
 #include <drivers/uart.h>
 #include <stdlib.h>
+#include <sys/mutex.h>
 
 
 #include "ui.h"
@@ -19,6 +20,10 @@
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(gps_control, CONFIG_ASSET_TRACKER_LOG_LEVEL);
+
+// gps Mosaic ?
+#define  USE_GPS_MOSAIC	 1
+
 
 #define  GPIO_DIR_OUT  GPIO_OUTPUT
 #define  gpio_pin_write gpio_pin_set
@@ -29,10 +34,9 @@ static  struct device *guart_dev_gps;
 struct device *gpsPower;
 static u8_t uart_buf1[128];
 static u8_t pos1=0;
-
-static u8_t print_buf1[128];
-static bool printit;
+static uint8_t  bGpsHead = 0;
 const char strGRMC[7]="$GNRMC";
+
 
 struct gprmc {
     double latitude;
@@ -44,45 +48,103 @@ struct gprmc {
 };
 typedef struct gprmc gprmc_t;
 
-static void uart_gps_rx_handler(u8_t character)
-{
-	
-		/* Handle special characters. */
-	switch (character) {
-	case 0x24: /* Backspace. */
-                pos1=0;
-        default:        
-		/* Fall through. */
+struct sys_mutex iotex_gps_mutex;
+static struct k_work   gpsPackageParse;
+static  double gpsLat = 200.0,gpsLon = 200.0;
+static  uint8_t bgpsAtive = 0;	
+
+static int getRMC(char *nmea, gprmc_t *loc);
+
+void gpsPackageParseHandle(struct k_work *work){
+	gprmc_t rmc;
+    int intpart;
+    double fractpart; 
+	double lat,lon;	
+	if(!getRMC(uart_buf1,&rmc)){		
+		// lat 
+		intpart= rmc.latitude/100;
+		fractpart=((rmc.latitude/100)-intpart)/0.6;
+		lat = intpart+fractpart;
+		// lon
+		intpart= rmc.longitude/100;
+		fractpart=((rmc.longitude/100)-intpart)/0.6; 
+		lon = intpart+fractpart;
+#if USE_GPS_MOSAIC		
+		// gps  Mosaic needed ?
+		fractpart = lat * 100;
+		intpart = fractpart / 1;
+		fractpart -= intpart;
+		fractpart /= 100.0;
+		lat -= fractpart;
+		// 
+		fractpart = lon * 100;
+		intpart = fractpart / 1;
+		fractpart -= intpart;
+		fractpart /= 100.0;
+		lon -= fractpart;	
+#endif		
+		// South West ?
+		if(rmc.lat == 'S')                     
+			lat *= (-1);  
+		if(rmc.lon == 'W')                     
+			lon *= (-1); 
+		sys_mutex_lock(&iotex_gps_mutex, K_FOREVER);
+		gpsLat = lat;
+		gpsLon = lon;		
+		bgpsAtive = 1;
+		sys_mutex_unlock(&iotex_gps_mutex); 
+		sta_SetMeta(GPS_LINKER, STA_LINKER_ON);		
+	} 
+	else {
+		sys_mutex_lock(&iotex_gps_mutex, K_FOREVER);
+		gpsLat = 200.0;
+		gpsLon = 200.0;
+		bgpsAtive = 0;
+		sys_mutex_unlock(&iotex_gps_mutex); 
+		sta_SetMeta(GPS_LINKER, STA_LINKER_OFF);				
+	}
+	uart_irq_rx_enable(guart_dev_gps);
+}
+
+
+static void uart_gps_rx_handler(u8_t character) {
+	//printk("%c", character);
+	if(!bGpsHead){
+		if( 0x24 == character) {
+			pos1=1;
+			bGpsHead = 1;
+			uart_buf1[0] = character;
+		}
+	}
+	else {
 		uart_buf1[pos1] = character;
-		break;
-        }
-       
-	if ((uart_buf1[pos1 - 1] == '\r') && (character == '\n')) {
-
-                uart_buf1[pos1 - 1] ='\n'; //delete '\r',printk  '\n' to '\r'+'\n'
-                uart_buf1[pos1 ] =0;
-               // printk("get a cmd\n");
-#if 1			   
-			   if(strncmp(uart_buf1,strGRMC,strlen(strGRMC))==0){
-					strcpy(print_buf1,uart_buf1);
-					printit= 1 ;				
-			   }
-#else
-                strcpy(print_buf1,uart_buf1);
-                printit= true ;
-#endif
-                pos1=0;
-                //uart_irq_rx_disable(guart_dev_gps);
-                //printk("%s",print_buf1);
-                //uart_irq_rx_enable(guart_dev_gps);
-                //printk("get a cmd\n");            
+		if((uart_buf1[pos1 - 1] == '\r') && (character == '\n')) {
+			uart_buf1[pos1 - 1] ='\n'; //delete '\r',printk  '\n' to '\r'+'\n'
+			uart_buf1[pos1] =0;				   
+			if(strncmp(uart_buf1,strGRMC,strlen(strGRMC))==0) {
+				uart_irq_rx_disable(guart_dev_gps);
+                //printk("%s",uart_buf1);
+				k_work_submit(&gpsPackageParse);				
+			}
+			pos1=0;
+			bGpsHead = 0;
+		}
+		else {
+			pos1++;
+			if(pos1 > (sizeof(uart_buf1)-1)){
+				pos1 = 0;
+				bGpsHead = 0;	
+			}
+			else {
+				if(pos1 == strlen(strGRMC)) {
+					if(strncmp(uart_buf1,strGRMC,strlen(strGRMC))) {
+						pos1=0;
+						bGpsHead = 0;						
+					}
+				}
+			}		
+		}		
 	}
-        else
-        {
-              pos1++;
-	}
-   return;
-
 }
 
 static void uart_gps_cb(struct device *dev)
@@ -156,46 +218,14 @@ static int getRMC(char *nmea, gprmc_t *loc)
 
 int getGPS(double *lat, double *lon)
 {
-	gprmc_t rmc;
 	int ret = -1;
-    int intpart;
-    double fractpart; 	
-	if(printit){
-		if(!getRMC(print_buf1,&rmc)){
-		//if(!getRMC("$GNRMC,093153.00,A,3050.68816,N,11448.65818,E,0.074,,220720,,,A,V*12",&rmc)){			
-            intpart= rmc.latitude/100;
-            fractpart=((rmc.latitude/100)-intpart)/0.6; 
-			if(rmc.lat == 'S')                     
-				*lat = (intpart+fractpart)*-1;  
-			else
-				*lat = intpart+fractpart;
-
-            intpart= rmc.longitude/100;
-            fractpart=((rmc.longitude/100)-intpart)/0.6; 
-			if(rmc.lon == 'W')                     
-				*lon = (intpart+fractpart)*-1; 
-			else	
-				*lon = intpart+fractpart; 												
-			ret = 0;						
-			// gps  Mosaic needed ?
-			fractpart = *lat * 100;
-			intpart = fractpart / 1;
-			fractpart -= intpart;
-			fractpart /= 100.0;
-			*lat -= fractpart;
-
-			fractpart = *lon * 100;
-			intpart = fractpart / 1;
-			fractpart -= intpart;
-			fractpart /= 100.0;
-			*lon -= fractpart;			
-		}
-		printit = 0;
+	sys_mutex_lock(&iotex_gps_mutex, K_FOREVER);
+	if(bgpsAtive) {
+		*lat = gpsLat;
+		*lon = gpsLon;
+		ret = 0;
 	}
-	if(ret)
-		sta_SetMeta(GPS_LINKER, STA_LINKER_OFF);
-	else
-		sta_SetMeta(GPS_LINKER, STA_LINKER_ON);
+	sys_mutex_unlock(&iotex_gps_mutex); 	
 	return ret;	
 }
 
@@ -209,21 +239,27 @@ void exGPSStop(void)
 	uart_irq_rx_disable(guart_dev_gps);
 }
 
-void exGPSInit(void) {
-	
+void exGPSInit(void) {		
+	k_work_init(&gpsPackageParse, gpsPackageParseHandle);
+	sys_mutex_init(&iotex_gps_mutex);	
 	gpsPower = device_get_binding("GPIO_0");
-	gpio_pin_configure(gpsPower, GPS_EN, GPIO_DIR_OUT); 
-	gpio_pin_write(gpsPower, GPS_EN, 1);
+	gpio_pin_configure(gpsPower, GPS_EN, GPIO_DIR_OUT); 	
 	guart_dev_gps=device_get_binding(UART_GPS);
 	uart_irq_callback_set(guart_dev_gps, uart_gps_cb);
 	uart_irq_rx_enable(guart_dev_gps);
+	gpio_pin_write(gpsPower, GPS_EN, 1);
 }
 
 void gpsPowerOn(void) {
+	//pos1=0;
+	//bGpsHead = 0;	
+	//uart_irq_rx_enable(guart_dev_gps);	
 	gpio_pin_write(gpsPower, GPS_EN, 1);
 }
-void gpsPowerOff(void) {
+void gpsPowerOff(void) {	
 	gpio_pin_write(gpsPower, GPS_EN, 0);
+	//uart_irq_rx_disable(guart_dev_gps);
+	//sta_SetMeta(GPS_LINKER, STA_LINKER_OFF);
 }
 
 

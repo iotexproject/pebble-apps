@@ -17,7 +17,7 @@
 
 
 int iotex_hal_adc_init(void);
-float  iotex_hal_adc_sample(void);
+int  iotex_hal_adc_sample(void);
 
 
 #endif //_IOTEX_HAL_ADC_H

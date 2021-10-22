@@ -8,8 +8,12 @@
 // nordic sdk version
 #define SDK_VERSION "1.4.0"
 
+#define  APP_NAME  "LonelyPlanet"
+
+#define  RELEASE_VERSION    "0.1.4"
+
 // application version
-#define APP_VERSION "pebbleGo v0.1.2"
+#define APP_VERSION APP_NAME" "RELEASE_VERSION
 
 #define APP_VERSION_INFO HW_VERSION"_"SDK_VERSION"_"APP_VERSION">"
 

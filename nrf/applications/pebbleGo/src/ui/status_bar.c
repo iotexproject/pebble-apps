@@ -16,7 +16,7 @@ extern  struct sys_mutex iotex_hint_mutex;
 struct STATUS_BAR {
     uint8_t  sig_icon[20];
     uint8_t  power_icon[20];
-    uint8_t  val[MAX_STATUS_ICO];
+    atomic_val_t  val[MAX_STATUS_ICO];
 };
 
 
@@ -64,12 +64,17 @@ void sta_LoadIcon(void)
     memset(staBar.val, 0, MAX_STATUS_ICO);
 }
 
-void sta_SetMeta(enum E_STATUS_BAR mt, uint8_t val)
-{
-    staBar.val[mt] = val;
+void sta_SetMeta(enum E_STATUS_BAR mt, uint8_t val) {
+    //staBar.val[mt] = val;
+    atomic_set(&staBar.val[mt], val);
     //dectCard();
 }
 
+uint8_t  sta_GetMeta(enum E_STATUS_BAR mt) {
+    //staBar.val[mt] = val;
+    return atomic_get(&staBar.val[mt]);
+    //dectCard();
+}
 
 void setModemSleep(atomic_val_t val) {    
     atomic_set(&is_modem_sleep, val);
@@ -93,7 +98,7 @@ void sta_Refresh(void)
     ledTime++;
     if(ledTime > 5) {
         ledTime = 0;
-        if(!staBar.val[PEBBLE_POWER]) {
+        if(!sta_GetMeta(PEBBLE_POWER)) {
             CtrlBlueLED(true);
             k_delayed_work_submit(&led_flash, K_MSEC(300));
         }
@@ -129,12 +134,13 @@ void sta_Refresh(void)
     }
 
     // power , >= 4.1v ful, 4.1 - 3.2 = 0.9
-    if(staBar.val[PEBBLE_POWER]) {
+    if(sta_GetMeta(PEBBLE_POWER)) {
         memcpy(staBar.power_icon, charging, sizeof(charging));
     }
     else {
         memcpy(staBar.power_icon, power, sizeof(power));
-        vol = iotex_modem_get_battery_voltage();
+        //vol = iotex_modem_get_battery_voltage();
+        vol = iotex_hal_adc_sample();
         //if(vol < 4300)
         //    closeGrennLED();
         val = vol - 3200;
@@ -148,7 +154,7 @@ void sta_Refresh(void)
         if (val < 9)
             memset(staBar.power_icon+val + 4, 0x42, 9 - val);
     }
-    if(!staBar.val[LTE_LINKER]) {
+    if(!sta_GetMeta(LTE_LINKER)) {
     //   printk("linking ......\n");
         index++;
         if(index > 8)
@@ -158,7 +164,7 @@ void sta_Refresh(void)
             s_chDispalyBuffer[i++][7]=0x18;
             s_chDispalyBuffer[i++][7]=0x18;
             s_chDispalyBuffer[i++][7]=0x0;
-            s_chDispalyBuffer[i++][7]=0x0;
+            s_chDispalyBuffer[i][7]=0x0;
         }
         oledLightTime = 0;
     }
@@ -185,14 +191,14 @@ void sta_Refresh(void)
             }  
         }
     }
-    if(staBar.val[AWS_LINKER]) {
+    if(sta_GetMeta(AWS_LINKER)) {
         i += 10;    
         for ( j = 0; j < sizeof(lte_pic);j++,i++ )
         {
             s_chDispalyBuffer[i][7] = lte_pic[j];
         }
     }
-    if(staBar.val[GPS_LINKER]){
+    if(sta_GetMeta(GPS_LINKER)){
         i += 10;
         for ( j = 0; j < sizeof(gps);j++,i++ ) {
             s_chDispalyBuffer[i][7] = gps[j];

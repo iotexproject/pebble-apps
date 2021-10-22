@@ -187,13 +187,14 @@ void dashBoard(void) {
 
     //ssd1306_clear_screen(0);
     // app
-    strcpy(disBuf, APP_VERSION);    
-    dis_OnelineText(1, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
+    strcpy(disBuf, "APP:"APP_NAME);    
+    dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
+    strcpy(disBuf, "Ver:"RELEASE_VERSION);    
+    dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);    
     // packages
     strcpy(disBuf, "Published: ");
     sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
-    dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);
-    dis_OnelineText(3, ALIGN_LEFT, "",DIS_NORMAL);
+    dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
 }
 
 
@@ -435,7 +436,7 @@ printk("read index:%d\n", selArea);
 
 void pebbleInfor(void)
 {
-    uint8_t buf[7][20];
+    uint8_t buf[8][20];
     uint8_t id[20];
     uint8_t sysInfo[100];
     uint8_t buf_sn[100];    
@@ -469,15 +470,16 @@ void pebbleInfor(void)
     dis_OnelineText(3, ALIGN_LEFT, buf[3],DIS_NORMAL);   
     // app 
     //memset(buf[4], 0, sizeof(buf[4]));
-    sprintf(buf[4], "APP:%s", APP_VERSION+9);
+    sprintf(buf[4], "APP:%s", APP_NAME);
+    sprintf(buf[5], "VER:%s", RELEASE_VERSION);
     //dis_OnelineText(2, ALIGN_LEFT, buf); 
     // bootloader
-    sprintf(buf[5], "%s", sysInfo);
+    sprintf(buf[6], "%s", sysInfo);
     //printk("---%s----%s\n", sysInfo+80, sysInfo+20);
 
     // modem 
     //memset(buf, 0, sizeof(buf));
-    sprintf(buf[6], "MD:%s", sysInfo+60);
+    sprintf(buf[7], "MD:%s", sysInfo+60);
     //dis_OnelineText(3, ALIGN_LEFT, buf);  
     // open test com port
     ComToolInit();
@@ -498,8 +500,13 @@ void pebbleInfor(void)
         {
             ClearKey();
             cursor++;
-            if(cursor > 1)
-                cursor = 3;          
+            if(cursor > 3) {
+                cursor = 4;
+            }
+            else {
+                if(cursor > 1)
+                    cursor = 3;   
+            }       
         }        
         if(IsEnterPressed()){
             ClearKey();
