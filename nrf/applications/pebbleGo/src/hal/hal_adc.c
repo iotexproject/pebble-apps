@@ -18,6 +18,8 @@ int iotex_hal_adc_sample(void) {
         .buffer = &sample_buffer,
         .buffer_size = sizeof(sample_buffer),
         .resolution = ADC_RESOLUTION,
+        .oversampling = 0,
+
     };
 
     if (!__adc_dev) {
@@ -31,8 +33,8 @@ int iotex_hal_adc_sample(void) {
     }
 
     //adc_voltage = sample_buffer / 1023.0 * 2 * 3600.0 / 1000.0;
-    adc_voltage = (sample_buffer * 7200) / 1023 ;
-
+    adc_voltage = (sample_buffer * 7200) / 16384 ;
+     //  adc_voltage = (sample_buffer * 4500) / 1024; 
 #ifdef CONFIG_DEBUG_ADC
     printk("ADC raw value: %d\n", sample_buffer);
     fprintf(stdout, "Measured voltage: %d mV\n", adc_voltage);
@@ -51,6 +53,7 @@ int iotex_hal_adc_init(void) {
         .acquisition_time = ADC_ACQUISITION_TIME,
         .channel_id = ADC_1ST_CHANNEL_ID,
         .input_positive = ADC_1ST_CHANNEL_INPUT,
+        .differential = 0,
     };
 
     if (!__adc_dev) {
@@ -64,5 +67,6 @@ int iotex_hal_adc_init(void) {
     }
 
     NRF_SAADC_NS->TASKS_CALIBRATEOFFSET = 1;
+    iotex_hal_adc_sample(); 
     return err;
 }
