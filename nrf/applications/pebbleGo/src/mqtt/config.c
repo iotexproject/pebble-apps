@@ -8,6 +8,7 @@
 #include "pb_decode.h"
 #include "pb_encode.h"
 #include "package.pb.h"
+#include "ver.h"
 
 /* Global configure */
 static iotex_mqtt_config __config = {
@@ -15,7 +16,7 @@ static iotex_mqtt_config __config = {
     .bulk_upload = 0,
     .bulk_upload_sampling_cnt = 0,
     .bulk_upload_sampling_freq = 0,
-    .upload_period = CONFIG_MQTT_CONFIG_UPLOAD_PERIOD, 
+    .upload_period = SENSOR_UPLOAD_PERIOD, 
     //.firmwareUrl = "https://pebble-ota.s3.ap-east-1.amazonaws.com/app_update.bin",   
 };
 struct sys_mutex iotex_config_mutex;
@@ -102,15 +103,23 @@ static bool save_mqtt_config(void) {
 }
 
 bool iotex_mqtt_is_bulk_upload(void) {
-    return __config.bulk_upload;
+    bool bulkOrnot;
+    config_mutex_lock();
+    bulkOrnot = (__config.bulk_upload != 0);
+    config_mutex_unlock();
+    return bulkOrnot;
 }
 
 uint16_t iotex_mqtt_get_data_channel(void) {
-    return __config.data_channel;
+    uint16_t channel;
+    config_mutex_lock();
+    channel = __config.data_channel;
+    config_mutex_unlock();
+    return channel;
 }
 
 uint16_t iotex_mqtt_get_upload_period(void) {
-    return __config.bulk_upload ? 0 : (__config.upload_period == 0 ? 30 : __config.upload_period);
+    return __config.bulk_upload ? 0 : (__config.upload_period == 0 ? SENSOR_UPLOAD_PERIOD : __config.upload_period);
 }
 
 uint16_t iotex_mqtt_get_bulk_upload_count(void) {

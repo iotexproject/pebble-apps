@@ -463,7 +463,9 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     }
 
     // get random number
+    __disable_irq();
     GenRandom(random);
+    __enable_irq();
     random[sizeof(random)-1] = 0;
     random_obj = cJSON_CreateString(random); 
     if (!random_obj || json_add_obj(msg_obj, "random", random_obj)) {
@@ -719,7 +721,9 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
         goto cleanup;
     }
     // get random number
+    __disable_irq();
     GenRandom(random);
+    __enable_irq();
     random[sizeof(random) - 1] = 0;
     random_obj = cJSON_CreateString(random); 
     if (!random_obj  || json_add_obj(msg_obj, "random", random_obj)) {
@@ -885,7 +889,9 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     /* Add timestamp */
     uint_timestamp = atoi(iotex_modem_get_clock(NULL));
     // get random number
+    __disable_irq();
     GenRandom(sensordat.random);
+    __enable_irq();
     sensordat.random[sizeof(sensordat.random) - 1] = 0;
     sensordat.has_random = true;
 

@@ -64,6 +64,8 @@ void ssd1306_init(void);
 uint8_t s_chDispalyBuffer[128][8];
 static struct device *__i2c_dev_CD1306;
 
+struct sys_mutex iotex_i2c_access;
+
 extern  struct sys_mutex iotex_hint_mutex;
 
 static void ssd1306_write_byte(uint8_t chData, uint8_t chCmd) 
@@ -299,7 +301,8 @@ void ssd1306_init(void)
     if (!(__i2c_dev_CD1306 = device_get_binding(I2C_DEV_BME680))) {
         printk("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
         return ;
-    }    
+    }
+    sys_mutex_init(&iotex_i2c_access);       
     //ssd1306_write_byte(0xAE, SSD1306_CMD);//--turn off oled panel
     ssd1306_write_byte(0x00, SSD1306_CMD);//---set low column address
     ssd1306_write_byte(0x10, SSD1306_CMD);//---set high column address
@@ -345,10 +348,18 @@ void ctrlOLED(bool on_off) {
         ssd1306_write_byte(0xAE, SSD1306_CMD);
 }
 
+void i2cLock(void) {
+    sys_mutex_lock(&iotex_i2c_access, K_FOREVER);
+}
+void i2cUnlock(void) {
+    sys_mutex_unlock(&iotex_i2c_access);
+}
+
 void ssd1306_refresh_lines(uint8_t start_line, uint8_t stop_line)
 {
     uint8_t i, j;
-    
+
+    i2cLock(); 
     for (i = start_line; i <= stop_line ; i ++) {          
         ssd1306_write_byte(0xB0 + i, SSD1306_CMD);    
         ssd1306_write_byte(0x00, SSD1306_CMD); 
@@ -356,7 +367,8 @@ void ssd1306_refresh_lines(uint8_t start_line, uint8_t stop_line)
         for (j = 0; j < SSD1306_WIDTH; j ++) {
             ssd1306_write_byte(s_chDispalyBuffer[j][i], SSD1306_DAT); 
         }
-    }  
+    } 
+    i2cUnlock(); 
 }
 
 void clearDisBuf(uint8_t start_line, uint8_t stop_line)

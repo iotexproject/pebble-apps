@@ -28,6 +28,15 @@ LOG_MODULE_REGISTER(gps_control, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 #define  GPIO_DIR_OUT  GPIO_OUTPUT
 #define  gpio_pin_write gpio_pin_set
 
+#define  CHECK_POINT(a, b, c) \
+        a = b;             \
+		if(a == NULL)      \
+			return 0;        \
+		else{             \
+			a++;          \
+			if(a == c) return 0; \
+		}
+
 // board v2.0  extern gps
 #if(EXTERN_GPS)
 static  struct device *guart_dev_gps;
@@ -166,17 +175,18 @@ static int getRMC(char *nmea, gprmc_t *loc)
 {
     //GNRMC,084852.000,A,2236.9453,N,11408.4790,E,0.53,292.44,141216,,,A*75
     char *p = nmea;
+	char *end = nmea + strlen(nmea);
 	char buf[20]={0};
-    p = strchr(p, ',') + 1;
-    p = strchr(p, ',') + 1;
+    CHECK_POINT(p, strchr(p, ','), end);
+    CHECK_POINT(p, strchr(p, ','), end);
 	if(p[0] != 'A')
 		return -1;
-    p = strchr(p, ',') + 1;
+    CHECK_POINT(p, strchr(p, ','), end);
 	memcpy(buf,p, strchr(p, ',')-p);
 	if(strlen(buf) == 0)
 		return -1;
     loc->latitude = atof(buf);
-    p = strchr(p, ',') + 1;
+    CHECK_POINT(p, strchr(p, ','), end);
     switch (p[0]) {
     case 'N':
         loc->lat = 'N';
@@ -189,12 +199,12 @@ static int getRMC(char *nmea, gprmc_t *loc)
         break;
     }
 
-    p = strchr(p, ',') + 1;
+    CHECK_POINT(p, strchr(p, ','), end);
 	memset(buf,0,sizeof(buf));
 	memcpy(buf,p, strchr(p, ',')-p);
     loc->longitude = atof(buf);
 
-    p = strchr(p, ',') + 1;
+    CHECK_POINT(p, strchr(p, ','), end);
     switch(p[0]) {
     case 'W':
         loc->lon = 'W';
@@ -207,10 +217,10 @@ static int getRMC(char *nmea, gprmc_t *loc)
         break;
     }
 
-    p = strchr(p, ',') + 1;
+    CHECK_POINT(p, strchr(p, ','), end);
     loc->speed = atof(p);
 
-    p = strchr(p, ',') + 1;
+    CHECK_POINT(p, strchr(p, ','), end);
     loc->course = atof(p);
 
 	return 0;
@@ -243,10 +253,14 @@ void exGPSInit(void) {
 	k_work_init(&gpsPackageParse, gpsPackageParseHandle);
 	sys_mutex_init(&iotex_gps_mutex);	
 	gpsPower = device_get_binding("GPIO_0");
-	gpio_pin_configure(gpsPower, GPS_EN, GPIO_DIR_OUT); 	
+	gpio_pin_configure(gpsPower, GPS_EN, GPIO_DIR_OUT); 
+	gpio_pin_write(gpsPower, GPS_EN, 1);	
 	guart_dev_gps=device_get_binding(UART_GPS);
+
 	uart_irq_callback_set(guart_dev_gps, uart_gps_cb);
+	gpio_pin_write(gpsPower, GPS_EN, 0);	
 	uart_irq_rx_enable(guart_dev_gps);
+	k_sleep(K_MSEC(10));
 	gpio_pin_write(gpsPower, GPS_EN, 1);
 }
 

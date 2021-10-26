@@ -220,6 +220,8 @@ enum error_type {
 	ERROR_SYSTEM_FAULT
 };
 
+static char mqttPubBuf[DATA_BUFFER_SIZE];
+
 #if CONFIG_LIGHT_SENSOR
 static void light_sensor_data_send(void);
 #endif /* CONFIG_LIGHT_SENSOR */
@@ -228,6 +230,13 @@ static void work_init(void);
 static void sensor_data_send(struct cloud_channel_data *data);
 static void device_status_send(struct k_work *work);
 static void connection_evt_handler(const struct cloud_event *const evt);
+
+const char reconnectReminder[][4] = {
+    "",
+    "1st",
+    "2nd",
+    "3rd"
+};
 
 /**@brief nRF Cloud error handler. */
 void error_handler(enum error_type err_type, int err_code)
@@ -386,8 +395,7 @@ static void send_env_data_work_fn(struct k_work *work) {
 static void uploadSensorData(void) {
     if (!atomic_get(&send_data_enable)) {
         return;
-    }
-    config_mutex_lock();
+    }    
     if (iotex_mqtt_is_bulk_upload()) {
         sampling_and_store_sensor_data();
     }
@@ -395,7 +403,6 @@ static void uploadSensorData(void) {
         periodic_publish_sensors_data();
     }
     pubOnePack();
-    config_mutex_unlock();   
 }
 
 void RestartEnvWork(int s)
@@ -613,22 +620,15 @@ void mqttGetResponse(void)
 
 static void periodic_publish_sensors_data(void) {
     int rc;
-    char *pbuf = NULL;
 
     if (iotex_mqtt_is_connected() && !ismqttOffline()) {
         SUCCESS_OR_BREAK(mqtt_ping(&client));
-        pbuf = (char *)malloc(DATA_BUFFER_SIZE);
-        if (!pbuf) {
-            printk("malloc buffer failed\n");
-            return;
-        }
-        if (rc = SensorPackage(iotex_mqtt_get_data_channel(), pbuf)) {
-            rc = iotex_mqtt_publish_data(&client, 0, pbuf, rc);
+        if (rc = SensorPackage(iotex_mqtt_get_data_channel(), mqttPubBuf)) {
+            rc = iotex_mqtt_publish_data(&client, 0, mqttPubBuf, rc);
             printk("mqtt_publish_devicedata: %d \n", rc);
         } else {
             printk("mqtt package error ! \n");
         }
-        free(pbuf);
     } else {
         printk("periodic_publish_sensors_data mqttSentCount : %d \n", mqttSentCount);
         sys_reboot(0);
@@ -993,7 +993,7 @@ void main(void)
 {
     int err, errCounts = 0;
 
-	LOG_INF("Asset tracker started");
+	LOG_INF("APP %s  %s started", APP_NAME, RELEASE_VERSION);
 	k_work_q_start(&application_work_q, application_stack_area,
 		       K_THREAD_STACK_SIZEOF(application_stack_area),
 		       CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
@@ -1050,8 +1050,10 @@ void main(void)
     while(true){
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             errCounts++;
-            if(errCounts < 3)
+            if(errCounts < 4){
+                printk("**** %s reconnection ****\n",reconnectReminder[errCounts]);
                 continue;
+            }                
             printk("ERROR: mqtt_connect %d, rebooting...\n", err);
             k_sleep(K_MSEC(500));
             sys_reboot(0);

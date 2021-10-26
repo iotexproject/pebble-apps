@@ -314,6 +314,7 @@ static int publish_get_payload(struct mqtt_client *c, u8_t *write_buf, size_t le
 static void cloud_reboot_work_fn(struct k_work *work) {    
     if (++cnt >= CLOUD_CONNACK_WAIT_DURATION) {
         printk("[%s] MQTT Connect timeout reboot!\n", __func__);
+        k_sleep(K_MSEC(500));
         sys_reboot(0);
     }
 
@@ -335,8 +336,6 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             }
             /* Cancel reboot worker */
             k_delayed_work_cancel(&cloud_reboot_work);
-            connected = 1;
-            atomic_set(&send_data_enable, 1);
 
             //iotex_hal_gpio_set(LED_BLUE, LED_ON);
             //iotex_hal_gpio_set(LED_GREEN, LED_OFF);
@@ -365,6 +364,8 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             //sendHearBeat();
             cnt = 0;
             sta_SetMeta(AWS_LINKER, STA_LINKER_ON);
+            connected = 1;
+            atomic_set(&send_data_enable, 1);            
             break;
         case MQTT_EVT_DISCONNECT:
             connected = 0;
@@ -590,7 +591,7 @@ int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos)
 /**@brief Initialize the MQTT client structure */
 int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     int err;
-    struct sockaddr_storage broker_storage;
+    static struct sockaddr_storage broker_storage;
     const uint8_t *client_id = iotex_mqtt_get_client_id();
 
     connected = 0;
@@ -637,14 +638,16 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     tls_config->hostname = pmqttBrokerHost;
 
     /* Reboot the device if CONNACK has not arrived in 30s */
+    cnt = 0;
     k_delayed_work_init(&cloud_reboot_work, cloud_reboot_work_fn);
     k_delayed_work_submit(&cloud_reboot_work, K_SECONDS(1));
     printk("Before mqtt_connect, connect timeout will reboot in %d seconds\n", CLOUD_CONNACK_WAIT_DURATION);
 
     if ((err = mqtt_connect(client)) != 0) {
+        k_delayed_work_cancel(&cloud_reboot_work);
         return err;
     }
-
+    k_delayed_work_cancel(&cloud_reboot_work);
     /* Initialize the file descriptor structure used by poll */
     fds->fd = client->transport.tls.sock;
     fds->events = POLLIN;

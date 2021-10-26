@@ -190,6 +190,20 @@ void sta_Refresh(void)
                 s_chDispalyBuffer[i][7] = modem_mode_m[j];
             }  
         }
+        if(womDetect()) {
+            ctrlOLED(true);
+            oledLightTime = 0;
+            if(devRegGet() == DEV_REG_STOP)
+                dashBoard();
+        }
+        else {
+            oledLightTime++;
+            if(oledLightTime > 10) {
+                oledLightTime = 0;
+                if(devRegGet() == DEV_REG_STOP)
+                    ctrlOLED(false);
+            }
+        }        
     }
     if(sta_GetMeta(AWS_LINKER)) {
         i += 10;    
@@ -210,22 +224,7 @@ void sta_Refresh(void)
         s_chDispalyBuffer[i][7] = staBar.power_icon[j];
     }
     //ssd1306_refresh_gram();
-    ssd1306_refresh_lines(7,7);
-    
-    if(womDetect()) {
-        ctrlOLED(true);
-        oledLightTime = 0;
-        if(devRegGet() == DEV_REG_STOP)
-            dashBoard();
-    }
-    else {
-        oledLightTime++;
-        if(oledLightTime > 10) {
-            oledLightTime = 0;
-            if(devRegGet() == DEV_REG_STOP)
-                ctrlOLED(false);
-        }
-    }
+    ssd1306_refresh_lines(7,7);    
     sys_mutex_unlock(&iotex_hint_mutex);    
 }
 

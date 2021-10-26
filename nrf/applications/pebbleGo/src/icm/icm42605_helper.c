@@ -175,10 +175,12 @@ int iotex_icm42605_get_sensor_data(iotex_storage_icm42605 *icm42605) {
     uint16_t faccel[ACCEL_DATA_SIZE / 2];
     uint16_t fgyro[GYRO_DATA_SIZE / 2];
 
+    i2cLock();
     /* Ensure data ready status bit is set */
     status |= inv_icm426xx_read_reg(&__icm_driver, MPUREG_INT_STATUS, 1, &int_status);
 
     if (status) {
+        i2cUnlock();  
         return status;
     }
 
@@ -211,10 +213,11 @@ int iotex_icm42605_get_sensor_data(iotex_storage_icm42605 *icm42605) {
 
         }
         else {
+            i2cUnlock(); 
             return -1;
         }
     }
-
+    i2cUnlock(); 
     /*else: Data Ready was not set*/
 
     return status;

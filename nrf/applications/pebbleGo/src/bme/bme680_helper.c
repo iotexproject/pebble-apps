@@ -122,9 +122,12 @@ int iotex_bme680_get_sensor_data(iotex_storage_bme680 *bme680) {
     /* Delay till the measurement is ready */
     user_delay_ms(500);
 
+    i2cLock(); 
     if ((rslt = bme680_get_sensor_data(&data, &__gas_sensor))) {
+        i2cUnlock(); 
         return rslt;
     }
+    i2cUnlock(); 
 
     /* Copy data to iotex_storage_bme680 */
     bme680->pressure = data.pressure / 100.0;

@@ -10,11 +10,14 @@
 
 #define  APP_NAME  "LonelyPlanet"
 
-#define  RELEASE_VERSION    "0.1.5"
+#define  RELEASE_VERSION    "0.1.6"
 
 // application version
 #define APP_VERSION APP_NAME" "RELEASE_VERSION
 
 #define APP_VERSION_INFO HW_VERSION"_"SDK_VERSION"_"APP_VERSION">"
+
+// upload period, second
+#define SENSOR_UPLOAD_PERIOD       300  
 
 #endif // #ifndef __APP_VERSION__

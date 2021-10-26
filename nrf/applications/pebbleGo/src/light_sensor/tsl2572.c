@@ -75,9 +75,11 @@ float iotex_Tsl2572ReadAmbientLight(void)
     uint8_t data[4]; 
     int c0,c1;
     float lux1,lux2,cpl;
-
+    
+    i2cLock(); 
     tsl2572_i2c_read(0xA0 | 0x14, data, sizeof(data));  
-        
+    i2cUnlock();
+
     c0 = data[1]<<8 | data[0];
     c1 = data[3]<<8 | data[2];
 

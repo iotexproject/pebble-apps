@@ -75,10 +75,12 @@ int womDetect(void)
 {
 	int status;
 	uint8_t int_status;
-	
-    status |= inv_icm426xx_read_reg(getICMDriver(), MPUREG_INT_STATUS2, 1, &int_status);
+	i2cLock();
+    status = inv_icm426xx_read_reg(getICMDriver(), MPUREG_INT_STATUS2, 1, &int_status);
+	i2cUnlock(); 
     if (status) {
-        printk("error wom status read : 0x%x\n",int_status);        
+        printk("error wom status read : 0x%x\n",int_status);
+		sys_reboot(0);
         return  0;
     }	
 	if(int_status & (BIT_INT_STATUS2_WOM_X_INT|BIT_INT_STATUS2_WOM_Y_INT|BIT_INT_STATUS2_WOM_Z_INT)) {
