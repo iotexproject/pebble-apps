@@ -449,7 +449,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             break;
         default:
             printk("[%s:%d] default: %d\n", __func__, __LINE__, evt->type);
-            mqttGetResponse();
+            //mqttGetResponse();
             break;
     }
 }

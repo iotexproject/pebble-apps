@@ -121,6 +121,7 @@ int iotex_icm42605_init(void)
 
     if (rc != INV_ERROR_SUCCESS) {
         printk("!!! ERROR : failed to initialize Icm426xx.\n");
+        fatalError();
         return rc;
     }
 

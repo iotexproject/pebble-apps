@@ -206,8 +206,8 @@ static K_SEM_DEFINE(bsdlib_initialized, 0, 1);
 static K_SEM_DEFINE(lte_connected, 0, 1);
 static K_SEM_DEFINE(cloud_ready_to_connect, 0, 1);
 #endif
-static unsigned int mqttSentCount = 0;
-#define   MQTT_NO_RESPONSE_MAX_COUNT   3
+//static unsigned int mqttSentCount = 0;
+//#define   MQTT_NO_RESPONSE_MAX_COUNT   3
 
 #if CONFIG_MODEM_INFO
 static struct k_delayed_work rsrp_work;
@@ -601,7 +601,7 @@ static int iotex_buzzer_test(void)
     pwm_pin_set_usec(pwm_dev, 11, 0, 0, 0);
 	return 0;
 }
-
+#if 0
 // check if mqtt session is connected
 static bool ismqttOffline(void)
 {
@@ -617,21 +617,15 @@ void mqttGetResponse(void)
 {
     mqttSentCount = 0;
 }
-
+#endif
 static void periodic_publish_sensors_data(void) {
     int rc;
-
-    if (iotex_mqtt_is_connected() && !ismqttOffline()) {
-        SUCCESS_OR_BREAK(mqtt_ping(&client));
-        if (rc = SensorPackage(iotex_mqtt_get_data_channel(), mqttPubBuf)) {
-            rc = iotex_mqtt_publish_data(&client, 0, mqttPubBuf, rc);
-            printk("mqtt_publish_devicedata: %d \n", rc);
-        } else {
-            printk("mqtt package error ! \n");
-        }
+    SUCCESS_OR_BREAK(mqtt_ping(&client));
+    if (rc = SensorPackage(iotex_mqtt_get_data_channel(), mqttPubBuf)) {
+        rc = iotex_mqtt_publish_data(&client, 0, mqttPubBuf, rc);
+        printk("mqtt_publish_devicedata: %d \n", rc);
     } else {
-        printk("periodic_publish_sensors_data mqttSentCount : %d \n", mqttSentCount);
-        sys_reboot(0);
+        printk("mqtt package error ! \n");
     }
 }
 
@@ -1007,6 +1001,8 @@ void main(void)
         return;
     }
 
+    setI2Cspeed(1);
+
 	/* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
     iotex_local_storage_init();
 
@@ -1022,12 +1018,12 @@ void main(void)
     iotex_bme680_init();
     /* Iotex Init TSL2572 */
     iotex_TSL2572_init(GAIN_1X); 
-    /* Iotex Init ICM42605 */
-    iotex_icm42605_init();	
 	iotex_key_init();
     //updateLedPattern();
 	work_init();    
     ssd1306_init();
+    /* Iotex Init ICM42605 */
+    iotex_icm42605_init();	    
 
     MainMenu();
     appEntryDetect();
@@ -1071,7 +1067,7 @@ void main(void)
             setModemSleep(1);
             k_sleep(K_SECONDS(1));
             lte_lc_psm_req(true);                       
-            k_sleep(K_SECONDS(239));
+            k_sleep(K_SECONDS(SENSOR_UPLOAD_PERIOD-61));
             gpsPowerOn();
             k_sleep(K_SECONDS(60));
             lte_lc_psm_req(false);  

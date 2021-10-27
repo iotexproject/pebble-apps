@@ -293,4 +293,58 @@ void outputSn(void) {
 }
 
 
+void setI2Cspeed(unsigned int level) {
+    volatile int *i2cFrq = 0x4000A524;
+    unsigned int speed[] = {100,250,400};
+    if(level >= sizeof(speed)/sizeof(int)) {
+        printk("Bad i2c speed level :%d\n", level);
+        return;
+    }
+    printk("Read out i2c-2 speed configure : \n");
+    switch(*i2cFrq){
+        case 0x01980000 :
+            printk("i2c-2 speed: 100kbps \n");
+            break;
+        case 0x04000000 :
+            printk("i2c-2 speed: 250kbps \n");
+            break;
+        case 0x06400000 :
+            printk("i2c-2 speed: 400kbps \n");            
+            break;
+        default:
+            printk("i2c-2 speed not supported \n");
+            break;
+    }
+    printk("i2c-2 speed set to %dkbps \n",speed[level]);
+    switch(level){
+        case 0:
+            *i2cFrq = 0x01980000;
+            break;
+        case 1:
+            *i2cFrq = 0x04000000;
+            break;
+        case 2:
+            *i2cFrq = 0x06400000;
+            break;
+        default:
+            printk("i2c-2 speed not supported \n");
+            break;
+    }    
+    printk("Now i2c-2 speed is :");
+    switch(*i2cFrq){
+        case 0x01980000 :
+            printk("100kbps \n");
+            break;
+        case 0x04000000 :
+            printk("250kbps \n");
+            break;
+        case 0x06400000 :
+            printk("400kbps \n");            
+            break;
+        default:
+            printk("speed not supported \n");
+            break;
+    }    
+}
+
 

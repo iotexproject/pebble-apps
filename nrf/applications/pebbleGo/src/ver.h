@@ -10,7 +10,7 @@
 
 #define  APP_NAME  "LonelyPlanet"
 
-#define  RELEASE_VERSION    "0.1.6"
+#define  RELEASE_VERSION    "0.1.7"
 
 // application version
 #define APP_VERSION APP_NAME" "RELEASE_VERSION

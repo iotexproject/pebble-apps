@@ -196,7 +196,13 @@ void dashBoard(void) {
     sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
     dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
 }
-
+void  fatalError(void) {
+    ssd1306_clear_screen(0);
+    dis_OnelineText(1, ALIGN_CENTRALIZED, "Fatal Error", DIS_NORMAL); 
+    dis_OnelineText(3, ALIGN_CENTRALIZED, "Shut down ...", DIS_NORMAL); 
+    k_sleep(K_SECONDS(10));
+    gpio_poweroff();
+}
 
 
 // startup menu
