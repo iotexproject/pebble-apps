@@ -963,9 +963,9 @@ void PrintSensorData(SensorData *sen, BinPackage *pack)
 {
     printk("*****************protobuf decode : ************************\n");
     printk("sen->snr:%d\n", sen->snr);
-    printk("snr:%d.%02d vbat:%d.%02d latitude:%d.%05d longitude:%d.%05d \n", sen->snr / 100,sen->snr % 100, \
-    sen->vbat / 100,sen->vbat % 100, sen->latitude / 10000000, sen->latitude % 10000000,\
-    sen->longitude / 10000000, sen->longitude % 10000000);
+    printk("snr:%d.%02d vbat:%d.%02d latitude:%d.%07d longitude:%d.%07d \n", sen->snr / 100,sen->snr % 100, \
+    sen->vbat / 100,sen->vbat % 100, (int)sen->latitude / 10000000, ((int)sen->latitude * (-1)) % 10000000,\
+    (int)sen->longitude / 10000000, ((int)sen->longitude * (-1)) % 10000000);
 
     printk("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n", sen->gasResistance / 100, sen->gasResistance % 100,\
     sen->temperature / 100, sen->temperature % 100, sen->pressure / 100, sen->pressure % 100,\

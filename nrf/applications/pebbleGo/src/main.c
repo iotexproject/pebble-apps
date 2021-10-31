@@ -156,8 +156,8 @@ static struct cloud_channel_data signal_strength_cloud_data;
 #endif /* CONFIG_MODEM_INFO */
 
 static s64_t gps_last_active_time;
-static atomic_t carrier_requested_disconnect;
-static atomic_t cloud_connect_attempts;
+//static atomic_t carrier_requested_disconnect;
+//static atomic_t cloud_connect_attempts;
 
 /* Flag used for flip detection */
 static bool flip_mode_enabled = true;
@@ -179,6 +179,7 @@ enum cloud_association_state {
 static atomic_val_t cloud_association =
 	ATOMIC_INIT(CLOUD_ASSOCIATION_STATE_INIT);
 
+static atomic_val_t stopAnimation = ATOMIC_INIT(0);
 /* Structures for work */
 //static struct k_work send_gps_data_work;
 #if(!EXTERN_GPS)
@@ -726,9 +727,16 @@ void heartbeat_work_fn(struct k_work *work)
 }
 
 void animation_work_fn(struct k_work *work)
-{      
+{    
+    if (atomic_get(&stopAnimation)) {
+        return;
+    }  
     sta_Refresh();
     k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_SECONDS(1));
+}
+
+void stopAnimationWork(void) {
+    atomic_set(&stopAnimation, 1); 
 }
 
 //static void power_off_handler(struct k_work *work)
@@ -1023,7 +1031,7 @@ void main(void)
 	work_init();    
     ssd1306_init();
     /* Iotex Init ICM42605 */
-    iotex_icm42605_init();	    
+    iotex_icm42605_init();   
 
     MainMenu();
     appEntryDetect();

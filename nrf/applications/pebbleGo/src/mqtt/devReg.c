@@ -142,6 +142,7 @@ void stopTaskBeforeOTA(void) {
     stopWatchdog();
     stopHeartBeat();
     stopMqtt();
+    stopAnimationWork();
 }
 
 void mainStatus(struct mqtt_client *client) {
@@ -262,8 +263,10 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client)
             err = (err == -EAGAIN ? 0 : err);
             break;
         }
-        // check  registration  status every 1s
-        //k_sleep(K_MSEC(1000));
+        else {
+            // check  registration  status every 1s
+            k_sleep(K_MSEC(5000));
+        }
     }
     return err;
 }

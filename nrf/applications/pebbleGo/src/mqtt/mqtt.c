@@ -391,7 +391,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                             devRegSet(DEV_REG_SUCCESS);
                     } else if (status == 1) {
                         //if(devRegGet() == DEV_REG_POLL_FOR_WALLET)
-                        if (devRegGet() < DEV_REG_ADDR_CHECK)
+                        //if (devRegGet() < DEV_REG_ADDR_CHECK)
                             devRegSet(DEV_REG_ADDR_CHECK);
                     } else {
                         if (devRegGet() != DEV_REG_POLL_FOR_WALLET) {
@@ -573,7 +573,7 @@ int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos)
     uint8_t payload[300];
     int len;
 
-    iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
+    iotex_set_upload_topic(pub_topic, sizeof(pub_topic));
     printk("configure topic:%s\n", pub_topic);
     param.message.topic.qos = qos;
     param.message.topic.topic.utf8 = pub_topic;

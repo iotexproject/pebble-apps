@@ -3,7 +3,7 @@
 
 
 // all hints
-const uint8_t htNetConnected_en[] = "Press enter to start registration";
+const uint8_t htNetConnected_en[] = "Press power button to start registration";
 const uint8_t htNetConnected_cn[] = { // 网络已连接，请在页面开始注�
 /*
 0x00,0x7F,0x40,0x44,0x42,0x41,0x4E,0x40,0x44,0x42,0x41,0x4E,0x40,0x7F,0x00,0x00,
@@ -39,7 +39,7 @@ const uint8_t htNetConnected_cn[] = { // 网络已连接，请在页面开始注
 const uint8_t *htNetConnected[]={htNetConnected_en, htNetConnected_cn, sizeof(htNetConnected_cn)};
 
 
-const uint8_t htRegRequest_en[]="Press to continue after confirmation";
+const uint8_t htRegRequest_en[]="Press power button to confirm REG";
 const uint8_t htRegRequest_cn[]={ // 收到注册请求，请按确认键继续
 /*
 0x00,0x3F,0x00,0x00,0xFF,0x00,0x02,0x04,0x1B,0xE8,0x08,0x08,0x0F,0x08,0x08,0x00,
@@ -75,7 +75,7 @@ const uint8_t htRegRequest_cn[]={ // 收到注册请求，请按确认键继续
 const uint8_t *htRegRequest[]={htRegRequest_en, htRegRequest_cn, sizeof(htRegRequest_cn)};
 
 
-const uint8_t htRegWaitACK_en[]="Registering please wait...";
+const uint8_t htRegWaitACK_en[]="Please wait until the REG completes.";
 const uint8_t htRegWaitACK_cn[]={//注册中请稍后
 /*
 0x08,0x06,0x40,0x31,0x00,0x10,0x10,0x10,0x90,0x5F,0x10,0x10,0x10,0x10,0x00,0x00,
@@ -94,7 +94,7 @@ const uint8_t htRegWaitACK_cn[]={//注册中请稍后
 };
 const uint8_t *htRegWaitACK[]={htRegWaitACK_en, htRegWaitACK_cn, sizeof(htRegWaitACK_cn)};
 
-const uint8_t htRegSuccess_en[]="Device is already registered";
+const uint8_t htRegSuccess_en[]="Your Pebble has been registered.";
 const uint8_t htRegSuccess_cn[]={//注册成功
 /*
 0x08,0x06,0x40,0x31,0x00,0x10,0x10,0x10,0x90,0x5F,0x10,0x10,0x10,0x10,0x00,0x00,
@@ -126,7 +126,7 @@ const uint8_t htRegFailed_cn[] = {//接收失败
 const uint8_t *htRegFailed[]={htRegFailed_en, htRegFailed_cn, sizeof(htRegFailed_cn)};
 
 
-const uint8_t htconfirmUpgrade_en[]="Press enter key to start the upgrade";
+const uint8_t htconfirmUpgrade_en[]="Press power button to update firmware";
 const uint8_t htconfirmUpgrade_cn[]={//收到升级请求,按确认键升级
 /*
 0x00,0x3F,0x00,0x00,0xFF,0x00,0x02,0x04,0x1B,0xE8,0x08,0x08,0x0F,0x08,0x08,0x00,
@@ -180,13 +180,13 @@ const uint8_t htUpgrading_cn[]={// 升级�.
 const uint8_t *htUpgrading[]={htUpgrading_en,htUpgrading_cn,sizeof(htUpgrading_cn)};
 
 
-const uint8_t htConnecting_en[]="Starting OTA...";
+const uint8_t htConnecting_en[]="Start OTA firmware update ...";
 const uint8_t htConnecting_cn[]={
 };
 const uint8_t *htConnecting[]={htConnecting_en,htConnecting_cn,sizeof(htConnecting_cn)};
 
 
-const uint8_t htSelectApp_en[]="Please select app on the portal";
+const uint8_t htSelectApp_en[]="Please choose an app on the portal";
 const uint8_t htSelectApp_cn[]={
 };
 const uint8_t *htSelectApp[]={htSelectApp_en,htSelectApp_cn,sizeof(htSelectApp_cn)};

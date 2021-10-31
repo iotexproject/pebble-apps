@@ -187,12 +187,12 @@ void dashBoard(void) {
 
     //ssd1306_clear_screen(0);
     // app
-    strcpy(disBuf, "APP:"APP_NAME);    
+    strcpy(disBuf, "App:"APP_NAME);    
     dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
     strcpy(disBuf, "Ver:"RELEASE_VERSION);    
     dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);    
     // packages
-    strcpy(disBuf, "Published: ");
+    strcpy(disBuf, "Package Sent:");
     sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
     dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
 }
@@ -534,8 +534,8 @@ void pebbleInfor(void)
 void sysSet(void)
 {
     const char mainMenu[3][20]={
-        "Modem settings",
-        "Select area   ",
+        "Modem Settings",
+        "Select Region ",
         "Exit          ",               
     };
     int  cursor = 0, last_cur = 0, i;
@@ -602,9 +602,9 @@ void sysSet(void)
 void MainMenu(void)
 {
     const char mainMenu[][20]={
-        "System settings",
-        "About          ",
-        "Startup        ",        
+        "System Settings",
+        "About Pebble   ",
+        "Reboot Pebble  ",        
     };
     int  cursor = 0, last_cur = 0, i;
 
