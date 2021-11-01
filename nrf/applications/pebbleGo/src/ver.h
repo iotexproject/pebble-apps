@@ -8,7 +8,7 @@
 // nordic sdk version
 #define SDK_VERSION "1.4.0"
 
-#define  APP_NAME  "LonelyPlanet"
+#define  APP_NAME  "Gravel"
 
 #define  RELEASE_VERSION    "1.0.0"
 
