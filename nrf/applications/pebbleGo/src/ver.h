@@ -10,7 +10,7 @@
 
 #define  APP_NAME  "Gravel"
 
-#define  RELEASE_VERSION    "1.0.0"
+#define  RELEASE_VERSION    "1.0.1"
 
 // application version
 #define APP_VERSION APP_NAME" "RELEASE_VERSION

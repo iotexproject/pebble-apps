@@ -480,7 +480,7 @@ int iotex_mqtt_publish_query(struct mqtt_client *client, enum mqtt_qos qos, char
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
     param.message.payload.data = data;
     param.message.payload.len = len;
-    param.message_id = iotex_random(); //sys_rand32_get();
+    param.message_id = safeRandom(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     printk("publish topic %s \n", pub_topic);
@@ -499,7 +499,7 @@ int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, 
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
     param.message.payload.data = data;
     param.message.payload.len = len;
-    param.message_id = iotex_random(); //sys_rand32_get();
+    param.message_id = safeRandom(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     printk("publish topic %s \n", pub_topic);
@@ -517,7 +517,7 @@ int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char 
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
     param.message.payload.data = data;
     param.message.payload.len = len;
-    param.message_id = iotex_random(); //sys_rand32_get();
+    param.message_id = safeRandom(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     return mqtt_publish(client, &param);
@@ -540,7 +540,7 @@ int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos)
     printk("iotex_mqtt_heart_beat\n");
     param.message.payload.data = /*payload;*/"a";
     param.message.payload.len = len;
-    param.message_id = iotex_random(); //sys_rand32_get();
+    param.message_id = safeRandom(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     return mqtt_publish(client, &param);
@@ -560,7 +560,7 @@ int iotex_mqtt_upgrade_over(struct mqtt_client *client, enum mqtt_qos qos)
     printk("iotex_mqtt_upgrade_over:%s\n", payload);
     param.message.payload.data = payload;//"a";
     param.message.payload.len = strlen(payload);
-    param.message_id = iotex_random(); //sys_rand32_get();
+    param.message_id = safeRandom(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     return mqtt_publish(client, &param);
@@ -573,7 +573,7 @@ int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos)
     uint8_t payload[300];
     int len;
 
-    iotex_set_upload_topic(pub_topic, sizeof(pub_topic));
+    iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
     printk("configure topic:%s\n", pub_topic);
     param.message.topic.qos = qos;
     param.message.topic.topic.utf8 = pub_topic;
@@ -582,7 +582,7 @@ int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos)
     param.message.payload.data = payload;//"a";
     printk("iotex_mqtt_configure_upload len:%d\n",len);
     param.message.payload.len = len;
-    param.message_id = iotex_random(); //sys_rand32_get();
+    param.message_id = safeRandom(); //sys_rand32_get();
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     return mqtt_publish(client, &param);

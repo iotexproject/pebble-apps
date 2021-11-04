@@ -315,6 +315,8 @@ void setI2Cspeed(unsigned int level) {
             printk("i2c-2 speed not supported \n");
             break;
     }
+    return;
+
     printk("i2c-2 speed set to %dkbps \n",speed[level]);
     switch(level){
         case 0:

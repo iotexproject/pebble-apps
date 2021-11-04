@@ -195,3 +195,11 @@ int doESDASign(char *inbuf, uint32_t len, char *buf, int *sinlen)
 	LowsCalc(buf+32, buf+32);
 	return ret;
 }
+
+int safeRandom(void) {
+	int  rand;
+	__disable_irq();
+	rand = iotex_random();
+	__enable_irq();
+	return rand;
+}

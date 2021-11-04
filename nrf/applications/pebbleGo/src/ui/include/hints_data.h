@@ -39,7 +39,7 @@ const uint8_t htNetConnected_cn[] = { // 网络已连接，请在页面开始注
 const uint8_t *htNetConnected[]={htNetConnected_en, htNetConnected_cn, sizeof(htNetConnected_cn)};
 
 
-const uint8_t htRegRequest_en[]="Press power button to confirm REG";
+const uint8_t htRegRequest_en[]="Please start Pebble REG on the portal";
 const uint8_t htRegRequest_cn[]={ // 收到注册请求，请按确认键继续
 /*
 0x00,0x3F,0x00,0x00,0xFF,0x00,0x02,0x04,0x1B,0xE8,0x08,0x08,0x0F,0x08,0x08,0x00,
