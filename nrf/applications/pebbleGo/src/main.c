@@ -1022,6 +1022,7 @@ void main(void)
 
     iotex_hal_gpio_init();
     iotex_hal_adc_init();
+    exGPSInit();
     /* Iotex Init BME680 */
     iotex_bme680_init();
     /* Iotex Init TSL2572 */
@@ -1039,7 +1040,7 @@ void main(void)
     k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_MSEC(10));
 	modem_configure();
 
-    exGPSInit(); 
+    //exGPSInit(); 
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&bsdlib_initialized, K_FOREVER);
 #else

@@ -381,15 +381,16 @@ void selectArea(void)
     uint8_t *pbuf;
     int  cursor = 0, last_cur = 0, selArea = 0, first = 0,i;
     
+    ssd1306_clear_screen(0);
     pbuf = ReadDataFromModem(MQTT_CERT_INDEX, buf, sizeof(buf));
     if(pbuf != NULL)
     {
         pbuf[1] = 0;
         selArea = atoi(pbuf);
     }  
-printk("read index:%d\n", selArea);      
+//printk("read index:%d\n", selArea);      
     allArea[selArea][15]='X';
-    for(i = 0; i < 4; i++)
+    for(i = 0; i < (sizeof(allArea)/sizeof(allArea[0])); i++)
     {
         dis_OnelineText(i,ALIGN_CENTRALIZED, allArea[i],DIS_CURSOR(i, cursor)); 
     } 
@@ -430,7 +431,7 @@ printk("read index:%d\n", selArea);
         if(last_cur != cursor)
         {
             allArea[selArea][15]='X';
-            for(i = 0; i < 4; i++)
+            for(i = 0; i < (sizeof(allArea)/sizeof(allArea[0])); i++)
             {
                 dis_OnelineText(i,ALIGN_CENTRALIZED, allArea[first+i],DIS_CURSOR(first+i, cursor)); 
             } 
