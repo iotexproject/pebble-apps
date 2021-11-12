@@ -24,26 +24,21 @@ struct wdt_data_storage {
 static struct wdt_data_storage wdt_data;
 static struct k_work_q *second_work_q;
 
-static void primary_feed_worker(struct k_work *work_desc)
-{
+static void primary_feed_worker(struct k_work *work_desc) {
 	k_work_submit_to_queue(second_work_q, &wdt_data.second_workqueue_work);
 }
-static void secondary_feed_worker(struct k_work *work_desc)
-{
+static void secondary_feed_worker(struct k_work *work_desc) {
 	int err = wdt_feed(wdt_data.wdt_drv, wdt_data.wdt_channel_id);
 
 	LOG_DBG("Feeding watchdog");
-
 	if (err) {
 		LOG_ERR("Cannot feed watchdog. Error code: %d", err);
 	} else {
-		k_delayed_work_submit(&wdt_data.system_workqueue_work,
-				      K_MSEC(WDT_FEED_WORKER_DELAY_MS));
+		k_delayed_work_submit(&wdt_data.system_workqueue_work,K_MSEC(WDT_FEED_WORKER_DELAY_MS));
 	}
 }
 
-static int watchdog_timeout_install(struct wdt_data_storage *data)
-{
+static int watchdog_timeout_install(struct wdt_data_storage *data) {
 	static const struct wdt_timeout_cfg wdt_settings = {
 			.window = {
 				.min = 0,
@@ -54,7 +49,6 @@ static int watchdog_timeout_install(struct wdt_data_storage *data)
 	};
 
 	__ASSERT_NO_MSG(data != NULL);
-
 	data->wdt_channel_id = wdt_install_timeout(
 			data->wdt_drv, &wdt_settings);
 	if (data->wdt_channel_id < 0) {
@@ -68,8 +62,7 @@ static int watchdog_timeout_install(struct wdt_data_storage *data)
 	return 0;
 }
 
-static int watchdog_start(struct wdt_data_storage *data)
-{
+static int watchdog_start(struct wdt_data_storage *data) {
 	__ASSERT_NO_MSG(data != NULL);
 
 	int err = wdt_setup(data->wdt_drv, WDT_OPT_PAUSE_HALTED_BY_DBG);
@@ -82,8 +75,7 @@ static int watchdog_start(struct wdt_data_storage *data)
 	return err;
 }
 
-static int watchdog_feed_enable(struct wdt_data_storage *data)
-{
+static int watchdog_feed_enable(struct wdt_data_storage *data) {
 	__ASSERT_NO_MSG(data != NULL);
 
 	k_delayed_work_init(&data->system_workqueue_work, primary_feed_worker);
@@ -96,8 +88,7 @@ static int watchdog_feed_enable(struct wdt_data_storage *data)
 		return err;
 	}
 
-	err = k_delayed_work_submit(&data->system_workqueue_work,
-				    K_MSEC(WDT_FEED_WORKER_DELAY_MS));
+	err = k_delayed_work_submit(&data->system_workqueue_work,K_MSEC(WDT_FEED_WORKER_DELAY_MS));
 	if (err) {
 		LOG_ERR("Cannot start watchdog feed worker!"
 				" Error code: %d", err);
@@ -108,8 +99,7 @@ static int watchdog_feed_enable(struct wdt_data_storage *data)
 	return err;
 }
 
-static int watchdog_enable(struct wdt_data_storage *data)
-{
+static int watchdog_enable(struct wdt_data_storage *data) {
 	__ASSERT_NO_MSG(data != NULL);
 
 	int err = -ENXIO;
@@ -138,13 +128,11 @@ static int watchdog_enable(struct wdt_data_storage *data)
 	return 0;
 }
 
-void stopWatchdog(void)
-{
+void stopWatchdog(void) {
 	wdt_disable(wdt_data.wdt_drv);
 }
 
-int watchdog_init_and_start(struct k_work_q *work_q)
-{
+int watchdog_init_and_start(struct k_work_q *work_q) {
 	if (work_q == NULL) {
 		return -EINVAL;
 	}

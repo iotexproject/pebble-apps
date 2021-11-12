@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <net/cloud.h>
+#include <logging/log.h>
 #include "cJSON.h"
 #include "cJSON_os.h"
 #include "mqtt.h"
@@ -16,8 +17,10 @@
 #include "pb_encode.h"
 #include "package.pb.h"
 
-extern double latitude;
-extern double longitude;
+LOG_MODULE_REGISTER(payload, CONFIG_ASSET_TRACKER_LOG_LEVEL);
+
+double latitude;
+double longitude;
 
 int json_add_obj(cJSON *parent, const char *str, cJSON *item) {
     cJSON_AddItemToObject(parent, str, item);
@@ -210,25 +213,6 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
         buffer[write_cnt++] = (uint8_t)((vol_Integer>>8) & 0x00FF);
     }
 
-    /* TODO GPS */
-    if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
-        int i = getGPS(&latitude, &longitude);
-        char *pDat = &latitude;
-        if (!i) {
-            for (i = 0; i < sizeof(latitude); i++) {
-                buffer[write_cnt++] = *pDat++;
-            }
-            pDat = &longitude;
-            for (i = 0; i < sizeof(longitude); i++) {
-                buffer[write_cnt++] = *pDat++;
-            }
-        } else {
-            for (i = 0; i < sizeof(latitude); i++) {
-                buffer[write_cnt++] = 0xFF;
-                buffer[write_cnt++] = 0xFF;
-            }
-        }
-    }
 
     /* Env sensor gas */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
@@ -283,7 +267,6 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
 	timestamp = iotex_modem_get_clock_raw(NULL);
 	memcpy(buffer + write_cnt, &timestamp, sizeof(timestamp));
 	write_cnt += sizeof(timestamp);
-	//printk("write_cnt:%d\n", write_cnt);
 	
 	// save bytes of onece write
 	set_block_size(write_cnt);	
@@ -482,12 +465,8 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
         }        
     }
 
-    //output->buf = cJSON_PrintUnformatted(msg_obj);  
-    output->buf = cJSON_PrintUnformatted(root_obj);
-    //printk("sign_string:%s\n", output->buf);             
+    output->buf = cJSON_PrintUnformatted(root_obj);            
     doESDA_sep256r_Sign(output->buf, strlen(output->buf), esdaSign, &sinLen);   
-    //printk("doESDA_sep256r_Sign :0x%x \n", i); 
-
     hex2str(esdaSign, sinLen, jsStr);
     cJSON_free(output->buf);
     memcpy(esdaSign, jsStr, 64);
@@ -505,12 +484,9 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     if (!esdaSign_s_Obj || json_add_obj(sign_obj, "s", esdaSign_s_Obj))
         goto cleanup;
 
-    //memset(output->buf, 0, strlen(output->buf));   
     output->buf = cJSON_PrintUnformatted(root_obj);
     output->len = strlen(output->buf);
-
-    printk("json package: %d bytes\n", output->len);
-    //TestProtobufFloat(channel);
+    LOG_INFO("json package: %d bytes\n", output->len);
     ret = 0;
 
 cleanup:
@@ -715,8 +691,6 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
 
     /* Add timestamp */
 	memcpy(&timestamp, buffer + write_cnt, sizeof(timestamp));
-	//snprintf(epoch_buf, sizeof(epoch_buf), "%.0f", timestamp);
-	//printk("UTC epoch %s, write_cnt:%d\n", epoch_buf, write_cnt+sizeof(timestamp));
     if (json_add_str(msg_obj, "timestamp", epoch_buf)) {
         goto cleanup;
     }
@@ -747,7 +721,6 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
         goto cleanup;
 
     cJSON_AddItemToObject(root_obj, "signature", sign_obj);
-    //memset(output->buf, 0, strlen(output->buf));        
     output->buf = cJSON_PrintUnformatted(root_obj);
     output->len = strlen(output->buf);
 
@@ -808,7 +781,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     /* Snr */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_SNR)) {
         sensordat.snr = (uint32_t)(iotex_model_get_signal_quality() * 100);
-        printk("SNR:%d\n", sensordat.snr);
+        LOG_INF("SNR:%d\n", sensordat.snr);
         sensordat.has_snr=true;
     }
 
@@ -838,7 +811,6 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
         sensordat.gasResistance = (uint32_t)(env_sensor.gas_resistance * 100);
         sensordat.has_gasResistance = true;
-        //printk("sensordat.gasResistance:%d\n", sensordat.gasResistance);
     }
 
     /* Env sensor temperature */
@@ -898,7 +870,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     pb_ostream_t enc_datastream;
 	enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
 	if (!pb_encode(&enc_datastream, SensorData_fields, &sensordat)) {
-		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
+		LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
 		return 0;
 	}
 
@@ -909,21 +881,20 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     binpack.data.bytes[enc_datastream.bytes_written + 3] = (char)(uint_timestamp & 0x000000FF);
     *(uint32_t*)buffer = BinPackage_PackageType_DATA;
     memcpy(buffer + 4,  binpack.data.bytes, enc_datastream.bytes_written + 4);
-    printk("uint_timestamp:%d \n",uint_timestamp);
+    LOG_INF("uint_timestamp:%d \n",uint_timestamp);
     doESDASign(buffer, enc_datastream.bytes_written + 8, esdaSign, &sinLen);
-    printk("sinLen:%d\n", sinLen);
+    LOG_INF("sinLen:%d\n", sinLen);
     memcpy(binpack.signature, esdaSign, 64);
     binpack.timestamp = uint_timestamp;
     binpack.type = BinPackage_PackageType_DATA;
     pb_ostream_t enc_packstream;
 	enc_packstream = pb_ostream_from_buffer(buffer, DATA_BUFFER_SIZE);
 	if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack)) {
-		printk("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
+		LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
 		return 0;
 	}
-    printk("sen->snr:%d\n", sensordat.snr);
-
-#if 0
+    LOG_INF("sen->snr:%d\n", sensordat.snr);
+#ifdef DECODE_PROTOBUF
     // --------------------------------- TEST CODE ------------------------
     {
         sinLen = enc_packstream.bytes_written;
@@ -937,7 +908,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
         /* Check for errors... */
         if (!pb_decode(&sens_decode_stream, BinPackage_fields, &message))
         {
-            printk("Decoding failed: %s\n", PB_GET_ERROR(&sens_decode_stream));
+            LOG_ERR("Decoding failed: %s\n", PB_GET_ERROR(&sens_decode_stream));
             return 0;
         }
 
@@ -948,7 +919,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
         /* Check for errors... */
         if (!pb_decode(&test_decode_stream, SensorData_fields, &DecodeSensor))
         {
-            printk("Decoding failed: %s\n", PB_GET_ERROR(&test_decode_stream));
+            LOG_ERR("Decoding failed: %s\n", PB_GET_ERROR(&test_decode_stream));
             return 0;
         }
 
@@ -958,33 +929,34 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     return enc_packstream.bytes_written;
 }
-
+#ifdef DECODE_PROTOBUF
 void PrintSensorData(SensorData *sen, BinPackage *pack)
 {
-    printk("*****************protobuf decode : ************************\n");
-    printk("sen->snr:%d\n", sen->snr);
-    printk("snr:%d.%02d vbat:%d.%02d latitude:%d.%07d longitude:%d.%07d \n", sen->snr / 100,sen->snr % 100, \
+    LOG_INF("*****************protobuf decode : ************************\n");
+    LOG_INF("sen->snr:%d\n", sen->snr);
+    LOG_INF("snr:%d.%02d vbat:%d.%02d latitude:%d.%07d longitude:%d.%07d \n", sen->snr / 100,sen->snr % 100, \
     sen->vbat / 100,sen->vbat % 100, (int)sen->latitude / 10000000, ((int)sen->latitude * (-1)) % 10000000,\
     (int)sen->longitude / 10000000, ((int)sen->longitude * (-1)) % 10000000);
 
-    printk("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n", sen->gasResistance / 100, sen->gasResistance % 100,\
+    LOG_INF("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n", sen->gasResistance / 100, sen->gasResistance % 100,\
     sen->temperature / 100, sen->temperature % 100, sen->pressure / 100, sen->pressure % 100,\
     sen->humidity / 100, sen->humidity % 100);
 
-    printk("light:%d.%02d temperature2:%d.%02d gyroscope:%d,%d,%d \n",sen->light/100,sen->light%100,\
+    LOG_INF("light:%d.%02d temperature2:%d.%02d gyroscope:%d,%d,%d \n",sen->light/100,sen->light%100,\
     sen->temperature2/100,sen->temperature2%100,sen->gyroscope[0],sen->gyroscope[1],sen->gyroscope[2]);
 
-    printk("accelerometer:%d,%d,%d \n", sen->accelerometer[0],sen->accelerometer[1],sen->accelerometer[2]);
+    LOG_INF("accelerometer:%d,%d,%d \n", sen->accelerometer[0],sen->accelerometer[1],sen->accelerometer[2]);
 
-    printk("timestamp:%d \n", pack->timestamp);
+    LOG_INF("timestamp:%d \n", pack->timestamp);
 
-    printk("randoms: %s\n", sen->random);
+    LOG_INF("randoms: %s\n", sen->random);
 
-    printk("signature:");
+    LOG_INF("signature:");
 
     for (int i = 0; i <64; i++) {
-        printk("%02x", pack->signature[i]);
+        LOG_INF("%02x", pack->signature[i]);
     }
-    printk("\n");
-    printk("***********************************************************\n");
+    LOG_INF("\n");
+    LOG_INF("***********************************************************\n");
 }
+#endif

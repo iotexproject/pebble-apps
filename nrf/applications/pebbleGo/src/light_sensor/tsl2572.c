@@ -3,9 +3,12 @@
 #include <drivers/i2c.h>
 #include <device.h>
 #include <string.h>
+#include <logging/log.h>
 #include "tsl2572.h"
 #include "nvs/local_storage.h"
 #include "modem/modem_helper.h"
+
+LOG_MODULE_REGISTER(tls2572, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define max(a,b) ((a)>(b)?(a):(b))
 
@@ -37,30 +40,25 @@ int iotex_TSL2572_init(uint8_t gain)
     uint8_t chip_id = 0;
 
     if (!(__i2c_dev_tsl2572 = device_get_binding(I2C_DEV_TSL2572))) {
-        printk("I2C: Device driver[%s] not found.\n", I2C_DEV_TSL2572);
+        LOG_ERR("I2C: Device driver[%s] not found.\n", I2C_DEV_TSL2572);
         return -1;
     }
     /* Read chip id */
-    if (i2c_reg_read_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, 
-           TSL2572_CMD_REGISTER |TSL2572_CMDS_WHOAMI, &chip_id) != 0) {
-        printk("Error on i2c_read(tsl2572)\n");
+    if (i2c_reg_read_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_WHOAMI, &chip_id) != 0) {
+        LOG_ERR("Error on i2c_read(tsl2572)\n");
         return -1;
     } else {
-        printk("TSL2572 ID = 0x%x\r\n", chip_id);
+        LOG_INF("TSL2572 ID = 0x%x\r\n", chip_id);
     }
     //set gain
-    i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, 
-           TSL2572_CMD_REGISTER|TSL2572_CMDS_CONTROL, gain);
+    i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER|TSL2572_CMDS_CONTROL, gain);
     //51.87 ms
-    i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, 
-           TSL2572_CMD_REGISTER |TSL2572_CMDS_ALS_TIMING, 0xED);
+    i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_ALS_TIMING, 0xED);
     //turn on
-    i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, 
-           TSL2572_CMD_REGISTER |TSL2572_CMDS_ENABLE, 0x03);
+    i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_ENABLE, 0x03);
     if(GAIN_DIVIDE_6){
         //scale gain by 0.16
-        i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, 
-                 TSL2572_CMD_REGISTER |TSL2572_CMDS_CONFIG, 0x04);
+        i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_CONFIG, 0x04);
     }
     if(gain==GAIN_1X) gain_val = 1;
     else if(gain==GAIN_8X) gain_val = 8;

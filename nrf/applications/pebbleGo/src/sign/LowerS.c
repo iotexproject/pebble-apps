@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <logging/log.h>
+
+
+LOG_MODULE_REGISTER(LowerS, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define	 MAXN 200
 
@@ -8,12 +12,10 @@ struct BigNum {
     int num[MAXN];
     int len;
 };
-
 struct BigNum Lower_S;
-
 struct BigNum Max_s ;
 
-//高精度比�a > b return 1, a == b return 0; a < b return -1;
+//a > b return 1, a == b return 0; a < b return -1;
 int Comp(struct BigNum *a, struct BigNum *b) {
     int i;
     if (a->len != b->len)
@@ -24,8 +26,7 @@ int Comp(struct BigNum *a, struct BigNum *b) {
     return 0;
 }
 
-
-//高精度减�保证a >= b
+//a >= b
 struct BigNum Sub(struct BigNum *a, struct BigNum *b) {
     struct BigNum c;
     int i, len;
@@ -45,11 +46,11 @@ struct BigNum Sub(struct BigNum *a, struct BigNum *b) {
 }
 
 
-void print(struct BigNum *a) {  //输出大数
+void print(struct BigNum *a) { 
     int i;
     for (i = a->len - 1; i >= 0; i--)
-        printk("%01x", (unsigned char)a->num[i]);
-    printk("\n");
+        LOG_INF("%01x", (unsigned char)a->num[i]);
+    LOG_INF("\n");
 }
 
 static char str2Hex(char c)
@@ -68,38 +69,30 @@ static char str2Hex(char c)
     return c;
 }
 
-int hexStr2Bin(char *str, char *bin)
-{
+int hexStr2Bin(char *str, char *bin) {
     int i,j;
-    //printf("buf:");
     for(i = 0,j = 0; j < (strlen(str)>>1) ; i++,j++)
     {
         bin[j] = (str2Hex(str[i]) <<4);
         i++;
         bin[j] |= str2Hex(str[i]);
-        //printf("%02x", (unsigned char)buf[j]);
     }   
     return j; 
 }
 
-void printBuf(struct BigNum *a, char *buf)
-{
+void printBuf(struct BigNum *a, char *buf) {
     int i,j;
-    //print(a);
-    printk("a->len:%d\n", a->len);
+    LOG_INF("a->len:%d\n", a->len);
     if(a->len < 64) a->len = 64;
     for(i = a->len,j = 0; j < (a->len>>1) ; i--,j++)
     {
         buf[j] = (str2Hex(a->num[i-1]) <<4);
         i--;
         buf[j] |= str2Hex(a->num[i-1]);
-        //printf("%02x", (unsigned char)buf[j]);
     }
-    //printk("j:%d\n", j);
-    //printf("\n");
 }
 
-void Init(struct BigNum *a, char *s, int *tag) {  //字符串转化为大数
+void Init(struct BigNum *a, char *s, int *tag) { 
     memset(a->num, 0, sizeof(a->num));
     int i = 0, j = strlen(s);
     if (s[0] == '-') {
@@ -114,8 +107,7 @@ void Init(struct BigNum *a, char *s, int *tag) {  //字符串转化为大数
     }
 }
 
-void InitBinary(struct BigNum *a, char *binary, int  len)
-{
+void InitBinary(struct BigNum *a, char *binary, int  len) {
     memset(a->num, 0, sizeof(a->num));
     int i = 0, j = (len<<1);
     a->len = j;
@@ -127,8 +119,7 @@ void InitBinary(struct BigNum *a, char *binary, int  len)
     }   
 }
 
-void InitLowsCalc(void)
-{
+void InitLowsCalc(void) {
     int tag = 1;
     Init(&Lower_S, "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0", &tag);
     Init(&Max_s, "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", &tag);    
@@ -137,55 +128,14 @@ void InitLowsCalc(void)
 /*
     s : signature s in binary, out : low-s value in binary
 */
-void LowsCalc(char *s, char *out)
-{   
+void LowsCalc(char *s, char *out) {   
     struct BigNum a;
     int tag = 1;
 
-    //printf("lows:");
-    //for(int i =0; i < 32; i++)
-   //{
-    //    printf("%02x", (unsigned char)s[i]);
-    //}
-    //printf("\n");
-
-    InitBinary(&a, s, 32);
-    //printf("a.len:%d\n", a.len);
-
-    //printf("a:");
-    //for(int i =0; i < a.len; i++)
-    //{
-    //    printf("%x", (unsigned char)a.num[i]);
-    //}
-    //printf("\n");   
+    InitBinary(&a, s, 32);  
     if(Comp((struct BigNum *)&Lower_S, &a) < 0)
     {
         a = Sub((struct BigNum *)&Max_s , &a); 
         printBuf(&a, out);        
     }           
 }
-
-
-#if 0
-// argv[1]  :  user input string  , ecdsa sign  s 
-int main(int argc, char *argv[]) {
-    struct BigNum a;
-    int tag = 1;    
-
-    if(argc < 2){
-        printf("./Lows  signature-s");
-        return -1;
-    }
-    Init(&Lower_S, "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0", &tag);
-    Init(&Max_s, "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", &tag);
-
-    Init(&a, argv[1], &tag);
-	//print(&a);
-//    if(Comp((struct BigNum *)&Lower_S, &a) < 0)
-    {
-         a = Sub((struct BigNum *)&Max_s , &a);         
-    }
-    print(&a);
-}
-#endif
-

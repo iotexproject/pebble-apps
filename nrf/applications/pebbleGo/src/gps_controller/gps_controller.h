@@ -21,7 +21,7 @@ extern "C" {
 #ifndef CONFIG_NRF9160_GPS
 #define EXTERN_GPS  1
 #endif
-#if(EXTERN_GPS)
+
 // Hardware board V2.0 added new extern GPS model
 // define  dev and  controller IO 
 #define UART_GPS  "UART_3"   // uart 3 used for gps 
@@ -36,30 +36,6 @@ void exGPSInit(void);
 void exGPSStart(void);
 void exGPSStop(void);
 int getGPS(double *lat, double *lon);
-
-#else
-
-int gps_control_init(struct k_work_q *work_q, gps_event_handler_t handler);
-
-void gps_control_on_trigger(void);
-
-void gps_control_stop(u32_t delay_ms);
-
-void gps_control_start(u32_t delay_ms);
-
-bool gps_control_is_active(void);
-bool gps_control_is_enabled(void);
-
-void gps_control_enable(void);
-
-void gps_control_disable(void);
-
-
-int gps_control_get_gps_reporting_interval(void);
-
-bool gps_control_set_active(bool active);
-
-#endif
 
 #ifdef __cplusplus
 }

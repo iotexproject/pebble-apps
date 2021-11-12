@@ -42,8 +42,6 @@ int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos);
 
 int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos);
 
-int iotex_mqtt_upgrade_over(struct mqtt_client *client, enum mqtt_qos qos);
-
 int SensorPackage(uint16_t channel, uint8_t *buffer);
 
 #endif

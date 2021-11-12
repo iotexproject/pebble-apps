@@ -258,7 +258,6 @@ int ui_nmos_pwm_set(size_t nmos_idx, u32_t period, u32_t pulse);
 
 void ui_led_active(u8_t mask, u8_t flg);
 void ui_led_deactive(u8_t mask, u8_t flg);
-void updateLedPattern(void);
 int onBeepMePressed(int ms);
 bool isMask(u8_t mask);
 void SetIndicator(int indct);

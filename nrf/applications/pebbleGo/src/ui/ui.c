@@ -44,19 +44,16 @@ static void leds_update(struct k_work *work)
 
 	if (work) {
 		if (led_on) {
-			k_delayed_work_submit(&leds_update_work,
-					      K_MSEC(UI_LED_ON_PERIOD_NORMAL));
+			k_delayed_work_submit(&leds_update_work,K_MSEC(UI_LED_ON_PERIOD_NORMAL));
 		} else {
-			k_delayed_work_submit(&leds_update_work,
-					      K_MSEC(UI_LED_OFF_PERIOD_NORMAL));
+			k_delayed_work_submit(&leds_update_work,K_MSEC(UI_LED_OFF_PERIOD_NORMAL));
 		}
 	}
 }
 #endif /* CONFIG_UI_LED_USE_PWM */
 
 /**@brief Callback for button events from the DK buttons and LEDs library. */
-static void button_handler(u32_t button_states, u32_t has_changed)
-{
+static void button_handler(u32_t button_states, u32_t has_changed) {
 	struct ui_evt evt;
 	u8_t btn_num;
 
@@ -83,8 +80,7 @@ static void button_handler(u32_t button_states, u32_t has_changed)
 	}
 }
 
-void ui_led_set_pattern(enum ui_led_pattern state)
-{
+void ui_led_set_pattern(enum ui_led_pattern state) {
 	current_led_state = state;
 #ifdef CONFIG_UI_LED_USE_PWM
 	ui_led_set_effect(state);
@@ -98,8 +94,7 @@ enum ui_led_pattern ui_led_get_pattern(void)
 	return current_led_state;
 }
 
-int ui_led_set_color(u8_t red, u8_t green, u8_t blue)
-{
+int ui_led_set_color(u8_t red, u8_t green, u8_t blue) {
 #ifdef CONFIG_UI_LED_USE_PWM
 	return ui_led_set_rgb(red, green, blue);
 #else
@@ -107,8 +102,7 @@ int ui_led_set_color(u8_t red, u8_t green, u8_t blue)
 #endif /* CONFIG_UI_LED_USE_PWM */
 }
 
-void ui_led_set_state(u32_t led, u8_t value)
-{
+void ui_led_set_state(u32_t led, u8_t value) {
 #if !defined(CONFIG_UI_LED_USE_PWM)
 	if (value) {
 		current_led_state |= BIT(led - 1);
@@ -118,17 +112,10 @@ void ui_led_set_state(u32_t led, u8_t value)
 #endif
 }
 
-int ui_init(ui_callback_t cb)
-{
+int ui_init(ui_callback_t cb) {
 	int err = 0;
 
-#ifdef CONFIG_UI_LED_USE_PWM
-//	err = ui_leds_init();
-//	if (err) {
-//		LOG_ERR("Error when initializing PWM controlled LEDs");
-//		return err;
-//	}
-#else
+#if !defined CONFIG_UI_LED_USE_PWM
 	err = dk_leds_init();
 	if (err) {
 		LOG_ERR("Could not initialize leds, err code: %d\n", err);
@@ -175,8 +162,7 @@ int ui_init(ui_callback_t cb)
 	return err;
 }
 
-bool ui_button_is_active(u32_t button)
-{
+bool ui_button_is_active(u32_t button) {
 #if defined(CONFIG_DK_LIBRARY)
 	return dk_get_buttons() & BIT((button - 1));
 #else

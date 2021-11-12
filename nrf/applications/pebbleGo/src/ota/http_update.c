@@ -14,11 +14,13 @@
 #include <modem/modem_key_mgmt.h>
 #include <net/fota_download.h>
 #include <dfu/mcuboot.h>
+#include <logging/log.h>
 #include "keyBoard.h"
 #include "display.h"
 #include "mqtt/devReg.h"
 
-//#define LED_PORT	DT_GPIO_LABEL(DT_ALIAS(led0), gpios)
+LOG_MODULE_REGISTER(http_update, CONFIG_ASSET_TRACKER_LOG_LEVEL);
+
 #define  LED_PORT   "GPIO_0"
 #define TLS_SEC_TAG 42
 
@@ -43,71 +45,11 @@ static int aliveCnt = 0;
 static  uint8_t otaHost[100];
 static  uint8_t otaFile[200];
 static  int otaProgress = 0;
-//static  uint8_t otaVer[100];
-
 const struct device *dev;
 
 
 int getOTAProgress(void) {
 	return  otaProgress;
-}
-
-/**@brief Recoverable BSD library error. 
-void bsd_recoverable_error_handler(uint32_t err)
-{
-	printk("bsdlib recoverable error: %u\n", err);
-}
-*/
-
-int cert_provision(void)
-{
-	static const char cert[] = {
-//		#include "../cert/BaltimoreCyberTrustRoot"
-	};
-	BUILD_ASSERT(sizeof(cert) < KB(4), "Certificate too large");
-	int err;
-	bool exists;
-	uint8_t unused;
-
-	err = modem_key_mgmt_exists(TLS_SEC_TAG,
-				    MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
-				    &exists, &unused);
-	if (err) {
-		printk("Failed to check for certificates err %d\n", err);
-		return err;
-	}
-
-	if (exists) {
-		/* For the sake of simplicity we delete what is provisioned
-		 * with our security tag and reprovision our certificate.
-		 */
-		err = modem_key_mgmt_delete(TLS_SEC_TAG,
-					    MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN);
-		if (err) {
-			printk("Failed to delete existing certificate, err %d\n",
-			       err);
-		}
-	}
-
-	printk("Provisioning certificate\n");
-
-	/*  Provision certificate to the modem */
-	err = modem_key_mgmt_write(TLS_SEC_TAG,
-				   MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
-				   cert, sizeof(cert) - 1);
-	if (err) {
-		printk("Failed to provision certificate, err %d\n", err);
-		return err;
-	}
-
-	return 0;
-}
-
-static void show_led(int r, int g, int b)
-{
-    gpio_pin_write(dev, LED_GREEN, g);	//p0.00 == LED_GREEN ON
-    gpio_pin_write(dev, LED_BLUE, b);	//p0.00 == LED_BLUE OFF
-	gpio_pin_write(dev, LED_RED, r);
 }
 
 /**@brief Start transfer of the file. */
@@ -116,22 +58,19 @@ static void app_dfu_transfer_start(struct k_work *unused)
 	int retval;
 	int sec_tag;
 	char *apn = NULL;
-	printk("app_dfu_transfer_start\n ");
+
+	LOG_INF("app_dfu_transfer_start\n ");
 #ifndef CONFIG_USE_HTTPS
 	sec_tag = -1;
 #else
 	sec_tag = TLS_SEC_TAG;
 #endif
-	//show_led(LED_OFF,LED_ON,LED_OFF);
 	retval = fota_download_start(otaHost, otaFile, sec_tag, apn, 0);
 	if (retval != 0) {
 		/* Re-enable button callback */
-		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
-		//show_led(LED_ON,LED_OFF,LED_OFF);
-		printk("fota_download_start() failed, err %d\n", retval);
-		//sys_reboot(0);
+		LOG_ERR("fota_download_start() failed, err %d\n", retval);
 	}
-	printk("fota_download_start over\n");
+	LOG_INF("fota_download_start over\n");
 }
 
 static void fota_status(struct k_work *unused)
@@ -139,34 +78,25 @@ static void fota_status(struct k_work *unused)
 	aliveCnt++;
 	if (aliveCnt > 12){
 		aliveCnt = 0;
-		printk("Received hangup from fota_download\n");
-		//hintString(htRegRequest,HINT_TIME_FOREVER);
-		//devRegSet(DEV_UPGRADE_CONFIRM);
+		LOG_ERR("Received hangup from fota_download\n");
 		k_work_submit(&fota_work);
 		k_delayed_work_submit(&fota_status_check, K_MSEC(2000));		
 	} else {
 		k_delayed_work_submit(&fota_status_check, K_MSEC(10000));
 	}
-	printk("aliveCnt:%d\n", aliveCnt);
+	LOG_INF("aliveCnt:%d\n", aliveCnt);
 }
 
 /**@brief Turn on LED0 and LED1 if CONFIG_APPLICATION_VERSION
  * is 2 and LED0 otherwise.
  */
-static int led_app_version(void)
-{
-	// const struct device *dev;
+static int led_app_version(void){
 
 	dev = device_get_binding(LED_PORT);
 	if (!dev) {
-		printk("Nordic nRF GPIO driver was not found!\n");
+		LOG_ERR("Nordic nRF GPIO driver was not found!\n");
 		return 1;
 	}
-
-	//	gpio_pin_configure(dev, DT_GPIO_PIN(DT_ALIAS(led0), gpios),
-	//			   GPIO_OUTPUT_ACTIVE |
-	//			   DT_GPIO_FLAGS(DT_ALIAS(led0), gpios));
-
     gpio_pin_configure(dev, LED_GREEN, GPIO_DIR_OUT); 	//p0.00 == LED_GREEN
     gpio_pin_configure(dev, LED_BLUE, GPIO_DIR_OUT);	//p0.01 == LED_BLUE
     gpio_pin_configure(dev, LED_RED, GPIO_DIR_OUT); 	//p0.02 == LED_RED
@@ -176,9 +106,6 @@ static int led_app_version(void)
 	gpio_pin_write(dev, LED_RED, LED_ON);
 
 #if CONFIG_APPLICATION_VERSION == 2
-	//gpio_pin_configure(dev, DT_GPIO_PIN(DT_ALIAS(led1), gpios),
-	//		   GPIO_OUTPUT_ACTIVE |
-	//		   DT_GPIO_FLAGS(DT_ALIAS(led1), gpios));
 	gpio_pin_write(dev, LED_RED, LED_ON);
 #endif
 	return 0;
@@ -191,93 +118,50 @@ void dfu_button_pressed(const struct device *gpiob, struct gpio_callback *cb, ui
 	gpio_pin_interrupt_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios), GPIO_INT_DISABLE);
 }
 
-static int dfu_button_init(void)
-{
+static int dfu_button_init(void) {
 	int err;
-/*
-	gpiob = device_get_binding(DT_GPIO_LABEL(DT_ALIAS(sw0), gpios));
-	if (gpiob == 0) {
-		printk("Nordic nRF GPIO driver was not found!\n");
-		return 1;
-	}
-	err = gpio_pin_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios),
-				 GPIO_INPUT |
-				 DT_GPIO_FLAGS(DT_ALIAS(sw0), gpios));
-	if (err == 0) {
-*/
+
 	gpio_init_callback(&gpio_cb, dfu_button_pressed, BIT(DT_GPIO_PIN(DT_ALIAS(sw0), gpios)));
 	err = gpio_add_callback(gpiob, &gpio_cb);
-//	}
 	if (err == 0) {
-		err = gpio_pin_interrupt_configure(gpiob,
-						   DT_GPIO_PIN(DT_ALIAS(sw0), gpios),
-						   GPIO_INT_EDGE_TO_ACTIVE);
+		err = gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
 	}
-
 	if (err != 0) {
-		printk("Unable to configure SW0 GPIO pin!\n");
+		LOG_ERR("Unable to configure SW0 GPIO pin!\n");
 		return 1;
 	}
-
 	return 0;
 }
 
-static int initSw0(void)
-{
+static int initSw0(void) {
     int err;
 
 	gpiob = device_get_binding(DT_GPIO_LABEL(DT_ALIAS(sw0), gpios));
 	if (!gpiob) {
-		printk("Nordic nRF GPIO driver was not found!\n");
+		LOG_ERR("Nordic nRF GPIO driver was not found!\n");
 		return 1;
 	}
-	err = gpio_pin_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios),
-				 GPIO_INPUT |
-				 DT_GPIO_FLAGS(DT_ALIAS(sw0), gpios));
+	err = gpio_pin_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INPUT | DT_GPIO_FLAGS(DT_ALIAS(sw0), gpios));
 
 	return (err != 0) ? -1 : 0;
-}
-
-static int readSw0(void)
-{
-    u32_t io_lev;
-    //io_lev = gpio_pin_get(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios));	
-    //if(io_lev)
-    //{        
-        io_lev = gpio_pin_get(gpiob, IO_UP_KEY);
-        if (io_lev) {
-			printk("ok start upgrading now !");
-			//return 0;
-			return 1;
-		}
-    //}
-    return 1;
 }
 
 void fota_dl_handler(const struct fota_download_evt *evt)
 {
 	switch (evt->id) {
 	case FOTA_DOWNLOAD_EVT_ERROR:
-		printk("Received error from fota_download\n");
-		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
-		//show_led(LED_ON,LED_OFF,LED_OFF);
+		LOG_ERR("Received error from fota_download\n");
 		break;
 		/* Fallthrough */
 	case FOTA_DOWNLOAD_EVT_ERASE_PENDING:
-		printk("Received timeout from fota_download\n");
-		//gpio_pin_interrupt_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
-		//show_led(LED_ON,LED_OFF,LED_OFF);
+		LOG_ERR("Received timeout from fota_download\n");
 		break;
 	case FOTA_DOWNLOAD_EVT_FINISHED:
 		/* Re-enable button callback */
 		k_delayed_work_cancel(&fota_status_check);
-		//gpio_pin_interrupt_configure(gpiob,DT_GPIO_PIN(DT_ALIAS(sw0), gpios),GPIO_INT_EDGE_TO_ACTIVE);
-		//show_led(LED_ON,LED_ON,LED_ON);
 		devRegSet(DEV_UPGRADE_COMPLETE);
 		break;
 	case FOTA_DOWNLOAD_EVT_PROGRESS:
-		//printk("fota alive \n");
-		//printk("progress:%d\%100\n", evt->progress);
 		otaProgress = evt->progress;
 		aliveCnt = 0;
 		break;
@@ -286,136 +170,36 @@ void fota_dl_handler(const struct fota_download_evt *evt)
 	}
 }
 
-/**@brief Configures modem to provide LTE link.
- *
- * Blocks until link is successfully established.
- */
-static void modem_configure(void)
-{
-#if defined(CONFIG_LTE_LINK_CONTROL)
-	BUILD_ASSERT(!IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT),
-			"This sample does not support auto init and connect");
-	int err;
-#if !defined(CONFIG_BSD_LIBRARY_SYS_INIT)
-	/* Initialize AT only if bsdlib_init() is manually
-	 * called by the main application
-	 */
-	err = at_notif_init();
-	__ASSERT(err == 0, "AT Notify could not be initialized.");
-	err = at_cmd_init();
-	__ASSERT(err == 0, "AT CMD could not be established.");
-#if defined(CONFIG_USE_HTTPS)
-	err = cert_provision();
-	__ASSERT(err == 0, "Could not provision root CA to %d", TLS_SEC_TAG);
-#endif
-#endif
-	printk("LTE Link Connecting ...\n");
-	err = lte_lc_init_and_connect();
-	__ASSERT(err == 0, "LTE link could not be established.");
-	printk("LTE Link Connected!\n");
-#endif
-}
-
-static int application_init(void)
-{
+static int application_init(void) {
 	int err;
 
 	k_work_init(&fota_work, app_dfu_transfer_start);
 	k_delayed_work_init(&fota_status_check, fota_status);
-/*
-	err = dfu_button_init();
-	if (err != 0) {
-		return err;
-	}
-
-	err = led_app_version();
-	if (err != 0) {
-		return err;
-	}
-*/
 	err = fota_download_init(fota_dl_handler);
 	return (err != 0) ? err : 0;
 }
 
-static void getHost(uint8_t *url, uint8_t *host, uint8_t *file)
-{
+static void getHost(uint8_t *url, uint8_t *host, uint8_t *file) {
+
     sscanf(url, "https://%99[^/]/%99[^\n]", host, file);
 
-	printk("host:%s, file:%s\n", host, file);
+	LOG_INF("host:%s, file:%s\n", host, file);
 }
 
-void ota_update(void)
-{
+void initOTA(void) {
 	int err;
 
-    if (initSw0() || readSw0())
-        return;
-
-	printk("HTTP application update sample started\n");
-	printk("Initializing bsdlib\n");
-#if !defined(CONFIG_BSD_LIBRARY_SYS_INIT)
-	err = bsdlib_init();
-#else
-	/* If bsdlib is initialized on post-kernel we should
-	 * fetch the returned error code instead of bsdlib_init
-	 */
-	err = bsdlib_get_init_ret();
-#endif
-	switch (err) {
-	case MODEM_DFU_RESULT_OK:
-		printk("Modem firmware update successful!\n");
-		printk("Modem will run the new firmware after reboot\n");
-		k_thread_suspend(k_current_get());
-		break;
-	case MODEM_DFU_RESULT_UUID_ERROR:
-	case MODEM_DFU_RESULT_AUTH_ERROR:
-		printk("Modem firmware update failed\n");
-		printk("Modem will run non-updated firmware on reboot.\n");
-		break;
-	case MODEM_DFU_RESULT_HARDWARE_ERROR:
-	case MODEM_DFU_RESULT_INTERNAL_ERROR:
-		printk("Modem firmware update failed\n");
-		printk("Fatal error.\n");
-		break;
-	case -1:
-		printk("Could not initialize bsdlib.\n");
-		printk("Fatal error.\n");
-		return;
-	default:
-		break;
-	}
-	printk("Initialized bsdlib\n");
-
-	modem_configure();
 	boot_write_img_confirmed();
 	err = application_init();
 	if (err != 0) {
-		return;
-	}
-
-	printk("Press Button 1 to start the FOTA download\n");
-	//show_led(LED_OFF,LED_OFF,LED_ON);
-    while (1)
-    {
-        k_sleep(K_MSEC(100000));
-    }
-}
-
-void initOTA(void)
-{
-	int err;
-	boot_write_img_confirmed();
-	err = application_init();
-	if (err != 0) {
-		printk("initOTA err \n");
+		LOG_ERR("initOTA err \n");
 		return;
 	}
 }
 
-void startOTA(uint8_t *url)
-{
+void startOTA(uint8_t *url) {
+
 	getHost(url,otaHost,otaFile);
-
 	k_work_submit(&fota_work);
 	k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
 }

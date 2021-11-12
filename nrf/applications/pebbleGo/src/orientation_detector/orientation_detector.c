@@ -5,7 +5,10 @@
  */
 
 #include <drivers/sensor.h>
+#include <logging/log.h>
 #include "orientation_detector.h"
+
+LOG_MODULE_REGISTER(orientation_detector, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define FLIP_ACCELERATION_THRESHOLD	5.0
 #define CALIBRATION_ITERATIONS		CONFIG_ACCEL_CALIBRATION_ITERATIONS
@@ -15,9 +18,7 @@
 static struct device *dev;
 static double accel_offset[3];
 
-int orientation_detector_poll(
-	struct orientation_detector_sensor_data *sensor_data)
-{
+int orientation_detector_poll(struct orientation_detector_sensor_data *sensor_data) {
 	int err;
 	u8_t i;
 	double aggregated_data[3] = {0};
@@ -25,58 +26,47 @@ int orientation_detector_poll(
 	enum orientation_state current_orientation;
 
 	for (i = 0; i < MEASUREMENT_ITERATIONS; i++) {
-
 		/* If using the ADXL362 driver, all channels must be fetched */
 		if (IS_ENABLED(CONFIG_ADXL362)) {
-			err = sensor_sample_fetch_chan(dev,
-						       SENSOR_CHAN_ALL);
-		} else {
-			err = sensor_sample_fetch_chan(dev,
-						       SENSOR_CHAN_ACCEL_Z);
+			err = sensor_sample_fetch_chan(dev, SENSOR_CHAN_ALL);
+		} 
+		else {
+			err = sensor_sample_fetch_chan(dev, SENSOR_CHAN_ACCEL_Z);
 		}
-
 		if (err) {
-			printk("sensor_sample_fetch failed\n");
+			LOG_ERR("sensor_sample_fetch failed\n");
 			return err;
 		}
-
-		err = sensor_channel_get(dev,
-				SENSOR_CHAN_ACCEL_Z, &accel_data[2]);
-
+		err = sensor_channel_get(dev, SENSOR_CHAN_ACCEL_Z, &accel_data[2]);
 		if (err) {
-			printk("sensor_channel_get failed\n");
+			LOG_ERR("sensor_channel_get failed\n");
 			return err;
 		}
-
 		aggregated_data[2] += sensor_value_to_double(&accel_data[2]);
 	}
-
-	sensor_data->z = (aggregated_data[2] / (double)MEASUREMENT_ITERATIONS) -
-				accel_offset[2];
-
+	sensor_data->z = (aggregated_data[2] / (double)MEASUREMENT_ITERATIONS) - accel_offset[2];
 	if (sensor_data->z >= FLIP_ACCELERATION_THRESHOLD) {
 		if (IS_ENABLED(ACCEL_INVERTED)) {
 			current_orientation = ORIENTATION_UPSIDE_DOWN;
 		} else {
 			current_orientation = ORIENTATION_NORMAL;
 		}
-	} else if (sensor_data->z <= -FLIP_ACCELERATION_THRESHOLD) {
+	} 
+	else if (sensor_data->z <= -FLIP_ACCELERATION_THRESHOLD) {
 		if (IS_ENABLED(ACCEL_INVERTED)) {
 			current_orientation = ORIENTATION_NORMAL;
 		} else {
 			current_orientation = ORIENTATION_UPSIDE_DOWN;
 		}
-	} else {
+	} 
+	else {
 		current_orientation = ORIENTATION_ON_SIDE;
 	}
-
 	sensor_data->orientation = current_orientation;
-
 	return 0;
 }
 
-int orientation_detector_calibrate(void)
-{
+int orientation_detector_calibrate(void) {
 	u8_t i;
 	int err;
 	struct sensor_value accel_data[3];
@@ -85,37 +75,27 @@ int orientation_detector_calibrate(void)
 	for (i = 0; i < CALIBRATION_ITERATIONS; i++) {
 		err = sensor_sample_fetch(dev);
 		if (err) {
-			printk("sensor_sample_fetch failed\n");
+			LOG_ERR("sensor_sample_fetch failed\n");
 			return err;
 		}
-
-		err = sensor_channel_get(dev,
-				SENSOR_CHAN_ACCEL_X, &accel_data[0]);
-		err += sensor_channel_get(dev,
-				SENSOR_CHAN_ACCEL_Y, &accel_data[1]);
-		err += sensor_channel_get(dev,
-				SENSOR_CHAN_ACCEL_Z, &accel_data[2]);
-
+		err = sensor_channel_get(dev,SENSOR_CHAN_ACCEL_X, &accel_data[0]);
+		err += sensor_channel_get(dev,SENSOR_CHAN_ACCEL_Y, &accel_data[1]);
+		err += sensor_channel_get(dev,SENSOR_CHAN_ACCEL_Z, &accel_data[2]);
 		if (err) {
-			printk("sensor_channel_get failed\n");
+			LOG_ERR("sensor_channel_get failed\n");
 			return err;
 		}
-
 		aggregated_data[0] += sensor_value_to_double(&accel_data[0]);
 		aggregated_data[1] += sensor_value_to_double(&accel_data[1]);
 		aggregated_data[2] +=
 			(sensor_value_to_double(&accel_data[2])
 			+ ((double)SENSOR_G) / 1000000.0);
 	}
-
 	accel_offset[0] = aggregated_data[0] / (double)CALIBRATION_ITERATIONS;
 	accel_offset[1] = aggregated_data[1] / (double)CALIBRATION_ITERATIONS;
 	accel_offset[2] = aggregated_data[2] / (double)CALIBRATION_ITERATIONS;
-
 	return 0;
 }
-
-void orientation_detector_init(struct device *accel_device)
-{
+void orientation_detector_init(struct device *accel_device) {
 	dev = accel_device;
 }

@@ -5,17 +5,18 @@
 #include <drivers/gps.h>
 #include <drivers/sensor.h>
 #include <console/console.h>
+#include <logging/log.h>
 #include <power/reboot.h>
 #include <sys/mutex.h>
 #include <modem/lte_lc.h>
-
 #include "hints_data.h"
 #include "display.h"
-
 #include "ver.h"
 #include "keyBoard.h"
 #include "nvs/local_storage.h"
 #include "devReg.h"
+
+LOG_MODULE_REGISTER(hint, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define HINT_WIDTH    128
 #define HINT_HEIGHT  56
@@ -31,10 +32,10 @@ static uint8_t hintAliveTime;
 uint8_t htLanguage;
 struct sys_mutex iotex_hint_mutex;
 static uint32_t pubCounts = 0;
+const uint8_t textLine[] = { 0, 16, 32, 48 };
 
 extern uint8_t s_chDispalyBuffer[128][8];
 extern  const  uint8_t *pmqttBrokerHost;
-
 extern  void ledFlahsWorkerInit(void);
 
 const uint8_t AreaSec[5][2]={
@@ -57,16 +58,15 @@ void pubOnePack(void) {
     pubCounts++;
 }
 
-void hintInit(void)
-{
+void hintInit(void) {
     hintAliveTime = 0;
     htLanguage = HT_LANGUAGE_EN;
     sys_mutex_init(&iotex_hint_mutex);
     ledFlahsWorkerInit();
 }
 
-uint8_t hintTimeDec(void)
-{
+uint8_t hintTimeDec(void) {
+
     if (hintAliveTime > 0) {
         hintAliveTime--;
         if(!hintAliveTime)
@@ -76,19 +76,16 @@ uint8_t hintTimeDec(void)
     {
         return 1;
     }
-
     return hintAliveTime;
 }
 
 void clrHint(void) {
     if(hintAliveTime) {
         hintAliveTime = 0;
-        //ssd1306_display_logo();
     }
 }
 
-void hintString(uint8_t *str[], uint8_t tim)
-{
+void hintString(uint8_t *str[], uint8_t tim) {
     int len, lines, i, j, k;
     uint8_t xpos, ypos;
     uint8_t *dis;
@@ -106,12 +103,11 @@ void hintString(uint8_t *str[], uint8_t tim)
                 xpos = 0;
                 ypos = HINT_FONT;
             } else {
-                printk("Hints too long:%s, lines:%d\n", dis, lines);
+                LOG_ERR("Hints too long:%s, lines:%d\n", dis, lines);
                 sys_mutex_unlock(&iotex_hint_mutex);
                 return;
             }
         } else {
-            //ypos = (HINT_HEIGHT+2)/2;
             ypos = HINT_HEIGHT / 2;
             xpos = (HINT_WIDTH - (len << 3)) / 2;
         }
@@ -124,7 +120,7 @@ void hintString(uint8_t *str[], uint8_t tim)
                 xpos = 0;
                 ypos = HINT_FONT;
             } else {
-                printk("Chinese Hints too long\n");
+                LOG_ERR("Chinese Hints too long\n");
                 sys_mutex_unlock(&iotex_hint_mutex);
                 return;
             }
@@ -134,7 +130,7 @@ void hintString(uint8_t *str[], uint8_t tim)
             xpos = (HINT_WIDTH - (len >> 1)) / 2;
         }
         ypos = 7 - ypos / 8;
-        printk("xpos:%d, ypos:%d, len:%d\n", xpos,ypos,len);
+        LOG_DBG("xpos:%d, ypos:%d, len:%d\n", xpos,ypos,len);
         for (j = 0; j < len; ypos -= 2) {
             k = (len - j) >= 256 ? 128 : ((len - j) / 2 + xpos);
             for (i = xpos; i < k; i++, j++) {
@@ -156,17 +152,14 @@ void hintString(uint8_t *str[], uint8_t tim)
     flg : centered or  left  align
     str : display text
 */
-const uint8_t textLine[] = { 0, 16, 32, 48 };
-
 void dis_OnelineText(uint32_t line, uint32_t flg, uint8_t *str, uint8_t revert)
 {
     uint8_t xpos, ypos;
     uint32_t len = strlen(str);
 
-    //printk("str:%s, len:%d\n", str,len);
     clearDisBuf(6 - 2 * line, 7 - 2 * line);
     if (len > 16) {
-        printk("Hints too long:%s\n", str);
+        LOG_ERR("Hints too long:%s\n", str);
         return;
     } else {
         // left align
@@ -222,7 +215,7 @@ void updateCert(int selArea)
     proot = malloc(2048);
     if((pcert == NULL) || (pkey == NULL) || (proot == NULL))
     {
-        printk("mem not enough !\n");
+        LOG_ERR("mem not enough !\n");
         if(pcert)
             free(pcert);
         if(pkey)
@@ -237,7 +230,7 @@ void updateCert(int selArea)
     pbuf_root = ReadDataFromModem(AWS_ROOT_CA, proot, 2048);
     if((pbuf_cert == NULL) || (pbuf_key == NULL) || (pbuf_root == NULL))
     {
-        printk("read cert error \n");
+        LOG_ERR("read cert error \n");
         goto out;
     }
     pbuf_cert[strlen(pbuf_cert)-3] = 0;
@@ -387,8 +380,7 @@ void selectArea(void)
     {
         pbuf[1] = 0;
         selArea = atoi(pbuf);
-    }  
-//printk("read index:%d\n", selArea);      
+    }   
     allArea[selArea][15]='X';
     for(i = 0; i < (sizeof(allArea)/sizeof(allArea[0])); i++)
     {
@@ -441,8 +433,7 @@ void selectArea(void)
     }
 }
 
-void pebbleInfor(void)
-{
+void pebbleInfor(void) {
     uint8_t buf[8][20];
     uint8_t id[20];
     uint8_t sysInfo[100];
@@ -472,22 +463,15 @@ void pebbleInfor(void)
     dis_OnelineText(1, ALIGN_LEFT, buf[1],DIS_NORMAL);
     dis_OnelineText(2, ALIGN_LEFT, buf[2],DIS_NORMAL);
     // HW  SDK
-    //memset(buf[3], 0, sizeof(buf));
     sprintf(buf[3], "HW:%s SDK:%s", HW_VERSION, SDK_VERSION);
     dis_OnelineText(3, ALIGN_LEFT, buf[3],DIS_NORMAL);   
     // app 
-    //memset(buf[4], 0, sizeof(buf[4]));
     sprintf(buf[4], "APP:%s", APP_NAME);
     sprintf(buf[5], "VER:%s", RELEASE_VERSION);
-    //dis_OnelineText(2, ALIGN_LEFT, buf); 
     // bootloader
     sprintf(buf[6], "%s", sysInfo);
-    //printk("---%s----%s\n", sysInfo+80, sysInfo+20);
-
     // modem 
-    //memset(buf, 0, sizeof(buf));
     sprintf(buf[7], "MD:%s", sysInfo+60);
-    //dis_OnelineText(3, ALIGN_LEFT, buf);  
     // open test com port
     ComToolInit();
     ClearKey();
@@ -532,8 +516,7 @@ void pebbleInfor(void)
     }
     stopTestCom();
 }
-void sysSet(void)
-{
+void sysSet(void) {
     const char mainMenu[3][20]={
         "Modem Settings",
         "Select Region ",
@@ -541,7 +524,7 @@ void sysSet(void)
     };
     int  cursor = 0, last_cur = 0, i;
 
-  // clear screen
+    // clear screen
     ssd1306_clear_screen(0);
     // main menu
     for(i = 0; i < sizeof(mainMenu)/sizeof(mainMenu[0]); i++)
@@ -600,8 +583,7 @@ void sysSet(void)
     }
     
 }
-void MainMenu(void)
-{
+void MainMenu(void) {
     const char mainMenu[][20]={
         "System Settings",
         "About Pebble   ",
@@ -676,7 +658,7 @@ void MainMenu(void)
 
 void appEntryDetect(void) {
     // system  startup check proposer status 
-    devRegSet(DEV_REG_START /*DEV_REG_STOP*/);
+    devRegSet(DEV_REG_START);
     // Need to upgrade?
     if(isUpKeyStartupPressed()) {
         // system will be upgraded via OTA
