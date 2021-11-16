@@ -85,7 +85,7 @@ Z_GENERIC_SECTION(.openocd_dbg.5) __attribute__((used)) const  uint8_t AppVersio
 /* Stack definition for application workqueue */
 K_THREAD_STACK_DEFINE(application_stack_area,CONFIG_APPLICATION_WORKQUEUE_STACK_SIZE);
 static struct k_work_q application_work_q;
-const uint8_t firmwareVersion[] = APP_VERSION;
+const uint8_t firmwareVersion[] = IOTEX_APP_VERSION;
 /* File descriptor */
 static struct pollfd fds;
 /* MQTT Broker details. */
