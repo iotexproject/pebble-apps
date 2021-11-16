@@ -8,4 +8,4 @@ A low-power pebble application that uploads data every 5 minutes.
 
 ### Riverrock
 
-The pebble application that can be configured separately.
+A pebble application that can be configured separately.
