@@ -1,19 +1,11 @@
-# pebble-firmware-blockchain
+# Pebble Tracker Firmware
 
-pebble-firmware-blockchain read its order information from  iotex block chain node, and send IoT data to the subscriber's storage endpoint.
+Firmware of pebble tracker can be upgraded to pebble device via usb or OTA.
 
+### Gravel
 
-### Get RSA public key
+A low-power pebble application that uploads data every 5 minutes.
 
-Pebble device registration requires RSA public key, which can be obtained by following the steps below :
+### Riverrock
 
-* Start the pebble device, it will send the RSA public key to the mqtt broker.
-
-* You can get the public key at this address:   http://trypebble.io:8080/devices .
-
-The picture below shows how to obtain the pebble RSA public key with a device id of 352656103381086 :
-
-![image](https://github.com/iotexproject/pebble-firmware-blockchain/blob/main/doc/images/rsa_publick_key.png)
-
-
-rsa_n and rsa_e are the required RSA public keys
+The pebble application that can be configured separately.
