@@ -34,6 +34,6 @@ Gravel run in Power Saving Mode (PSM). In this mode, the device requests the PSM
   
 
 
-## Developer documentation
+## Developer documents
 
 Please refer to: https://iotex.larksuite.com/wiki/wikuseJV1r3A75SvxKR7DbtbxAd
