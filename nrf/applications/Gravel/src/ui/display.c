@@ -35,7 +35,6 @@
 LOG_MODULE_REGISTER(display, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define I2C_ADDR 0x3c
-//#define I2C_DEV "/dev/i2c-0"  //i2c_devΪi2c��adapter�����ı���
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 
@@ -132,7 +131,7 @@ void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint) {
     if (chXpos > 127 || chYpos > 63) {
         return;
     }
-    chPos = 7 - chYpos / 8; // 
+    chPos = 7 - chYpos / 8; /*   */
     chBx = chYpos % 8;
     chTemp = 1 << (7 - chBx);
     
@@ -265,33 +264,33 @@ void ssd1306_init(void) {
         return ;
     }
     sys_mutex_init(&iotex_i2c_access);       
-    //ssd1306_write_byte(0xAE, SSD1306_CMD);//--turn off oled panel
-    ssd1306_write_byte(0x00, SSD1306_CMD);//---set low column address
-    ssd1306_write_byte(0x10, SSD1306_CMD);//---set high column address
-    ssd1306_write_byte(0x40, SSD1306_CMD);//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F)
-    ssd1306_write_byte(0x81, SSD1306_CMD);//--set contrast control register
-    ssd1306_write_byte(0xCF, SSD1306_CMD);// Set SEG Output Current Brightness
-    ssd1306_write_byte(0xA1, SSD1306_CMD);//--Set SEG/Column Mapping    
-    ssd1306_write_byte(0xC0, SSD1306_CMD);//Set COM/Row Scan Direction  
-    ssd1306_write_byte(0xA6, SSD1306_CMD);//--set normal display
-    ssd1306_write_byte(0xA8, SSD1306_CMD);//--set multiplex ratio(1 to 64)
-    ssd1306_write_byte(0x3f, SSD1306_CMD);//--1/64 duty
-    ssd1306_write_byte(0xD3, SSD1306_CMD);//-set display offset    Shift Mapping RAM Counter (0x00~0x3F)
-    ssd1306_write_byte(0x00, SSD1306_CMD);//- offset 20
-    ssd1306_write_byte(0xd5, SSD1306_CMD);//--set display clock divide ratio/oscillator frequency
-    ssd1306_write_byte(0x80, SSD1306_CMD);//--set divide ratio, Set Clock as 100 Frames/Sec
-    ssd1306_write_byte(0xD9, SSD1306_CMD);//--set pre-charge period
-    ssd1306_write_byte(0xF1, SSD1306_CMD);//Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
-    ssd1306_write_byte(0xDA, SSD1306_CMD);//--set com pins hardware configuration
+    /* ssd1306_write_byte(0xAE, SSD1306_CMD);--turn off oled panel */
+    ssd1306_write_byte(0x00, SSD1306_CMD);/* ---set low column address */
+    ssd1306_write_byte(0x10, SSD1306_CMD);/* ---set high column address */
+    ssd1306_write_byte(0x40, SSD1306_CMD);/* --set start line address  Set Mapping RAM Display Start Line (0x00~0x3F) */
+    ssd1306_write_byte(0x81, SSD1306_CMD);/* --set contrast control register */
+    ssd1306_write_byte(0xCF, SSD1306_CMD);/*  Set SEG Output Current Brightness */
+    ssd1306_write_byte(0xA1, SSD1306_CMD);/* --Set SEG/Column Mapping     */
+    ssd1306_write_byte(0xC0, SSD1306_CMD);/* Set COM/Row Scan Direction   */
+    ssd1306_write_byte(0xA6, SSD1306_CMD);/* --set normal display */
+    ssd1306_write_byte(0xA8, SSD1306_CMD);/* --set multiplex ratio(1 to 64) */
+    ssd1306_write_byte(0x3f, SSD1306_CMD);/* --1/64 duty */
+    ssd1306_write_byte(0xD3, SSD1306_CMD);/* -set display offset    Shift Mapping RAM Counter (0x00~0x3F) */
+    ssd1306_write_byte(0x00, SSD1306_CMD);/* - offset 20 */
+    ssd1306_write_byte(0xd5, SSD1306_CMD);/* --set display clock divide ratio/oscillator frequency */
+    ssd1306_write_byte(0x80, SSD1306_CMD);/* --set divide ratio, Set Clock as 100 Frames/Sec */
+    ssd1306_write_byte(0xD9, SSD1306_CMD);/* --set pre-charge period */
+    ssd1306_write_byte(0xF1, SSD1306_CMD);/* Set Pre-Charge as 15 Clocks & Discharge as 1 Clock */
+    ssd1306_write_byte(0xDA, SSD1306_CMD);/* --set com pins hardware configuration */
     ssd1306_write_byte(0x12, SSD1306_CMD);
-    ssd1306_write_byte(0xDB, SSD1306_CMD);//--set vcomh
-    ssd1306_write_byte(0x40, SSD1306_CMD);//Set VCOM Deselect Level
-    ssd1306_write_byte(0x20, SSD1306_CMD);//-Set Page Addressing Mode (0x00/0x01/0x02)
-    ssd1306_write_byte(0x02, SSD1306_CMD);//
-    ssd1306_write_byte(0x8D, SSD1306_CMD);//--set Charge Pump enable/disable
-    ssd1306_write_byte(0x14, SSD1306_CMD);//--set(0x10) disable
-    ssd1306_write_byte(0xA4, SSD1306_CMD);// Disable Entire Display On (0xa4/0xa5)
-    ssd1306_write_byte(0xA6, SSD1306_CMD);// Disable Inverse Display On (0xa6/a7) 
+    ssd1306_write_byte(0xDB, SSD1306_CMD);/* --set vcomh */
+    ssd1306_write_byte(0x40, SSD1306_CMD);/* Set VCOM Deselect Level */
+    ssd1306_write_byte(0x20, SSD1306_CMD);/* -Set Page Addressing Mode (0x00/0x01/0x02) */
+    ssd1306_write_byte(0x02, SSD1306_CMD);/*  */
+    ssd1306_write_byte(0x8D, SSD1306_CMD);/* --set Charge Pump enable/disable */
+    ssd1306_write_byte(0x14, SSD1306_CMD);/* --set(0x10) disable */
+    ssd1306_write_byte(0xA4, SSD1306_CMD);/*  Disable Entire Display On (0xa4/0xa5) */
+    ssd1306_write_byte(0xA6, SSD1306_CMD);/*  Disable Inverse Display On (0xa6/a7)  */
     hintInit();
 }
 

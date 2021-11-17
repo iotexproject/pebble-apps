@@ -93,12 +93,12 @@ int SignAndSend(void)
     confirmAdd.timestamp = uint_timestamp;
     confirmAdd.channel = getDevChannel();
     pb_ostream_t enc_packstream;
-	enc_packstream = pb_ostream_from_buffer(json_buf, DATA_BUFFER_SIZE);
-	if (!pb_encode(&enc_packstream, ConfirmPackage_fields, &confirmAdd)) {
-		LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
+    enc_packstream = pb_ostream_from_buffer(json_buf, DATA_BUFFER_SIZE);
+    if (!pb_encode(&enc_packstream, ConfirmPackage_fields, &confirmAdd)) {
+        LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
         free(json_buf);
-		return -2;
-	}
+        return -2;
+    }
     publish_dev_ownership(json_buf, enc_packstream.bytes_written);
     free(json_buf);
     return 0;
@@ -153,7 +153,7 @@ void mainStatus(struct mqtt_client *client) {
             break;
         case DEV_REG_POLL_STATE:
             publish_dev_query("", 0);
-            //devRegSet(DEV_REG_SUCCESS);
+            /* devRegSet(DEV_REG_SUCCESS); */
             break;
         case DEV_REG_SUCCESS:
             hintString(htRegSuccess, HINT_TIME_DEFAULT);          
@@ -225,7 +225,7 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client) {
             break;
         }
         else {
-            // check  registration  status every 1s
+            /*  check  registration  status every 1s */
             k_sleep(K_MSEC(5000));
         }
     }

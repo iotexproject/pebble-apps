@@ -8,7 +8,7 @@ LOG_MODULE_REGISTER(hal_adc, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 static struct device *__adc_dev;
 
-//#define CONFIG_DEBUG_ADC 
+/* #define CONFIG_DEBUG_ADC  */
 
 int iotex_hal_adc_sample(void) {
     int ret;
@@ -30,9 +30,9 @@ int iotex_hal_adc_sample(void) {
     if (ret || sample_buffer <= 0) {
         return 0;
     }
-    //adc_voltage = sample_buffer / 1023.0 * 2 * 3600.0 / 1000.0;
+    /* adc_voltage = sample_buffer / 1023.0 * 2 * 3600.0 / 1000.0; */
     adc_voltage = (sample_buffer * 7200) / 16384 ;
-     //  adc_voltage = (sample_buffer * 4500) / 1024; 
+     /*   adc_voltage = (sample_buffer * 4500) / 1024;  */
 #ifdef CONFIG_DEBUG_ADC
     LOG_INF("ADC raw value: %d\n", sample_buffer);
     fprintf(stdout, "Measured voltage: %d mV\n", adc_voltage);

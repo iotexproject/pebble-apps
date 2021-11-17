@@ -19,7 +19,7 @@
 #else
 #define CLIENT_ID_LEN (sizeof(CONFIG_CLOUD_CLIENT_ID) - 1)
 #endif
-#define CLOUD_CONNACK_WAIT_DURATION	 300 /*CONFIG_CLOUD_WAIT_DURATION*/
+#define CLOUD_CONNACK_WAIT_DURATION     300 /*CONFIG_CLOUD_WAIT_DURATION*/
 #define  MQTT_TOPIC_SIZE    100
 
 LOG_MODULE_REGISTER(mqtt, CONFIG_ASSET_TRACKER_LOG_LEVEL);
@@ -286,7 +286,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                     devRegSet(DEV_UPGRADE_CONFIRM);
                 }
             }
-            // get upgrade url
+            /*  get upgrade url */
             subscribe_config_topic(c);
             cnt = 0;
             sta_SetMeta(AWS_LINKER, STA_LINKER_ON);
@@ -321,7 +321,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                     }
                 } 
                 else {   
-                    //  download  firmware url
+                    /*   download  firmware url */
                     iotex_mqtt_get_config_topic(revTopic,sizeof(revTopic));
                     if (!strcmp(p->message.topic.topic.utf8, revTopic)) {
                         if (!IsDevReg()) {
@@ -398,7 +398,7 @@ int iotex_mqtt_publish_query(struct mqtt_client *client, enum mqtt_qos qos, char
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
     param.message.payload.data = data;
     param.message.payload.len = len;
-    param.message_id = safeRandom(); //sys_rand32_get();
+    param.message_id = safeRandom(); /* sys_rand32_get(); */
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     LOG_INF("publish topic %s \n", pub_topic);
@@ -418,7 +418,7 @@ int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, 
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
     param.message.payload.data = data;
     param.message.payload.len = len;
-    param.message_id = safeRandom(); //sys_rand32_get();
+    param.message_id = safeRandom(); /* sys_rand32_get(); */
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     LOG_INF("publish topic %s \n", pub_topic);
@@ -436,7 +436,7 @@ int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char 
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
     param.message.payload.data = data;
     param.message.payload.len = len;
-    param.message_id = safeRandom(); //sys_rand32_get();
+    param.message_id = safeRandom(); /* sys_rand32_get(); */
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     return mqtt_publish(client, &param);
@@ -457,7 +457,7 @@ int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos)
     LOG_INF("iotex_mqtt_heart_beat\n");
     param.message.payload.data = /*payload;*/"a";
     param.message.payload.len = len;
-    param.message_id = safeRandom(); //sys_rand32_get();
+    param.message_id = safeRandom(); /* sys_rand32_get(); */
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     return mqtt_publish(client, &param);
@@ -476,10 +476,10 @@ int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos)
     param.message.topic.topic.utf8 = pub_topic;
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);
     len = packDevConf(payload, sizeof(payload));
-    param.message.payload.data = payload;//"a";
+    param.message.payload.data = payload;/* "a"; */
     LOG_INF("iotex_mqtt_configure_upload len:%d\n",len);
     param.message.payload.len = len;
-    param.message_id = safeRandom(); //sys_rand32_get();
+    param.message_id = safeRandom(); /* sys_rand32_get(); */
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     return mqtt_publish(client, &param);

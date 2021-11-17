@@ -50,14 +50,14 @@ int iotex_TSL2572_init(uint8_t gain)
     } else {
         LOG_INF("TSL2572 ID = 0x%x\r\n", chip_id);
     }
-    //set gain
+    /* set gain */
     i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER|TSL2572_CMDS_CONTROL, gain);
-    //51.87 ms
+    /* 51.87 ms */
     i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_ALS_TIMING, 0xED);
-    //turn on
+    /* turn on */
     i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_ENABLE, 0x03);
     if(GAIN_DIVIDE_6){
-        //scale gain by 0.16
+        /* scale gain by 0.16 */
         i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_CONFIG, 0x04);
     }
     if(gain==GAIN_1X) gain_val = 1;
@@ -81,7 +81,7 @@ float iotex_Tsl2572ReadAmbientLight(void)
     c0 = data[1]<<8 | data[0];
     c1 = data[3]<<8 | data[2];
 
-    //see TSL2572 datasheet
+    /* see TSL2572 datasheet */
     cpl = 51.87 * (float)gain_val / 60.0;
     if(GAIN_DIVIDE_6) cpl/=6.0;
     lux1 = ((float)c0 - (1.87 * (float)c1)) / cpl;

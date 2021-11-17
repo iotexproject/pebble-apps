@@ -26,4 +26,4 @@ bool WritDataIntoModem(uint32_t sec, uint8_t *str);
 
 void getSysInfor(uint8_t *buf);
 
-#endif //_IOTEX_MODEM_H_
+#endif /* _IOTEX_MODEM_H_ */

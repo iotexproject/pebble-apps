@@ -69,7 +69,7 @@ LOG_MODULE_REGISTER(main, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #if defined(CONFIG_BSD_LIBRARY) && defined(CONFIG_LTE_AUTO_INIT_AND_CONNECT) && defined(CONFIG_NRF_CLOUD_PROVISION_CERTIFICATES)
 #error "PROVISION_CERTIFICATES \
-	requires CONFIG_LTE_AUTO_INIT_AND_CONNECT to be disabled!"
+    requires CONFIG_LTE_AUTO_INIT_AND_CONNECT to be disabled!"
 #endif /* if defined(CONFIG_BSD_LIBRARY) && defined(CONFIG_LTE_AUTO_INIT_AND_CONNECT) && defined(CONFIG_NRF_CLOUD_PROVISION_CERTIFICATES) */
 
 #define SUCCESS_OR_BREAK(rc) { if (rc != 0) { return ; } }
@@ -95,10 +95,10 @@ static atomic_val_t stopAnimation = ATOMIC_INIT(0);
 static struct k_delayed_work send_env_data_work;
 static struct k_delayed_work   animation_work;
 enum error_type {
-	ERROR_CLOUD,
-	ERROR_BSD_RECOVERABLE,
-	ERROR_LTE_LC,
-	ERROR_SYSTEM_FAULT
+    ERROR_CLOUD,
+    ERROR_BSD_RECOVERABLE,
+    ERROR_LTE_LC,
+    ERROR_SYSTEM_FAULT
 };
 static char mqttPubBuf[DATA_BUFFER_SIZE];
 const char reconnectReminder[][4] = {
@@ -160,7 +160,7 @@ void error_handler(enum error_type err_type, int err_code)
     }
 #endif /* CONFIG_DEBUG */
 }
-// Upload sensor data
+/*  Upload sensor data */
 static void uploadSensorData(void) {
     if (!atomic_get(&send_data_enable)) {
         return;
@@ -173,39 +173,39 @@ static void uploadSensorData(void) {
     }
     pubOnePack();
 }
-// Restore work queue
+/*  Restore work queue */
 void RestartEnvWork(int s) {
     k_delayed_work_cancel(&send_env_data_work);
     k_delayed_work_submit(&send_env_data_work, K_SECONDS(s));
 }
-// mqtt cert write into modem
+/*  mqtt cert write into modem */
 void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
     u8_t *certificates[]={root, key, cert};
     size_t cert_len[] = { strlen(root),strlen(key),strlen(cert)};
-	int err;
-	sec_tag_t sec_tag = CONFIG_CLOUD_CERT_SEC_TAG;
-	enum modem_key_mgnt_cred_type cred[] = {
-		MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
-		MODEM_KEY_MGMT_CRED_TYPE_PRIVATE_CERT,
-		MODEM_KEY_MGMT_CRED_TYPE_PUBLIC_CERT,
-	};
+    int err;
+    sec_tag_t sec_tag = CONFIG_CLOUD_CERT_SEC_TAG;
+    enum modem_key_mgnt_cred_type cred[] = {
+        MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
+        MODEM_KEY_MGMT_CRED_TYPE_PRIVATE_CERT,
+        MODEM_KEY_MGMT_CRED_TYPE_PUBLIC_CERT,
+    };
     disableModem();
-	/* Delete certificates */
-	for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
-		err = modem_key_mgmt_delete(sec_tag, type);
-		LOG_ERR("modem_key_mgmt_delete(%u, %d) => result=%d\n",
-				sec_tag, type, err);
-	}
+    /* Delete certificates */
+    for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
+        err = modem_key_mgmt_delete(sec_tag, type);
+        LOG_ERR("modem_key_mgmt_delete(%u, %d) => result=%d\n",
+                sec_tag, type, err);
+    }
 
-	/* Write certificates */
-	for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
-		err = modem_key_mgmt_write(sec_tag, cred[type],
-				certificates[type], cert_len[type]);
-		LOG_ERR("modem_key_mgmt_write => result=%d\n", err);                        
-	}
-	return;    
+    /* Write certificates */
+    for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
+        err = modem_key_mgmt_write(sec_tag, cred[type],
+                certificates[type], cert_len[type]);
+        LOG_ERR("modem_key_mgmt_write => result=%d\n", err);                        
+    }
+    return;    
 }
-// Upload sensor data regularly
+/*  Upload sensor data regularly */
 static void periodic_publish_sensors_data(void) {
     int rc;
     SUCCESS_OR_BREAK(mqtt_ping(&client));
@@ -216,11 +216,11 @@ static void periodic_publish_sensors_data(void) {
         LOG_ERR("mqtt package error ! \n");
     }
 }
-// dev registration
+/*  dev registration */
 int publish_dev_ownership(char *buf, int len) {
     return iotex_mqtt_publish_ownership(&client, 0, buf, len);
 }
-// publish query package
+/*  publish query package */
 int publish_dev_query(char *buf, int len) {
     return iotex_mqtt_publish_query(&client, 0, buf, len);
 }
@@ -260,8 +260,8 @@ static void modem_configure(void) {
             LOG_ERR("lte_lc_psm_req erro:%d\n", err);
             error_handler(ERROR_LTE_LC, err);
         }              
-        //ui_led_set_pattern(UI_LTE_CONNECTING);
-        //ui_led_deactive(LTE_CONNECT_MASK,1);
+        /* ui_led_set_pattern(UI_LTE_CONNECTING); */
+        /* ui_led_deactive(LTE_CONNECT_MASK,1); */
         err = lte_lc_init_and_connect();
 
         if (err) {
@@ -270,37 +270,37 @@ static void modem_configure(void) {
         }
 
         LOG_INF("Connected to LTE network\n");
-        //ui_led_active(LTE_CONNECT_MASK,1);
+        /* ui_led_active(LTE_CONNECT_MASK,1); */
         sta_SetMeta(LTE_LINKER, STA_LINKER_ON);
     }
 #endif
 }
 void handle_bsdlib_init_ret(void) {
 #if defined(CONFIG_BSD_LIBRARY)
-	int ret = bsdlib_get_init_ret();
+    int ret = bsdlib_get_init_ret();
 
-	/* Handle return values relating to modem firmware update */
-	switch (ret) {
-	case MODEM_DFU_RESULT_OK:
-		LOG_INF("MODEM UPDATE OK. Will run new firmware");
-		sys_reboot(SYS_REBOOT_COLD);
-		break;
-	case MODEM_DFU_RESULT_UUID_ERROR:
-	case MODEM_DFU_RESULT_AUTH_ERROR:
-		LOG_ERR("MODEM UPDATE ERROR %d. Will run old firmware", ret);
-		sys_reboot(SYS_REBOOT_COLD);
-		break;
-	case MODEM_DFU_RESULT_HARDWARE_ERROR:
-	case MODEM_DFU_RESULT_INTERNAL_ERROR:
-		LOG_ERR("MODEM UPDATE FATAL ERROR %d. Modem failiure", ret);
-		sys_reboot(SYS_REBOOT_COLD);
-		break;
-	default:
-		break;
-	}
+    /* Handle return values relating to modem firmware update */
+    switch (ret) {
+    case MODEM_DFU_RESULT_OK:
+        LOG_INF("MODEM UPDATE OK. Will run new firmware");
+        sys_reboot(SYS_REBOOT_COLD);
+        break;
+    case MODEM_DFU_RESULT_UUID_ERROR:
+    case MODEM_DFU_RESULT_AUTH_ERROR:
+        LOG_ERR("MODEM UPDATE ERROR %d. Will run old firmware", ret);
+        sys_reboot(SYS_REBOOT_COLD);
+        break;
+    case MODEM_DFU_RESULT_HARDWARE_ERROR:
+    case MODEM_DFU_RESULT_INTERNAL_ERROR:
+        LOG_ERR("MODEM UPDATE FATAL ERROR %d. Modem failiure", ret);
+        sys_reboot(SYS_REBOOT_COLD);
+        break;
+    default:
+        break;
+    }
 #endif /* CONFIG_BSD_LIBRARY */
 }
-// Sample and store to nv flash
+/*  Sample and store to nv flash */
 static void sampling_and_store_sensor_data(void) {
     /* Data sampling mode */ 
     if (iotex_mqtt_is_need_sampling()) {
@@ -317,7 +317,7 @@ static void sampling_and_store_sensor_data(void) {
         iotex_mqtt_inc_current_sampling_count();
     }
 }
-// close mqtt net
+/*  close mqtt net */
 void stopMqtt(void) {
     mqtt_disconnect(&client);
 }
@@ -325,60 +325,60 @@ void stopMqtt(void) {
 void main(void) {
     int err, errCounts = 0;
 
-	LOG_INF("APP %s  %s started", APP_NAME, RELEASE_VERSION);
-	k_work_q_start(&application_work_q, application_stack_area,K_THREAD_STACK_SIZEOF(application_stack_area),CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
-    // open watchdog
-	if (IS_ENABLED(CONFIG_WATCHDOG)) {
-		watchdog_init_and_start(&application_work_q);
-	}
-    //  init ECDSA
+    LOG_INF("APP %s  %s started", APP_NAME, RELEASE_VERSION);
+    k_work_q_start(&application_work_q, application_stack_area,K_THREAD_STACK_SIZEOF(application_stack_area),CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
+    /*  open watchdog */
+    if (IS_ENABLED(CONFIG_WATCHDOG)) {
+        watchdog_init_and_start(&application_work_q);
+    }
+    /*   init ECDSA */
     InitLowsCalc();
     if (initECDSA_sep256r()) {
         LOG_ERR("initECDSA_sep256r error\n");
         return;
     }
-    // i2c speed 400kbps 
+    /*  i2c speed 400kbps  */
     setI2Cspeed(2);
-	/* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
+    /* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
     iotex_local_storage_init();
-    // read ecdsa key pair
+    /*  read ecdsa key pair */
     if (startup_check_ecc_key()) {
         LOG_ERR("check ecc key error\n");
         LOG_ERR("system will not startup\n");
         return;
     }
-    // init gpio
+    /*  init gpio */
     iotex_hal_gpio_init();
-    // init  onchip adc
+    /*  init  onchip adc */
     iotex_hal_adc_init();
-    // init GPS
+    /*  init GPS */
     exGPSInit();
     /* Iotex Init BME680 */
     iotex_bme680_init();
     /* Iotex Init TSL2572 */
     iotex_TSL2572_init(GAIN_1X); 
-    // iotex keyboard
-	iotex_key_init();
-    // init worker queue
-	work_init();    
-    // init oled
+    /*  iotex keyboard */
+    iotex_key_init();
+    /*  init worker queue */
+    work_init();    
+    /*  init oled */
     ssd1306_init();
     /* Iotex Init ICM42605 */
     iotex_icm42605_init();   
-    // system  menu
+    /*  system  menu */
     MainMenu();
-    // OTA upgrade 
+    /*  OTA upgrade  */
     appEntryDetect();
-    // work queue of the status bar 
+    /*  work queue of the status bar  */
     k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_MSEC(10));
-    // LTE-M / NB-IOT network attach
-	modem_configure();
-	handle_bsdlib_init_ret();
+    /*  LTE-M / NB-IOT network attach */
+    modem_configure();
+    handle_bsdlib_init_ret();
 #ifdef CONFIG_UNITTEST
     unittest();
 #endif    
     initOTA();
-    // status bar refresh
+    /*  status bar refresh */
     sta_Refresh();     
 
     while(true) {
@@ -391,7 +391,7 @@ void main(void) {
             LOG_ERR("ERROR: mqtt_connect %d, rebooting...\n", err);
             k_sleep(K_MSEC(500));
             sys_reboot(0);
-            return;
+            break;
         } 
         errCounts = 0;      
         if(!iotexDevBinding(&fds,&client)) {
@@ -416,7 +416,7 @@ void main(void) {
             ssd1306_display_logo();
         }        
     }
-	//connect_to_cloud(0);
+    /* connect_to_cloud(0); */
     LOG_INF("Disconnecting MQTT client...\n");
     err = mqtt_disconnect(&client);
     if (err) {

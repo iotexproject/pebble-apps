@@ -177,7 +177,7 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
     uint32_t write_cnt = 0;
     iotex_storage_bme680 env_sensor;
     iotex_storage_icm42605 action_sensor;
-	double  timestamp;
+    double  timestamp;
     float AmbientLight;
     uint16_t vol_Integer;
 
@@ -263,13 +263,13 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
         write_cnt += sizeof(action_sensor.accelerometer);
     }
 
-	// save timestamp
-	timestamp = iotex_modem_get_clock_raw(NULL);
-	memcpy(buffer + write_cnt, &timestamp, sizeof(timestamp));
-	write_cnt += sizeof(timestamp);
-	
-	// save bytes of onece write
-	set_block_size(write_cnt);	
+    /*  save timestamp */
+    timestamp = iotex_modem_get_clock_raw(NULL);
+    memcpy(buffer + write_cnt, &timestamp, sizeof(timestamp));
+    write_cnt += sizeof(timestamp);
+    
+    /*  save bytes of onece write */
+    set_block_size(write_cnt);    
 
     /* Save sampling data to nvs */
     return iotex_local_storage_save(SID_MQTT_BULK_UPLOAD_DATA, buffer, write_cnt) == 0;
@@ -445,7 +445,7 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
         goto cleanup;
     }
 
-    // get random number
+    /*  get random number */
     __disable_irq();
     GenRandom(random);
     __enable_irq();
@@ -455,7 +455,7 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
         goto cleanup;
     }
 
-    // ecc public key
+    /*  ecc public key */
     if (get_ecc_public_key(NULL)) {
         get_ecc_public_key(jsStr);
         jsStr[128] = 0;
@@ -513,12 +513,12 @@ cleanup:
 }
 
 int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payload *output)
-{	
-	char epoch_buf[TIMESTAMP_STR_LEN];
+{    
+    char epoch_buf[TIMESTAMP_STR_LEN];
     uint32_t write_cnt = 0;
-	double  timestamp;
-	float  tmp;
-	int i;
+    double  timestamp;
+    float  tmp;
+    int i;
     int ret = -ENOMEM;
     char esdaSign[65];
     char jsStr[130];
@@ -601,8 +601,8 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
 
     /* Env sensor gas */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
-		memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
-		write_cnt += sizeof(tmp);
+        memcpy(&tmp, buffer + write_cnt, sizeof(tmp));
+        write_cnt += sizeof(tmp);
         gas_resistance = cJSON_CreateNumber(tmp);
         if (!gas_resistance || json_add_obj(msg_obj, "gasResistance", gas_resistance)) {
             goto cleanup;
@@ -662,9 +662,9 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
     /* Action sensor gyroscope data */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GYROSCOPE)) {
         int gyroscope[3];
-		int16_t buf[3];
-		memcpy(buf, buffer + write_cnt, sizeof(buf));
-		write_cnt += sizeof(buf);
+        int16_t buf[3];
+        memcpy(buf, buffer + write_cnt, sizeof(buf));
+        write_cnt += sizeof(buf);
         for (i = 0; i < ARRAY_SIZE(gyroscope); i++) {
             gyroscope[i] = buf[i];
         }
@@ -677,9 +677,9 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
     /* Action sensor accelerometer */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_ACCELEROMETER)) {
         int accelerometer[3];
-		int16_t buf[3];
-		memcpy(buf, buffer + write_cnt, sizeof(buf));
-		write_cnt += sizeof(buf);
+        int16_t buf[3];
+        memcpy(buf, buffer + write_cnt, sizeof(buf));
+        write_cnt += sizeof(buf);
         for (i = 0; i < ARRAY_SIZE(accelerometer); i++) {
             accelerometer[i] = buf[i];
         }
@@ -690,11 +690,11 @@ int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payloa
     }
 
     /* Add timestamp */
-	memcpy(&timestamp, buffer + write_cnt, sizeof(timestamp));
+    memcpy(&timestamp, buffer + write_cnt, sizeof(timestamp));
     if (json_add_str(msg_obj, "timestamp", epoch_buf)) {
         goto cleanup;
     }
-    // get random number
+    /*  get random number */
     __disable_irq();
     GenRandom(random);
     __enable_irq();
@@ -748,7 +748,7 @@ cleanup:
 
     return ret;
 }
-// protoc --nanopb_out=.  package.proto
+/*  protoc --nanopb_out=.  package.proto */
 
 int SensorPackage(uint16_t channel, uint8_t *buffer)
 {
@@ -760,11 +760,11 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     int sinLen;
     float AmbientLight = 0.0;
     uint32_t uint_timestamp;
-    //char random[17];
+    /* char random[17]; */
     BinPackage binpack = BinPackage_init_zero;
     SensorData sensordat = SensorData_init_zero;
 
-    // Initialize buffer
+    /*  Initialize buffer */
     memset(buffer, 0, DATA_BUFFER_SIZE);
     if (DATA_CHANNEL_ENV_SENSOR & channel) {
         if (iotex_bme680_get_sensor_data(&env_sensor)) {
@@ -860,7 +860,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     /* Add timestamp */
     uint_timestamp = atoi(iotex_modem_get_clock(NULL));
-    // get random number
+    /*  get random number */
     __disable_irq();
     GenRandom(sensordat.random);
     __enable_irq();
@@ -868,11 +868,11 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     sensordat.has_random = true;
 
     pb_ostream_t enc_datastream;
-	enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
-	if (!pb_encode(&enc_datastream, SensorData_fields, &sensordat)) {
-		LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
-		return 0;
-	}
+    enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
+    if (!pb_encode(&enc_datastream, SensorData_fields, &sensordat)) {
+        LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
+        return 0;
+    }
 
     binpack.data.size = enc_datastream.bytes_written;
     binpack.data.bytes[enc_datastream.bytes_written] = (char)((uint_timestamp & 0xFF000000) >> 24);
@@ -888,17 +888,17 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     binpack.timestamp = uint_timestamp;
     binpack.type = BinPackage_PackageType_DATA;
     pb_ostream_t enc_packstream;
-	enc_packstream = pb_ostream_from_buffer(buffer, DATA_BUFFER_SIZE);
-	if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack)) {
-		LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
-		return 0;
-	}
+    enc_packstream = pb_ostream_from_buffer(buffer, DATA_BUFFER_SIZE);
+    if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack)) {
+        LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
+        return 0;
+    }
     LOG_INF("sen->snr:%d\n", sensordat.snr);
 #ifdef DECODE_PROTOBUF
-    // --------------------------------- TEST CODE ------------------------
+    /*  --------------------------------- TEST CODE ------------------------ */
     {
         sinLen = enc_packstream.bytes_written;
-        // decode buffer now
+        /*  decode buffer now */
         /* Allocate space for the decoded message. */
         BinPackage message = BinPackage_init_zero;
         

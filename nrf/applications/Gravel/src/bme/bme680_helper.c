@@ -32,7 +32,7 @@ static int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data
 }
 
 static void user_delay_ms(uint32_t period) {
-    //k_sleep(period);
+    /* k_sleep(period); */
     k_usleep(period*1000);
 }
 
@@ -154,11 +154,11 @@ int iotex_bme680_get_sensor_data(iotex_storage_bme680 *bme680) {
     bme680->humidity = env_data.value;    
     env_sensors_get_temperature(&env_data);
     bme680->temperature = env_data.value; 
-    //char env_print[200];
-    //memset(env_print,0, sizeof(env_print));   
-    //snprintf(env_print, sizeof(env_print), "{\"temperature\":\"%f\",\"humidity\":%f,\"gas_resistance\":%f}",
-    //            bme680->temperature, bme680->humidity, bme680->gas_resistance);
-    //printk("BME680 read : %s \n", env_print);
+    /* char env_print[200]; */
+    /* memset(env_print,0, sizeof(env_print));    */
+    /* snprintf(env_print, sizeof(env_print), "{\"temperature\":\"%f\",\"humidity\":%f,\"gas_resistance\":%f}", */
+    /*             bme680->temperature, bme680->humidity, bme680->gas_resistance); */
+    /* printk("BME680 read : %s \n", env_print); */
     return BME680_OK;
 #endif
 }

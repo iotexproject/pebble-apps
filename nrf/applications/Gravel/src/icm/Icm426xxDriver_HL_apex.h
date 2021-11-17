@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively “Software� is subject
+ * This software, related documentation and any modifications thereto (collectively “Software� is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -51,59 +51,59 @@ struct inv_icm426xx;
 /** @brief Icm426xx TAP inputs parameters definition
  */
 typedef struct {
-	uint8_t min_jerk_thr;	                                /**< Minimum Jerk Threshold */
-	ICM426XX_APEX_CONFIG7_TAP_MAX_PEAK_TOL_t max_peak_tol;  /**< Maximum peak tolerance */
-	ICM426XX_APEX_CONFIG8_TAP_TMAX_t tmax;                  /**< Tap measurement window */
-	ICM426XX_APEX_CONFIG8_TAP_TAVG_t tavg;                  /**< Energy measumerement window */
-	ICM426XX_APEX_CONFIG8_TAP_TMIN_t tmin;                  /**< Single tap window */
+    uint8_t min_jerk_thr;                                    /**< Minimum Jerk Threshold */
+    ICM426XX_APEX_CONFIG7_TAP_MAX_PEAK_TOL_t max_peak_tol;  /**< Maximum peak tolerance */
+    ICM426XX_APEX_CONFIG8_TAP_TMAX_t tmax;                  /**< Tap measurement window */
+    ICM426XX_APEX_CONFIG8_TAP_TAVG_t tavg;                  /**< Energy measumerement window */
+    ICM426XX_APEX_CONFIG8_TAP_TMIN_t tmin;                  /**< Single tap window */
 } inv_icm426xx_tap_parameters_t;
 
 /** @brief Icm426xx APEX inputs parameters definition
  */
 typedef struct inv_icm426xx_apex_parameters {
-	ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_t pedo_amp_th;                   /**< Peak threshold value to be considered as a valid step (mg) */
-	uint8_t pedo_step_cnt_th;                                          /**< Minimum number of steps that must be detected 
-	                                                                        before the pedometer step count begins incrementing */
-	uint8_t pedo_step_det_th;                                          /**< Minimum number of low latency steps that must be detected 
-	                                                                        before the pedometer step count begins incrementing */
-	ICM426XX_APEX_CONFIG3_PEDO_SB_TIMER_TH_t pedo_sb_timer_th;         /**< Duration of non-walk to exit the current walk mode, 
-	                                                                        pedo_step_cnt_th number of steps must again be detected 
-	                                                                        before step count starts to increase */
-	ICM426XX_APEX_CONFIG3_PEDO_HI_ENRGY_TH_t pedo_hi_enrgy_th;         /**< Threshold to improve run detection if not steps are counted while running */
+    ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_t pedo_amp_th;                   /**< Peak threshold value to be considered as a valid step (mg) */
+    uint8_t pedo_step_cnt_th;                                          /**< Minimum number of steps that must be detected 
+                                                                            before the pedometer step count begins incrementing */
+    uint8_t pedo_step_det_th;                                          /**< Minimum number of low latency steps that must be detected 
+                                                                            before the pedometer step count begins incrementing */
+    ICM426XX_APEX_CONFIG3_PEDO_SB_TIMER_TH_t pedo_sb_timer_th;         /**< Duration of non-walk to exit the current walk mode, 
+                                                                            pedo_step_cnt_th number of steps must again be detected 
+                                                                            before step count starts to increase */
+    ICM426XX_APEX_CONFIG3_PEDO_HI_ENRGY_TH_t pedo_hi_enrgy_th;         /**< Threshold to improve run detection if not steps are counted while running */
  
-	ICM426XX_APEX_CONFIG4_TILT_WAIT_TIME_t tilt_wait_time;             /**< Number of accelerometer samples to wait before triggering tilt event */
+    ICM426XX_APEX_CONFIG4_TILT_WAIT_TIME_t tilt_wait_time;             /**< Number of accelerometer samples to wait before triggering tilt event */
  
-	ICM426XX_APEX_CONFIG1_DMP_POWER_SAVE_TIME_t power_save_time;       /**< The time after which DMP goes in power save mode according to the DMP ODR configured */
-	ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_t power_save;                 /**< Power save mode for APEX algorithms. This mode will put APEX features into sleep mode, 
-	                                                                        leaving only the WOM running to wake-up the DMP */
-	
-	ICM426XX_APEX_CONFIG9_SENSITIVITY_MODE_t sensitivity_mode;         /**< Sensitivity mode Normal(0) or Slow walk(1). The Slow walk mode improve 
-	                                                                        the slow walk detection (<1Hz) but in return the number of false detection 
-	                                                                        might be increase. */
+    ICM426XX_APEX_CONFIG1_DMP_POWER_SAVE_TIME_t power_save_time;       /**< The time after which DMP goes in power save mode according to the DMP ODR configured */
+    ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_t power_save;                 /**< Power save mode for APEX algorithms. This mode will put APEX features into sleep mode, 
+                                                                            leaving only the WOM running to wake-up the DMP */
+    
+    ICM426XX_APEX_CONFIG9_SENSITIVITY_MODE_t sensitivity_mode;         /**< Sensitivity mode Normal(0) or Slow walk(1). The Slow walk mode improve 
+                                                                            the slow walk detection (<1Hz) but in return the number of false detection 
+                                                                            might be increase. */
 
-	ICM426XX_APEX_CONFIG4_R2W_SLEEP_TIME_OUT_t r2w_sleep_time_out;     /**< Time out for a sleep detection. */
-	ICM426XX_APEX_CONFIG5_R2W_MOUNTING_MATRIX_t r2w_mounting_matrix;   /**< Mounting matrix, chip to device frame. */
-	ICM426XX_APEX_CONFIG6_R2W_SLEEP_GEST_DELAY_t r2w_gest_delay;       /**< Detection window for a sleep gesture detection. */
+    ICM426XX_APEX_CONFIG4_R2W_SLEEP_TIME_OUT_t r2w_sleep_time_out;     /**< Time out for a sleep detection. */
+    ICM426XX_APEX_CONFIG5_R2W_MOUNTING_MATRIX_t r2w_mounting_matrix;   /**< Mounting matrix, chip to device frame. */
+    ICM426XX_APEX_CONFIG6_R2W_SLEEP_GEST_DELAY_t r2w_gest_delay;       /**< Detection window for a sleep gesture detection. */
 
-	ICM426XX_APEX_CONFIG1_LOW_ENERGY_AMP_TH_t low_energy_amp_th;       /**< Peak threshold value to be considered as a valid step (mg) in Slow walk mode */
+    ICM426XX_APEX_CONFIG1_LOW_ENERGY_AMP_TH_t low_energy_amp_th;       /**< Peak threshold value to be considered as a valid step (mg) in Slow walk mode */
 } inv_icm426xx_apex_parameters_t;
 
 /** @brief APEX pedometer outputs
  */
 typedef struct inv_icm426xx_apex_step_activity {
-	uint16_t step_cnt;      /**< Number of steps taken */
-	uint8_t step_cadence;   /**< Walk/run cadency in number of samples. 
-	                             Format is u6.2. E.g, At 50Hz and 2Hz walk frequency, if the cadency is 25 samples. The register will output 100. */
-	uint8_t activity_class; /**< Detected activity unknown (0), walk (1) or run (2) */
+    uint16_t step_cnt;      /**< Number of steps taken */
+    uint8_t step_cadence;   /**< Walk/run cadency in number of samples. 
+                                 Format is u6.2. E.g, At 50Hz and 2Hz walk frequency, if the cadency is 25 samples. The register will output 100. */
+    uint8_t activity_class; /**< Detected activity unknown (0), walk (1) or run (2) */
 } inv_icm426xx_apex_step_activity_t;
 
 /** @brief TAP outputs
  */
 typedef struct inv_icm426xx_tap_data {
-	ICM426XX_APEX_DATA4_TAP_NUM_t tap_num;     /**< Detects single (1) or double (2) tap*/
-	ICM426XX_APEX_DATA4_TAP_AXIS_t tap_axis;   /**< Axis along which tap has been detected */
-	ICM426XX_APEX_DATA4_TAP_DIR_t tap_dir;     /**< Direction of the tap, either +axis (1) or -axis (0)*/
-	uint8_t double_tap_timing;                 /**< Timing between both taps of a double tap expressed in 1/16th of odr in ms (e.g At 500Hz, 2 means 64ms between each tap) */
+    ICM426XX_APEX_DATA4_TAP_NUM_t tap_num;     /**< Detects single (1) or double (2) tap*/
+    ICM426XX_APEX_DATA4_TAP_AXIS_t tap_axis;   /**< Axis along which tap has been detected */
+    ICM426XX_APEX_DATA4_TAP_DIR_t tap_dir;     /**< Direction of the tap, either +axis (1) or -axis (0)*/
+    uint8_t double_tap_timing;                 /**< Timing between both taps of a double tap expressed in 1/16th of odr in ms (e.g At 500Hz, 2 means 64ms between each tap) */
 } inv_icm426xx_tap_data_t;
 
 

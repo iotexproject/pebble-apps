@@ -24,11 +24,11 @@ extern "C" {
 #include <drivers/sensor.h>
 
 struct light_sensor_data {
-	/* light levels in lux */
-	s32_t red;
-	s32_t green;
-	s32_t blue;
-	s32_t ir;
+    /* light levels in lux */
+    s32_t red;
+    s32_t green;
+    s32_t blue;
+    s32_t ir;
 };
 
 typedef void (*light_sensor_data_ready_cb)(void);
@@ -39,7 +39,7 @@ typedef void (*light_sensor_data_ready_cb)(void);
  * @return 0 if the operation was successful, otherwise a (negative) error code.
  */
 int light_sensor_init_and_start(struct k_work_q *work_q,
-				const light_sensor_data_ready_cb cb);
+                const light_sensor_data_ready_cb cb);
 
 /**
  * @brief Get latest sampled light data.

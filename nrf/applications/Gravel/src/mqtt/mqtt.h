@@ -35,9 +35,9 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel);
 
 /* Sampling data and pack seleccted data to json string to output buffer */
 int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *output);
-//  wrap  json package
+/*   wrap  json package */
 int iotex_mqtt_bin_to_json(uint8_t *buffer, uint16_t channel, struct mqtt_payload *output);
-// mqtt  heart beat
+/*  mqtt  heart beat */
 int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos);
 
 int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos);

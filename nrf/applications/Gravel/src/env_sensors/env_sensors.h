@@ -29,21 +29,21 @@ extern "C" {
 
 /** @brief Environmental sensor types supported */
 typedef enum {
-	/** Temperature sensor. */
-	ENV_SENSOR_TEMPERATURE,
-	/** The Humidity sensor. */
-	ENV_SENSOR_HUMIDITY,
-	/** The Air Pressure sensor. */
-	ENV_SENSOR_AIR_PRESSURE,
-	/** The Air Quality sensor. */
-	ENV_SENSOR_AIR_QUALITY,
+    /** Temperature sensor. */
+    ENV_SENSOR_TEMPERATURE,
+    /** The Humidity sensor. */
+    ENV_SENSOR_HUMIDITY,
+    /** The Air Pressure sensor. */
+    ENV_SENSOR_AIR_PRESSURE,
+    /** The Air Quality sensor. */
+    ENV_SENSOR_AIR_QUALITY,
 } env_sensor_t;
 
 typedef struct {
-	/** Sensor type. */
-	env_sensor_t type;
-	/** Sensor sample value. */
-	double value;
+    /** Sensor type. */
+    env_sensor_t type;
+    /** Sensor sample value. */
+    double value;
 } env_sensor_data_t;
 
 typedef void (*env_sensors_data_ready_cb)(void);
@@ -90,7 +90,7 @@ int env_sensors_get_air_quality(env_sensor_data_t *sensor_data);
  * @return 0 if the operation was successful, otherwise a (negative) error code.
  */
 int env_sensors_init_and_start(struct k_work_q *work_q,
-			       const env_sensors_data_ready_cb cb);
+                   const env_sensors_data_ready_cb cb);
 
 /**
  * @brief Set environmental sensor's poll/send interval.

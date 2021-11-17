@@ -49,11 +49,11 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
     confData.has_firmware = true;
     strcpy(confData.firmware, firmwareVersion);
     pb_ostream_t enc_datastream;
-	enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
-	if (!pb_encode(&enc_datastream, SensorConfig_fields, &confData)) {
-		//encode error happened
-		LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
-		return 0;
+    enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
+    if (!pb_encode(&enc_datastream, SensorConfig_fields, &confData)) {
+        /* encode error happened */
+        LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
+        return 0;
     }
     uint_timestamp = atoi(iotex_modem_get_clock(NULL));
     binpack.data.size = enc_datastream.bytes_written;
@@ -75,7 +75,7 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
     pb_ostream_t enc_packstream;
     enc_packstream = pb_ostream_from_buffer(buffer, size);
     if (!pb_encode(&enc_packstream, BinPackage_fields, &binpack)) {
-        //encode error happened
+        /* encode error happened */
         LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
         return 0;
     }
@@ -127,12 +127,12 @@ uint16_t iotex_mqtt_get_current_sampling_count(void) {
 }
 
 bool iotex_mqtt_is_need_sampling(void) {
-	LOG_INF("current_sampling_cnt:%d, bulk_upload_sampling_cnt:%d\n", __config.current_sampling_cnt, __config.bulk_upload_sampling_cnt);
+    LOG_INF("current_sampling_cnt:%d, bulk_upload_sampling_cnt:%d\n", __config.current_sampling_cnt, __config.bulk_upload_sampling_cnt);
     return __config.current_sampling_cnt < __config.bulk_upload_sampling_cnt;
 }
 
 bool iotex_mqtt_is_bulk_upload_over(void) {
-	return __config.current_upload_cnt >= __config.bulk_upload_sampling_cnt;
+    return __config.current_upload_cnt >= __config.bulk_upload_sampling_cnt;
 }
 
 bool iotex_mqtt_inc_current_upload_count(void) {
@@ -299,20 +299,20 @@ void iotex_mqtt_load_config(void) {
 
 void set_block_size(uint32_t size)
 {
-	__config.size_of_block = size;
+    __config.size_of_block = size;
 }
 
 uint32_t get_block_size(void)
 {
-	return __config.size_of_block;
+    return __config.size_of_block;
 }
 
 uint16_t get_his_block(void)
 {
-	if (__config.current_upload_cnt < __config.bulk_upload_sampling_cnt)
-		return (__config.bulk_upload_sampling_cnt - __config.current_upload_cnt -1);
-	else
-		return 0;
+    if (__config.current_upload_cnt < __config.bulk_upload_sampling_cnt)
+        return (__config.bulk_upload_sampling_cnt - __config.current_upload_cnt -1);
+    else
+        return 0;
 }
 
 int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len) {
@@ -327,7 +327,7 @@ int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len) {
     }
     Uri = cJSON_GetObjectItem(root_obj, "uri");
     if (Uri && cJSON_IsString(Uri)) {
-        //strcpy(url, firmwareUri->valuestring);
+        /* strcpy(url, firmwareUri->valuestring); */
         strcpy(firmwareUrl,  Uri->valuestring);
         LOG_INF("firmwareUrl:%s \n", firmwareUrl);
     }

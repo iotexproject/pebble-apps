@@ -22,14 +22,14 @@ extern "C" {
 #define EXTERN_GPS  1
 #endif
 
-// Hardware board V2.0 added new extern GPS model
-// define  dev and  controller IO 
-#define UART_GPS  "UART_3"   // uart 3 used for gps 
+/*  Hardware board V2.0 added new extern GPS model */
+/*  define  dev and  controller IO  */
+#define UART_GPS  "UART_3"   /*  uart 3 used for gps  */
 
 #if(CONFIG_IOTEX_BOARD_VERSION ==3)
-#define GPS_EN       7          //  gpio0.3 
+#define GPS_EN       7          /*   gpio0.3  */
 #elif (CONFIG_IOTEX_BOARD_VERSION ==2)
-#define GPS_EN       3          //  gpio0.3 
+#define GPS_EN       3          /*   gpio0.3  */
 #endif 
 
 void exGPSInit(void);

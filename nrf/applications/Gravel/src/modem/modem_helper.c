@@ -62,7 +62,7 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
         LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
     }
     LOG_INF("AT CMD Modem time is:%s\n", cclk_r_buf);
-    // num of years since 1900, the formula works only for 2xxx
+    /*  num of years since 1900, the formula works only for 2xxx */
     YY = (cclk_r_buf[8] - '0') * 10 + (cclk_r_buf[9] - '0') + 100;
     MM = (cclk_r_buf[11] - '0') * 10 + (cclk_r_buf[12] - '0');
     DD = (cclk_r_buf[14] - '0') * 10 + (cclk_r_buf[15] - '0');
@@ -72,7 +72,7 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
     if (isLeap(YY + 1900)) {
         daysPerMonth[2] = 29;
     }
-    // accumulate
+    /*  accumulate */
     for (int i = 1; i <= 12; i++) {
         daysPerMonth[i] += daysPerMonth[i - 1];
     }
@@ -102,7 +102,7 @@ double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
         LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
     }
     LOG_INF("AT CMD Modem time is:%s\n", cclk_r_buf);
-    // num of years since 1900, the formula works only for 2xxx
+    /*  num of years since 1900, the formula works only for 2xxx */
     YY = (cclk_r_buf[8] - '0') * 10 + (cclk_r_buf[9] - '0') + 100;
     MM = (cclk_r_buf[11] - '0') * 10 + (cclk_r_buf[12] - '0');
     DD = (cclk_r_buf[14] - '0') * 10 + (cclk_r_buf[15] - '0');
@@ -112,7 +112,7 @@ double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
     if (isLeap(YY + 1900)) {
         daysPerMonth[2] = 29;
     }
-    // accumulate
+    /*  accumulate */
     for (int i = 1; i <= 12; i++) {
         daysPerMonth[i] += daysPerMonth[i - 1];
     }

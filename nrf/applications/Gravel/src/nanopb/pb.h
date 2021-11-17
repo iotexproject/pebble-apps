@@ -810,20 +810,20 @@ struct pb_extension_s {
 #ifdef __cplusplus
 #if __cplusplus >= 201103L
 #define PB_CONSTEXPR constexpr
-#else  // __cplusplus >= 201103L
+#else  /*  __cplusplus >= 201103L */
 #define PB_CONSTEXPR
-#endif  // __cplusplus >= 201103L
+#endif  /*  __cplusplus >= 201103L */
 
 #if __cplusplus >= 201703L
 #define PB_INLINE_CONSTEXPR inline constexpr
-#else  // __cplusplus >= 201703L
+#else  /*  __cplusplus >= 201703L */
 #define PB_INLINE_CONSTEXPR PB_CONSTEXPR
-#endif  // __cplusplus >= 201703L
+#endif  /*  __cplusplus >= 201703L */
 
 namespace nanopb {
-// Each type will be partially specialized by the generator.
+/*  Each type will be partially specialized by the generator. */
 template <typename GenMessageT> struct MessageDescriptor;
-}  // namespace nanopb
+}  /*  namespace nanopb */
 #endif  /* __cplusplus */
 
 #endif

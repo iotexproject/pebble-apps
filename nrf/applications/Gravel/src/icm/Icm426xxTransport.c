@@ -28,30 +28,30 @@
 
 int inv_icm426xx_read_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, uint8_t * buf)
 {
-	// First field of struct inv_icm426xx is assumed to be a struct inv_icm426xx_serif object.
-	// So let's cast s to struct inv_icm426xx_serif and ignore the rest of struct inv_icm426xx.
-	struct inv_icm426xx_serif *serif = (struct inv_icm426xx_serif *)s;
-	
-	if(len > serif->max_read)
-		return INV_ERROR_SIZE;
+    /*  First field of struct inv_icm426xx is assumed to be a struct inv_icm426xx_serif object. */
+    /*  So let's cast s to struct inv_icm426xx_serif and ignore the rest of struct inv_icm426xx. */
+    struct inv_icm426xx_serif *serif = (struct inv_icm426xx_serif *)s;
+    
+    if(len > serif->max_read)
+        return INV_ERROR_SIZE;
 
-	if(serif->read_reg(serif, reg, buf, len) != 0)
-		return INV_ERROR_TRANSPORT;
+    if(serif->read_reg(serif, reg, buf, len) != 0)
+        return INV_ERROR_TRANSPORT;
 
-	return 0;
+    return 0;
 }
 
 int inv_icm426xx_write_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, const uint8_t * buf)
 {
-	// First field of struct inv_icm426xx is assumed to be a struct inv_icm426xx_serif object.
-	// So let's cast s to struct inv_icm426xx_serif and ignore the rest of struct inv_icm426xx.
-	struct inv_icm426xx_serif *serif = (struct inv_icm426xx_serif *)s;
+    /*  First field of struct inv_icm426xx is assumed to be a struct inv_icm426xx_serif object. */
+    /*  So let's cast s to struct inv_icm426xx_serif and ignore the rest of struct inv_icm426xx. */
+    struct inv_icm426xx_serif *serif = (struct inv_icm426xx_serif *)s;
 
-	if(len > serif->max_write)
-		return INV_ERROR_SIZE;
+    if(len > serif->max_write)
+        return INV_ERROR_SIZE;
 
-	if(serif->write_reg(serif, reg, buf, len) != 0)
-		return INV_ERROR_TRANSPORT;
+    if(serif->write_reg(serif, reg, buf, len) != 0)
+        return INV_ERROR_TRANSPORT;
 
-	return 0;
+    return 0;
 }

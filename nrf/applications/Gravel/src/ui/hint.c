@@ -125,7 +125,7 @@ void hintString(uint8_t *str[], uint8_t tim) {
                 return;
             }
         } else {
-            //ypos = (HINT_HEIGHT+2)/2;
+            /* ypos = (HINT_HEIGHT+2)/2; */
             ypos = HINT_HEIGHT / 2;
             xpos = (HINT_WIDTH - (len >> 1)) / 2;
         }
@@ -162,7 +162,7 @@ void dis_OnelineText(uint32_t line, uint32_t flg, uint8_t *str, uint8_t revert)
         LOG_ERR("Hints too long:%s\n", str);
         return;
     } else {
-        // left align
+        /*  left align */
         if (flg) {
             xpos = 0;
         } else {
@@ -171,20 +171,20 @@ void dis_OnelineText(uint32_t line, uint32_t flg, uint8_t *str, uint8_t revert)
         ypos = textLine[line];
     }
     ssd1306_display_string(xpos, ypos, str, 16, revert);
-    //ssd1306_refresh_lines(line*2,line*2+1);
+    /* ssd1306_refresh_lines(line*2,line*2+1); */
     ssd1306_refresh_lines(6-2*line,7-2*line);
 }
 
 void dashBoard(void) {
     uint8_t disBuf[20];
 
-    //ssd1306_clear_screen(0);
-    // app
+    /* ssd1306_clear_screen(0); */
+    /*  app */
     strcpy(disBuf, "App:"APP_NAME);    
     dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
     strcpy(disBuf, "Ver:"RELEASE_VERSION);    
     dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);    
-    // packages
+    /*  packages */
     strcpy(disBuf, "Package Sent:");
     sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
     dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
@@ -198,7 +198,7 @@ void  fatalError(void) {
 }
 
 
-// startup menu
+/*  startup menu */
 
 bool checkMenuEntry(void)
 {
@@ -337,7 +337,7 @@ void modemSettings(void) {
             {
                 lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
             }
-            // read modem and writing into  sec
+            /*  read modem and writing into  sec */
             if(selArea != cursor) {
                 itoa(cursor, index, 10);
                 index[1] = 0;
@@ -414,7 +414,7 @@ void selectArea(void)
             ClearKey();
             if(cursor == (sizeof(allArea)/sizeof(allArea[0])-1))
                 break;
-            // read modem and writing into  sec
+            /*  read modem and writing into  sec */
             if(selArea != cursor)
                 updateCert(cursor);
             selArea = cursor;
@@ -444,35 +444,35 @@ void pebbleInfor(void) {
     memset(sysInfo, 0, sizeof(sysInfo)); 
     memset(buf, 0, sizeof(buf));
     getSysInfor(sysInfo);    
-    // SN
+    /*  SN */
     memset(buf, 0, sizeof(buf));
     pbuf = ReadDataFromModem(PEBBLE_DEVICE_SN, buf_sn, sizeof(buf_sn));
     if(pbuf != NULL)
     {
-        //sprintf(buf[0], "SN:%s", pbuf);
+        /* sprintf(buf[0], "SN:%s", pbuf); */
         strcpy(buf[0], "SN:");
         memcpy(buf[0]+strlen(buf[0]), pbuf, 10); 
         buf[0][13] = 0;
         dis_OnelineText(0, ALIGN_LEFT, buf[0],DIS_NORMAL);
     }    
-    // IMEI    
+    /*  IMEI     */
     sprintf(id, "%s", iotex_mqtt_get_client_id());
     strcpy(buf[1], "IMEI:");
     memcpy(buf[1]+strlen(buf[1]), id, 11);
     sprintf(buf[2], "     %s", id+11);
     dis_OnelineText(1, ALIGN_LEFT, buf[1],DIS_NORMAL);
     dis_OnelineText(2, ALIGN_LEFT, buf[2],DIS_NORMAL);
-    // HW  SDK
+    /*  HW  SDK */
     sprintf(buf[3], "HW:%s SDK:%s", HW_VERSION, SDK_VERSION);
     dis_OnelineText(3, ALIGN_LEFT, buf[3],DIS_NORMAL);   
-    // app 
+    /*  app  */
     sprintf(buf[4], "APP:%s", APP_NAME);
     sprintf(buf[5], "VER:%s", RELEASE_VERSION);
-    // bootloader
+    /*  bootloader */
     sprintf(buf[6], "%s", sysInfo);
-    // modem 
+    /*  modem  */
     sprintf(buf[7], "MD:%s", sysInfo+60);
-    // open test com port
+    /*  open test com port */
     ComToolInit();
     ClearKey();
     while(true)
@@ -524,9 +524,9 @@ void sysSet(void) {
     };
     int  cursor = 0, last_cur = 0, i;
 
-    // clear screen
+    /*  clear screen */
     ssd1306_clear_screen(0);
-    // main menu
+    /*  main menu */
     for(i = 0; i < sizeof(mainMenu)/sizeof(mainMenu[0]); i++)
     {
         dis_OnelineText(i,ALIGN_LEFT, mainMenu[i],DIS_CURSOR(i, cursor)); 
@@ -594,9 +594,9 @@ void MainMenu(void) {
     initBrokeHost();
     if(!checkMenuEntry())
         return;   
-    // clear screen
+    /*  clear screen */
     ssd1306_clear_screen(0);
-    // main menu
+    /*  main menu */
     for(i = 0; i < sizeof(mainMenu)/sizeof(mainMenu[0]); i++)
     {
         dis_OnelineText(i,ALIGN_LEFT, mainMenu[i],DIS_CURSOR(i, cursor)); 
@@ -657,11 +657,11 @@ void MainMenu(void) {
 }
 
 void appEntryDetect(void) {
-    // system  startup check proposer status 
+    /*  system  startup check proposer status  */
     devRegSet(DEV_REG_START);
-    // Need to upgrade?
+    /*  Need to upgrade? */
     if(isUpKeyStartupPressed()) {
-        // system will be upgraded via OTA
+        /*  system will be upgraded via OTA */
         hintString(htConnecting, HINT_TIME_FOREVER); 
         devRegSet(DEV_UPGRADE_ENTRY);
     }

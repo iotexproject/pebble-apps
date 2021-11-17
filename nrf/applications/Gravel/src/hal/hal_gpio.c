@@ -34,18 +34,18 @@ struct device *__gpio0_dev;
 static u32_t g_key_press_start_time;
 static struct gpio_callback chrq_gpio_cb, pwr_key_gpio_cb;
 
-//extern struct k_delayed_work  event_work;
+/* extern struct k_delayed_work  event_work; */
 
 void checkCHRQ(void) {
     u32_t chrq;    
     chrq = gpio_pin_get(__gpio0_dev, IO_NCHRQ);
     if(!chrq) {
-        // charging
+        /*  charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_ON);
     }
     else {
-        // not charging
+        /*  not charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_OFF);
     }    
@@ -96,14 +96,14 @@ void iotex_hal_gpio_init(void) {
     __gpio0_dev = device_get_binding("GPIO_0");
 
     /* Set LED pin as output */
-    gpio_pin_configure(__gpio0_dev, IO_POWER_ON, GPIO_DIR_OUT);	//p0.31 == POWER_ON
-    gpio_pin_configure(__gpio0_dev, LED_GREEN, GPIO_DIR_OUT); 	//p0.00 == LED_GREEN
-    gpio_pin_configure(__gpio0_dev, LED_BLUE, GPIO_DIR_OUT);	//p0.01 == LED_BLUE
-    gpio_pin_configure(__gpio0_dev, LED_RED, GPIO_DIR_OUT); 	//p0.02 == LED_RED
-    gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_ON);	//p0.31 == POWER_ON
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);	//p0.00 == LED_GREEN ON
-    gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);	//p0.00 == LED_BLUE OFF
-    gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);	//p0.00 == LED_RED
+    gpio_pin_configure(__gpio0_dev, IO_POWER_ON, GPIO_DIR_OUT);    /* p0.31 == POWER_ON */
+    gpio_pin_configure(__gpio0_dev, LED_GREEN, GPIO_DIR_OUT);     /* p0.00 == LED_GREEN */
+    gpio_pin_configure(__gpio0_dev, LED_BLUE, GPIO_DIR_OUT);    /* p0.01 == LED_BLUE */
+    gpio_pin_configure(__gpio0_dev, LED_RED, GPIO_DIR_OUT);     /* p0.02 == LED_RED */
+    gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_ON);    /* p0.31 == POWER_ON */
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);    /* p0.00 == LED_GREEN ON */
+    gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);    /* p0.00 == LED_BLUE OFF */
+    gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);    /* p0.00 == LED_RED */
     /* USB battery charge pin */
     gpio_pin_configure(__gpio0_dev, IO_NCHRQ,
                     (GPIO_DIR_IN | GPIO_INT |
@@ -164,14 +164,14 @@ void PowerOffIndicator(void)
     k_sleep(K_MSEC(5000));
 }
 
-// read SN  in pebbleGo firmware
+/*  read SN  in pebbleGo firmware */
 static void uart_comtool_rx_handler(u8_t character) {
     if(rev_index < COMMAND_LENGTH) {
         rev_buf[rev_index++]=character;
         if(rev_buf[0] != COM_HEAD)
             rev_index = 0;
         if(rev_index == COMMAND_LENGTH) {
-            //uart_rx_disable(guart_dev_comtool);
+            /* uart_rx_disable(guart_dev_comtool); */
             rev_index = 0;            
             rev_buf[COM_REV_STR_LEN] = 0;
             testCmdReved = 1;         

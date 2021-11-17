@@ -4,36 +4,36 @@
 #include <stdint.h>
 #include <stdio.h>
 
-//define  mqtt tls cert
+/* define  mqtt tls cert */
 #define  CERT_START_SEC   4
-// default asia
+/*  default asia */
 #define ASIA_PACIFIC_CERT_SEC   CERT_START_SEC
-#define ASIA_PACIFIC_KEY_SEC    (CERT_START_SEC+1)  //5
-// pacific
+#define ASIA_PACIFIC_KEY_SEC    (CERT_START_SEC+1)  /* 5 */
+/*  pacific */
 #define EUROPE_FRANKFURT_CERT_SEC   (CERT_START_SEC+2)
 #define EUROPE_FRANKFURT_KEY_SEC    (CERT_START_SEC+3)  
-// middle_east
+/*  middle_east */
 #define MIDDLE_EAST_CERT_SEC   (CERT_START_SEC+4)
 #define MIDDLE_EAST_KEY_SEC    (CERT_START_SEC+5)  
-// north_america
+/*  north_america */
 #define NORTH_AMERICA_CERT_SEC   (CERT_START_SEC+6)
 #define NORTH_AMERICA_KEY_SEC    (CERT_START_SEC+7)  
-// south america
+/*  south america */
 #define SOUTH_AMERICA_CERT_SEC   (CERT_START_SEC+8)
 #define SOUTH_AMERICA_KEY_SEC    (CERT_START_SEC+9) 
-// root CA
+/*  root CA */
 #define AWS_ROOT_CA             (CERT_START_SEC+10) 
 
-// define  ECC_KEY  SEC
-#define  ECC_KEY_SEC          (CERT_START_SEC+11)   // private + public
+/*  define  ECC_KEY  SEC */
+#define  ECC_KEY_SEC          (CERT_START_SEC+11)   /*  private + public */
 
-// define  system parameters
+/*  define  system parameters */
 #define   PEBBLE_SYS_PARAM_SEC   (CERT_START_SEC+12)
-// Device serial number
+/*  Device serial number */
 #define   PEBBLE_DEVICE_SN        (CERT_START_SEC+13)
-// mqtt cert index
+/*  mqtt cert index */
 #define   MQTT_CERT_INDEX          (CERT_START_SEC+14)
-// modem  startup mode , LTE-M or  NB-IOT
+/*  modem  startup mode , LTE-M or  NB-IOT */
 #define   MODEM_MODE_SEL          (CERT_START_SEC+15)
 
 
@@ -105,4 +105,4 @@ int iotex_local_storage_save(iotex_storage_id id, const void *data, size_t len);
 int iotex_local_storage_hist(iotex_storage_id id, void *data, size_t len, uint16_t cnt);
 int iotex_local_storage_readall(iotex_storage_id id, void *data, size_t size, size_t item_len);
 
-#endif //_IOTEX_STORAGE_H_
+#endif /* _IOTEX_STORAGE_H_ */

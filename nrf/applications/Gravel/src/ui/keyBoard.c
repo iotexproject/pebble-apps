@@ -108,7 +108,7 @@ void iotex_key_init(void) {
                         GPIO_INT_DEBOUNCE));
     gpio_init_callback(&up_key_gpio_cb, up_key_callback, BIT(IO_UP_KEY));
     gpio_add_callback(__gpio0_dev, &up_key_gpio_cb);
-    //gpio_pin_enable_callback(__gpio0_dev, IO_UP_KEY);
+    /* gpio_pin_enable_callback(__gpio0_dev, IO_UP_KEY); */
     gpio_pin_interrupt_configure(__gpio0_dev, IO_UP_KEY,GPIO_INT_EDGE_BOTH);
     /* down_key pin */
     gpio_pin_configure(__gpio0_dev, IO_DOWN_KEY,
@@ -117,7 +117,7 @@ void iotex_key_init(void) {
                         GPIO_INT_DEBOUNCE));
     gpio_init_callback(&down_key_gpio_cb, down_key_callback, BIT(IO_DOWN_KEY));
     gpio_add_callback(__gpio0_dev, &down_key_gpio_cb);
-    //gpio_pin_enable_callback(__gpio0_dev, IO_DOWN_KEY);
+    /* gpio_pin_enable_callback(__gpio0_dev, IO_DOWN_KEY); */
     gpio_pin_interrupt_configure(__gpio0_dev, IO_DOWN_KEY,GPIO_INT_EDGE_BOTH);
     /* Power key pin configure */
     k_delayed_work_init(&power_off_button_work, power_off_handler);
@@ -127,6 +127,6 @@ void iotex_key_init(void) {
                         GPIO_INT_DEBOUNCE));
     gpio_init_callback(&pwr_key_gpio_cb, pwr_key_callback, BIT(POWER_KEY));
     gpio_add_callback(__gpio0_dev, &pwr_key_gpio_cb);
-    //gpio_pin_enable_callback(__gpio0_dev, POWER_KEY);
+    /* gpio_pin_enable_callback(__gpio0_dev, POWER_KEY); */
     gpio_pin_interrupt_configure(__gpio0_dev, POWER_KEY,GPIO_INT_EDGE_BOTH);
 }

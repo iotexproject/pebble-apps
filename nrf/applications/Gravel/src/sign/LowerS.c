@@ -6,7 +6,7 @@
 
 LOG_MODULE_REGISTER(LowerS, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
-#define	 MAXN 200
+#define     MAXN 200
 
 struct BigNum {
     int num[MAXN];
