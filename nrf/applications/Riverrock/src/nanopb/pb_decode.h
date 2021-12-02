@@ -66,7 +66,7 @@ struct pb_istream_s
  *    uint8_t buffer[64];
  *    pb_istream_t stream;
  *    
- *    // ... read some data into buffer ...
+ *    read some data into buffer ...
  *
  *    stream = pb_istream_from_buffer(buffer, count);
  *    pb_decode(&stream, MyMessage_fields, &msg);

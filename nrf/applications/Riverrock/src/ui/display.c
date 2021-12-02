@@ -7,6 +7,7 @@
 #include <console/console.h>
 #include <power/reboot.h>
 #include <logging/log_ctrl.h>
+#include <logging/log.h>
 #if defined(CONFIG_BSD_LIBRARY)
 #include <modem/bsdlib.h>
 #include <bsd.h>
@@ -19,25 +20,21 @@
 #if defined(CONFIG_NRF_CLOUD_AGPS)
 #include <net/nrf_cloud_agps.h>
 #endif
-
 #if defined(CONFIG_LWM2M_CARRIER)
 #include <lwm2m_carrier.h>
 #endif
-
 #if defined(CONFIG_BOOTLOADER_MCUBOOT)
 #include <dfu/mcuboot.h>
 #endif
-
-
 #include <drivers/gpio.h>
 #include <drivers/i2c.h>
 #include <sys/mutex.h>
 #include "dis_data.h"
 #include "bme/bme680_helper.h"
 
+LOG_MODULE_REGISTER(display, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define I2C_ADDR 0x3c
-//#define I2C_DEV "/dev/i2c-0"  //i2c_devΪi2c��adapter�����ı���
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 
@@ -68,10 +65,7 @@ struct sys_mutex iotex_i2c_access;
 
 extern  struct sys_mutex iotex_hint_mutex;
 
-static void ssd1306_write_byte(uint8_t chData, uint8_t chCmd) 
-{
-     
-  //  uint8_t senddata[2];
+static void ssd1306_write_byte(uint8_t chData, uint8_t chCmd)  {
     uint8_t chip = I2C_ADDR;
     unsigned int devaddr;
     if (chCmd) {
@@ -79,19 +73,14 @@ static void ssd1306_write_byte(uint8_t chData, uint8_t chCmd)
     } else {
         devaddr= 0x00;
     }
-    //senddata[0]=chData;
     i2c_reg_write_byte(__i2c_dev_CD1306, chip,devaddr, chData);
-    //i2c_write(chip, devaddr, 1, senddata, 1);
-
 }
 
-void ssd1306_display_on(void)
-{
+void ssd1306_display_on(void) {
     ssd1306_write_byte(0x8D, SSD1306_CMD);  
     ssd1306_write_byte(0x14, SSD1306_CMD);  
     ssd1306_write_byte(0xAF, SSD1306_CMD);  
 }
-  
 /**
   * @brief  OLED turns off
   *        
@@ -99,15 +88,13 @@ void ssd1306_display_on(void)
   *        
   * @retval  None
 **/
-void ssd1306_display_off(void)
-{
+void ssd1306_display_off(void) {
     ssd1306_write_byte(0x8D, SSD1306_CMD);  
     ssd1306_write_byte(0x10, SSD1306_CMD); 
     ssd1306_write_byte(0xAE, SSD1306_CMD);  
 }
 
-void ssd1306_refresh_gram(void)
-{
+void ssd1306_refresh_gram(void) {
     uint8_t i, j;
     
     for (i = 0; i < 8; i ++) {  
@@ -120,31 +107,12 @@ void ssd1306_refresh_gram(void)
     }  
 }
 
-/*
-void ssd1306_display_logo(void)
-{
-    uint8_t i, j;
-    
-    for (i = 0; i < 6; i ++) {  
-        ssd1306_write_byte(0xB0 + i, SSD1306_CMD);    
-        ssd1306_write_byte(0x00, SSD1306_CMD); 
-        ssd1306_write_byte(0x10, SSD1306_CMD);    
-        for (j = 0; j < 128; j ++) {
-            s_chDispalyBuffer[j][i]= s_Iotex_logo[j+i*128];
-            ssd1306_write_byte(s_Iotex_logo[j+i*128], SSD1306_DAT); 
-        }
-    }  
-}
-*/
-
-void ssd1306_clear_screen(uint8_t chFill)  
-{ 
+void ssd1306_clear_screen(uint8_t chFill) { 
     memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer));
     ssd1306_refresh_gram();   
 }
 
-void ssd1306_clear_buffer(uint8_t chFill)  
-{ 
+void ssd1306_clear_buffer(uint8_t chFill) { 
     memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer)); 
 }
 
@@ -157,14 +125,13 @@ void ssd1306_clear_buffer(uint8_t chFill)
   *        
   * @retval None
 **/
-void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint)
-{
+void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint) {
     uint8_t chPos, chBx, chTemp = 0;
     
     if (chXpos > 127 || chYpos > 63) {
         return;
     }
-    chPos = 7 - chYpos / 8; // 
+    chPos = 7 - chYpos / 8; /*   */
     chBx = chYpos % 8;
     chTemp = 1 << (7 - chBx);
     
@@ -174,7 +141,6 @@ void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint)
         s_chDispalyBuffer[chXpos][chPos] &= ~chTemp;
     }
 }
-      
 /**
   * @brief  Fills a rectangle
   *        
@@ -185,8 +151,7 @@ void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint)
   *        
   * @retval 
 **/
-void ssd1306_fill_screen(uint8_t chXpos1, uint8_t chYpos1, uint8_t chXpos2, uint8_t chYpos2, uint8_t chDot)  
-{  
+void ssd1306_fill_screen(uint8_t chXpos1, uint8_t chYpos1, uint8_t chXpos2, uint8_t chYpos2, uint8_t chDot) {  
     uint8_t chXpos, chYpos; 
     
     for (chXpos = chXpos1; chXpos <= chXpos2; chXpos ++) {
@@ -207,8 +172,7 @@ void ssd1306_fill_screen(uint8_t chXpos1, uint8_t chYpos1, uint8_t chXpos2, uint
   * @param  chMode
   * @retval 
 **/
-void ssd1306_display_char(uint8_t chXpos, uint8_t chYpos, uint8_t chChr, uint8_t chSize, uint8_t chMode)
-{          
+void ssd1306_display_char(uint8_t chXpos, uint8_t chYpos, uint8_t chChr, uint8_t chSize, uint8_t chMode) {          
     uint8_t i, j;
     uint8_t chTemp, chYpos0 = chYpos;
     
@@ -238,8 +202,7 @@ void ssd1306_display_char(uint8_t chXpos, uint8_t chYpos, uint8_t chChr, uint8_t
     } 
 }  
 
-uint8_t *getEndpos(const uint8_t *str)
-{
+uint8_t *getEndpos(const uint8_t *str) {
     uint32_t i;
     for(i =0; i<15; i++)
     {
@@ -274,8 +237,7 @@ uint8_t *getEndpos(const uint8_t *str)
   *        
   * @retval  None
 **/
-void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchString, uint8_t chSize, uint8_t chMode)
-{
+void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchString, uint8_t chSize, uint8_t chMode) {
 
     uint8_t *endstr;
     endstr = getEndpos(pchString);
@@ -296,48 +258,39 @@ void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchSt
     }
 }
 
-void ssd1306_init(void)
-{
+void ssd1306_init(void) {
     if (!(__i2c_dev_CD1306 = device_get_binding(I2C_DEV_BME680))) {
-        printk("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
+        LOG_ERR("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
         return ;
     }
     sys_mutex_init(&iotex_i2c_access);       
-    //ssd1306_write_byte(0xAE, SSD1306_CMD);//--turn off oled panel
-    ssd1306_write_byte(0x00, SSD1306_CMD);//---set low column address
-    ssd1306_write_byte(0x10, SSD1306_CMD);//---set high column address
-    ssd1306_write_byte(0x40, SSD1306_CMD);//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F)
-    ssd1306_write_byte(0x81, SSD1306_CMD);//--set contrast control register
-    ssd1306_write_byte(0xCF, SSD1306_CMD);// Set SEG Output Current Brightness
-    ssd1306_write_byte(0xA1, SSD1306_CMD);//--Set SEG/Column Mapping    
-    ssd1306_write_byte(0xC0, SSD1306_CMD);//Set COM/Row Scan Direction  
-    ssd1306_write_byte(0xA6, SSD1306_CMD);//--set normal display
-    ssd1306_write_byte(0xA8, SSD1306_CMD);//--set multiplex ratio(1 to 64)
-    ssd1306_write_byte(0x3f, SSD1306_CMD);//--1/64 duty
-    ssd1306_write_byte(0xD3, SSD1306_CMD);//-set display offset    Shift Mapping RAM Counter (0x00~0x3F)
-    ssd1306_write_byte(0x00, SSD1306_CMD);//- offset 20
-    ssd1306_write_byte(0xd5, SSD1306_CMD);//--set display clock divide ratio/oscillator frequency
-    ssd1306_write_byte(0x80, SSD1306_CMD);//--set divide ratio, Set Clock as 100 Frames/Sec
-    ssd1306_write_byte(0xD9, SSD1306_CMD);//--set pre-charge period
-    ssd1306_write_byte(0xF1, SSD1306_CMD);//Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
-    ssd1306_write_byte(0xDA, SSD1306_CMD);//--set com pins hardware configuration
+    /* ssd1306_write_byte(0xAE, SSD1306_CMD);--turn off oled panel */
+    ssd1306_write_byte(0x00, SSD1306_CMD);/* ---set low column address */
+    ssd1306_write_byte(0x10, SSD1306_CMD);/* ---set high column address */
+    ssd1306_write_byte(0x40, SSD1306_CMD);/* --set start line address  Set Mapping RAM Display Start Line (0x00~0x3F) */
+    ssd1306_write_byte(0x81, SSD1306_CMD);/* --set contrast control register */
+    ssd1306_write_byte(0xCF, SSD1306_CMD);/*  Set SEG Output Current Brightness */
+    ssd1306_write_byte(0xA1, SSD1306_CMD);/* --Set SEG/Column Mapping     */
+    ssd1306_write_byte(0xC0, SSD1306_CMD);/* Set COM/Row Scan Direction   */
+    ssd1306_write_byte(0xA6, SSD1306_CMD);/* --set normal display */
+    ssd1306_write_byte(0xA8, SSD1306_CMD);/* --set multiplex ratio(1 to 64) */
+    ssd1306_write_byte(0x3f, SSD1306_CMD);/* --1/64 duty */
+    ssd1306_write_byte(0xD3, SSD1306_CMD);/* -set display offset    Shift Mapping RAM Counter (0x00~0x3F) */
+    ssd1306_write_byte(0x00, SSD1306_CMD);/* - offset 20 */
+    ssd1306_write_byte(0xd5, SSD1306_CMD);/* --set display clock divide ratio/oscillator frequency */
+    ssd1306_write_byte(0x80, SSD1306_CMD);/* --set divide ratio, Set Clock as 100 Frames/Sec */
+    ssd1306_write_byte(0xD9, SSD1306_CMD);/* --set pre-charge period */
+    ssd1306_write_byte(0xF1, SSD1306_CMD);/* Set Pre-Charge as 15 Clocks & Discharge as 1 Clock */
+    ssd1306_write_byte(0xDA, SSD1306_CMD);/* --set com pins hardware configuration */
     ssd1306_write_byte(0x12, SSD1306_CMD);
-    ssd1306_write_byte(0xDB, SSD1306_CMD);//--set vcomh
-    ssd1306_write_byte(0x40, SSD1306_CMD);//Set VCOM Deselect Level
-    ssd1306_write_byte(0x20, SSD1306_CMD);//-Set Page Addressing Mode (0x00/0x01/0x02)
-    ssd1306_write_byte(0x02, SSD1306_CMD);//
-    ssd1306_write_byte(0x8D, SSD1306_CMD);//--set Charge Pump enable/disable
-    ssd1306_write_byte(0x14, SSD1306_CMD);//--set(0x10) disable
-    ssd1306_write_byte(0xA4, SSD1306_CMD);// Disable Entire Display On (0xa4/0xa5)
-    ssd1306_write_byte(0xA6, SSD1306_CMD);// Disable Inverse Display On (0xa6/a7) 
-    //ssd1306_write_byte(0xAF, SSD1306_CMD);//--turn on oled panel
-    //ssd1306_display_on();
-    //ssd1306_clear_screen(0); 
-    //ssd1306_display_logo();
-    //ssd1306_display_string(10,20,"up_key_press",16,1);
-    //ssd1306_refresh_gram();
-
-    //ssd1306_display_on();
+    ssd1306_write_byte(0xDB, SSD1306_CMD);/* --set vcomh */
+    ssd1306_write_byte(0x40, SSD1306_CMD);/* Set VCOM Deselect Level */
+    ssd1306_write_byte(0x20, SSD1306_CMD);/* -Set Page Addressing Mode (0x00/0x01/0x02) */
+    ssd1306_write_byte(0x02, SSD1306_CMD);/*  */
+    ssd1306_write_byte(0x8D, SSD1306_CMD);/* --set Charge Pump enable/disable */
+    ssd1306_write_byte(0x14, SSD1306_CMD);/* --set(0x10) disable */
+    ssd1306_write_byte(0xA4, SSD1306_CMD);/*  Disable Entire Display On (0xa4/0xa5) */
+    ssd1306_write_byte(0xA6, SSD1306_CMD);/*  Disable Inverse Display On (0xa6/a7)  */
     hintInit();
 }
 
@@ -355,8 +308,7 @@ void i2cUnlock(void) {
     sys_mutex_unlock(&iotex_i2c_access);
 }
 
-void ssd1306_refresh_lines(uint8_t start_line, uint8_t stop_line)
-{
+void ssd1306_refresh_lines(uint8_t start_line, uint8_t stop_line) {
     uint8_t i, j;
 
     i2cLock(); 
@@ -371,8 +323,7 @@ void ssd1306_refresh_lines(uint8_t start_line, uint8_t stop_line)
     i2cUnlock(); 
 }
 
-void clearDisBuf(uint8_t start_line, uint8_t stop_line)
-{
+void clearDisBuf(uint8_t start_line, uint8_t stop_line) {
     uint8_t i, j;
     
     for (i = start_line; i <= stop_line; i ++) {  
@@ -382,11 +333,10 @@ void clearDisBuf(uint8_t start_line, uint8_t stop_line)
     }      
 }
 
-void ssd1306_display_logo(void)
-{
+void ssd1306_display_logo(void) {
     uint8_t i, j;
+
     sys_mutex_lock(&iotex_hint_mutex, K_FOREVER); 
-    //clearDisBuf(0, 5);
     for (i = 0; i < 6; i ++) {    
         for (j = 0; j < 128; j ++) {
             s_chDispalyBuffer[j][i]= s_Iotex_logo[j+i*128];           

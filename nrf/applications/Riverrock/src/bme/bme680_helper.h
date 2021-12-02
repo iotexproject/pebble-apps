@@ -11,4 +11,4 @@
 int iotex_bme680_init(void);
 int iotex_bme680_get_sensor_data(iotex_storage_bme680 *bme680);
 
-#endif //_IOTEX_BME680_H_
+#endif /* _IOTEX_BME680_H_ */

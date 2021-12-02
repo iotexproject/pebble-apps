@@ -41,8 +41,15 @@ typedef struct {
 
     /* Record current sampling data count, when sampling count is fulfilled enable upload mode */
     uint16_t current_sampling_cnt;
-	// bytes of once nvs_wrtie
-	uint32_t  size_of_block;    
+    /*  bytes of once nvs_wrtie */
+    uint32_t  size_of_block;    
+    /* app name */
+    uint8_t appName[30];
+    uint8_t appVersion[30];
+    uint8_t configName[30];
+    uint8_t configVersion[30];
+    uint8_t trusttreamTopic[100];
+    bool preciseGPS;
 } iotex_mqtt_config;
 
 typedef enum {
@@ -94,7 +101,7 @@ uint16_t iotex_mqtt_get_current_sampling_count(void);
 
 void iotex_mqtt_load_config(void);
 void iotex_mqtt_update_config(const uint8_t *payload, uint32_t len);
-//bool iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_config *config);
+/* bool iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_config *config); */
 void set_block_size(uint32_t size);
 uint32_t get_block_size(void);
 uint16_t get_his_block(void);
@@ -104,5 +111,6 @@ void config_mutex_unlock(void);
 int packDevConf(uint8_t *buffer, uint32_t size_t);
 int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len);
 uint8_t *getOTAUrl(void);
+bool iotex_precise_gps(void);
 
 #endif /* _IOTEX_MQTT_CONFIG_H_ */

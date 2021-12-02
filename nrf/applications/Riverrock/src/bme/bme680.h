@@ -39,9 +39,9 @@
  * No license is granted by implication or otherwise under any patent or
  * patent rights of the copyright holder.
  *
- * @file	bme680.h
- * @date	19 Jun 2018
- * @version	3.5.9
+ * @file    bme680.h
+ * @date    19 Jun 2018
+ * @version    3.5.9
  * @brief
  *
  */
@@ -118,10 +118,10 @@ int8_t bme680_soft_reset(struct bme680_dev *dev);
  * @param[in] dev : Structure instance of bme680_dev
  * @note : Pass the value to bme680_dev.power_mode structure variable.
  *
- *  value	|	mode
+ *  value    |    mode
  * -------------|------------------
- *	0x00	|	BME680_SLEEP_MODE
- *	0x01	|	BME680_FORCED_MODE
+ *    0x00    |    BME680_SLEEP_MODE
+ *    0x01    |    BME680_FORCED_MODE
  *
  * * @return Result of API execution status
  * @retval zero -> Success / +ve value -> Warning / -ve value -> Error
@@ -134,10 +134,10 @@ int8_t bme680_set_sensor_mode(struct bme680_dev *dev);
  * @param[in] dev : Structure instance of bme680_dev
  * @note : bme680_dev.power_mode structure variable hold the power mode.
  *
- *  value	|	mode
+ *  value    |    mode
  * ---------|------------------
- *	0x00	|	BME680_SLEEP_MODE
- *	0x01	|	BME680_FORCED_MODE
+ *    0x00    |    BME680_SLEEP_MODE
+ *    0x01    |    BME680_FORCED_MODE
  *
  * @return Result of API execution status
  * @retval zero -> Success / +ve value -> Warning / -ve value -> Error
@@ -147,7 +147,7 @@ int8_t bme680_get_sensor_mode(struct bme680_dev *dev);
 /*!
  * @brief This API is used to set the profile duration of the sensor.
  *
- * @param[in] dev	   : Structure instance of bme680_dev.
+ * @param[in] dev       : Structure instance of bme680_dev.
  * @param[in] duration : Duration of the measurement in ms.
  *
  * @return Nothing
@@ -157,7 +157,7 @@ void bme680_set_profile_dur(uint16_t duration, struct bme680_dev *dev);
 /*!
  * @brief This API is used to get the profile duration of the sensor.
  *
- * @param[in] dev	   : Structure instance of bme680_dev.
+ * @param[in] dev       : Structure instance of bme680_dev.
  * @param[in] duration : Duration of the measurement in ms.
  *
  * @return Nothing
@@ -185,17 +185,17 @@ int8_t bme680_get_sensor_data(struct bme680_field_data *data, struct bme680_dev 
  * @param[in] desired_settings : Variable used to select the settings which
  * are to be set in the sensor.
  *
- *	 Macros	                   |  Functionality
+ *     Macros                       |  Functionality
  *---------------------------------|----------------------------------------------
- *	BME680_OST_SEL             |    To set temperature oversampling.
- *	BME680_OSP_SEL             |    To set pressure oversampling.
- *	BME680_OSH_SEL             |    To set humidity oversampling.
- *	BME680_GAS_MEAS_SEL        |    To set gas measurement setting.
- *	BME680_FILTER_SEL          |    To set filter setting.
- *	BME680_HCNTRL_SEL          |    To set humidity control setting.
- *	BME680_RUN_GAS_SEL         |    To set run gas setting.
- *	BME680_NBCONV_SEL          |    To set NB conversion setting.
- *	BME680_GAS_SENSOR_SEL      |    To set all gas sensor related settings
+ *    BME680_OST_SEL             |    To set temperature oversampling.
+ *    BME680_OSP_SEL             |    To set pressure oversampling.
+ *    BME680_OSH_SEL             |    To set humidity oversampling.
+ *    BME680_GAS_MEAS_SEL        |    To set gas measurement setting.
+ *    BME680_FILTER_SEL          |    To set filter setting.
+ *    BME680_HCNTRL_SEL          |    To set humidity control setting.
+ *    BME680_RUN_GAS_SEL         |    To set run gas setting.
+ *    BME680_NBCONV_SEL          |    To set NB conversion setting.
+ *    BME680_GAS_SENSOR_SEL      |    To set all gas sensor related settings
  *
  * @note : Below are the macros to be used by the user for selecting the
  * desired settings. User can do OR operation of these macros for configuring

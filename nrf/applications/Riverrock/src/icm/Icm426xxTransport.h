@@ -59,13 +59,13 @@ typedef enum
 /** @brief basesensor serial interface
  */
 struct inv_icm426xx_serif {
-	void *     context;
-	int      (*read_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, uint8_t * buf, uint32_t len);
-	int      (*write_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, const uint8_t * buf, uint32_t len);
-	int      (*configure)(struct inv_icm426xx_serif * serif);
-	uint32_t   max_read;
-	uint32_t   max_write;
-	ICM426XX_SERIAL_IF_TYPE_t serif_type;
+    void *     context;
+    int      (*read_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, uint8_t * buf, uint32_t len);
+    int      (*write_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, const uint8_t * buf, uint32_t len);
+    int      (*configure)(struct inv_icm426xx_serif * serif);
+    uint32_t   max_read;
+    uint32_t   max_write;
+    ICM426XX_SERIAL_IF_TYPE_t serif_type;
 };
 
 /** @brief Reads data from a register on Icm426xx.

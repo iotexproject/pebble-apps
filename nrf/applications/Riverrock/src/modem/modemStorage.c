@@ -9,6 +9,7 @@
 
 #include "modem_helper.h"
 #include "nvs/local_storage.h"
+
 typedef struct {
     uint8_t boot_ver[20];
     uint8_t hw_ver[20];
@@ -26,29 +27,25 @@ static void truncate(uint8_t *buf, uint32_t len) {
     }
 }
 
-static int_fast32_t formatSysParam(PebbleSYSParam *psys)
-{
+static int_fast32_t formatSysParam(PebbleSYSParam *psys) {
     uint8_t buf[60];
     uint8_t sysInfo[200] = { 0 };
+
     uint8_t *pbuf = ReadDataFromModem(PEBBLE_SYS_PARAM_SEC, sysInfo, sizeof(sysInfo));
     if (!pbuf) {
         return 0;
     }
-
     memcpy(psys, pbuf, sizeof(PebbleSYSParam));
     memset(psys->modem_ver, 0, sizeof(psys->modem_ver));
     getModeVer(buf);
     strcpy(psys->modem_ver, buf);
-    //memset(psys->modem_ver+strlen(psys->modem_ver), 'F', sizeof(psys->modem_ver)- strlen(psys->modem_ver));
-
     truncate(psys->app_ver, sizeof(psys->app_ver));
     truncate(psys->sdk_ver, sizeof(psys->sdk_ver));
     truncate(psys->hw_ver, sizeof(psys->hw_ver));
     truncate(psys->boot_ver, sizeof(psys->boot_ver));    
 }
 
-void getSysInfor(uint8_t *buf)
-{
+void getSysInfor(uint8_t *buf) {
     PebbleSYSParam sysParam;
     formatSysParam(&sysParam);
     memcpy(buf, &sysParam, sizeof(PebbleSYSParam));

@@ -6,7 +6,7 @@
 /**@file
  *
  * @brief   LED control for the User Interface module. The module uses PWM to
- *	    control RGB colors and light intensity.
+ *        control RGB colors and light intensity.
  */
 
 #ifndef UI_LEDS_H__

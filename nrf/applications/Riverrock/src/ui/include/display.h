@@ -23,9 +23,9 @@ enum E_STATUS_BAR{
 #define  STATUS_BAR_HIGHT   8
 
 #define  HINT_TIME_FOREVER       0
-#define  HINT_TIME_DEFAULT       4  // 4 x 5s = 20s
+#define  HINT_TIME_DEFAULT       4  /*  4 x 5s = 20s */
 
-// refresh  cycle  ms
+/*  refresh  cycle  ms */
 #define STA_REFRESH_T       (30*1000)   
 
 #define    HT_LANGUAGE_EN   0  
@@ -33,17 +33,17 @@ enum E_STATUS_BAR{
 #define    HT_LANG_CN_SIZE  2
 
 
-// display left align or  centralized
+/*  display left align or  centralized */
 #define   ALIGN_CENTRALIZED     0
 #define   ALIGN_LEFT            1
 
-// display revert ?
+/*  display revert ? */
 #define  DIS_NORMAL             1
 #define  DIS_REVERT             0
 #define  DIS_CURSOR(a, b)       ((a) == (b) ? DIS_REVERT:DIS_NORMAL)
 
 
-// hints
+/*  hints */
 extern const uint8_t *htNetConnected[];
 extern const uint8_t *htRegRequest[];
 extern const uint8_t *htRegWaitACK[];

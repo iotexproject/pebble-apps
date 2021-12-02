@@ -1,12 +1,14 @@
 #include <zephyr.h>
 #include <drivers/gpio.h>
 #include <drivers/uart.h>
+#include <logging/log.h>
 #include "hal_gpio.h"
 #include "ui.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
 #include "display.h"
 
+LOG_MODULE_REGISTER(hal_gpio, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define GPIO_DIR_OUT  GPIO_OUTPUT
 #define GPIO_DIR_IN   GPIO_INPUT
@@ -32,25 +34,19 @@ struct device *__gpio0_dev;
 static u32_t g_key_press_start_time;
 static struct gpio_callback chrq_gpio_cb, pwr_key_gpio_cb;
 
-//extern struct k_delayed_work  event_work;
+/* extern struct k_delayed_work  event_work; */
 
 void checkCHRQ(void) {
     u32_t chrq;    
     chrq = gpio_pin_get(__gpio0_dev, IO_NCHRQ);
-    //gpio_pin_write(port, LED_RED, chrq);    
-    //gpio_pin_write(port, LED_GREEN, (chrq + 1 ) % 2);
-    if(!chrq)
-    {// charging
- //       ui_led_active(BAT_CHARGING_MASK,0);
-        //gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);
+    if(!chrq) {
+        /*  charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_ON);
     }
-    else
-    {// not charging
-//        ui_led_deactive(BAT_CHARGING_MASK,0);
+    else {
+        /*  not charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
-        //gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_OFF);
     }    
 }
@@ -63,9 +59,6 @@ void CtrlBlueLED(bool on_off) {
 }
 
 static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
-    
-    //printk("Charge pin %d triggered\n", IO_NCHRQ);
-
     checkCHRQ();
 }
 
@@ -74,18 +67,15 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
     u32_t pwr_key, end_time;
     int32_t key_press_duration, ret;
 
-    //if ((ret = gpio_pin_read(port, POWER_KEY, &pwr_key))) {
-    //    return;
-    //}
     pwr_key = gpio_pin_get(port, POWER_KEY);
 
     if (IS_KEY_PRESSED(pwr_key)) {
         g_key_press_start_time = k_uptime_get_32();
-        printk("Power key pressed:[%u]\n", g_key_press_start_time);
+        LOG_DBG("Power key pressed:[%u]\n", g_key_press_start_time);
     }
     else {
         end_time = k_uptime_get_32();
-        printk("Power key released:[%u]\n", end_time);
+        LOG_DBG("Power key released:[%u]\n", end_time);
 
         if (end_time > g_key_press_start_time) {
             key_press_duration = end_time - g_key_press_start_time;
@@ -94,7 +84,7 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
             key_press_duration = end_time + (int32_t)g_key_press_start_time;
         }
 
-        printk("Power key press duration: %d ms\n", key_press_duration);
+        LOG_DBG("Power key press duration: %d ms\n", key_press_duration);
 
         if (key_press_duration > KEY_POWER_OFF_TIME) {
             gpio_pin_write(port, IO_POWER_ON, POWER_OFF);
@@ -103,42 +93,25 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
 }
 
 void iotex_hal_gpio_init(void) {
-
     __gpio0_dev = device_get_binding("GPIO_0");
 
     /* Set LED pin as output */
-    gpio_pin_configure(__gpio0_dev, IO_POWER_ON, GPIO_DIR_OUT);	//p0.31 == POWER_ON
-    gpio_pin_configure(__gpio0_dev, LED_GREEN, GPIO_DIR_OUT); 	//p0.00 == LED_GREEN
-    gpio_pin_configure(__gpio0_dev, LED_BLUE, GPIO_DIR_OUT);	//p0.01 == LED_BLUE
-    gpio_pin_configure(__gpio0_dev, LED_RED, GPIO_DIR_OUT); 	//p0.02 == LED_RED
-
-    gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_ON);	//p0.31 == POWER_ON
-    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);	//p0.00 == LED_GREEN ON
-    gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);	//p0.00 == LED_BLUE OFF
-    gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);	//p0.00 == LED_RED
-
+    gpio_pin_configure(__gpio0_dev, IO_POWER_ON, GPIO_DIR_OUT);    /* p0.31 == POWER_ON */
+    gpio_pin_configure(__gpio0_dev, LED_GREEN, GPIO_DIR_OUT);     /* p0.00 == LED_GREEN */
+    gpio_pin_configure(__gpio0_dev, LED_BLUE, GPIO_DIR_OUT);    /* p0.01 == LED_BLUE */
+    gpio_pin_configure(__gpio0_dev, LED_RED, GPIO_DIR_OUT);     /* p0.02 == LED_RED */
+    gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_ON);    /* p0.31 == POWER_ON */
+    gpio_pin_write(__gpio0_dev, LED_GREEN, LED_OFF);    /* p0.00 == LED_GREEN ON */
+    gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);    /* p0.00 == LED_BLUE OFF */
+    gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);    /* p0.00 == LED_RED */
     /* USB battery charge pin */
     gpio_pin_configure(__gpio0_dev, IO_NCHRQ,
-                       (GPIO_DIR_IN | GPIO_INT |
-                        GPIO_INT_EDGE | GPIO_INT_DOUBLE_EDGE |
-                        GPIO_INT_DEBOUNCE));
-
+                    (GPIO_DIR_IN | GPIO_INT |
+                    GPIO_INT_EDGE | GPIO_INT_DOUBLE_EDGE |
+                    GPIO_INT_DEBOUNCE));
     gpio_init_callback(&chrq_gpio_cb, chrq_input_callback, BIT(IO_NCHRQ));
     gpio_add_callback(__gpio0_dev, &chrq_gpio_cb);
-    //gpio_pin_enable_callback(__gpio0_dev, IO_NCHRQ);
     gpio_pin_interrupt_configure(__gpio0_dev, IO_NCHRQ,GPIO_INT_EDGE_BOTH);
-    
-#if 0
-    /* Power key pin configure */
-    gpio_pin_configure(__gpio0_dev, POWER_KEY,
-                       (GPIO_DIR_IN | GPIO_INT |
-                        GPIO_INT_EDGE | GPIO_INT_DOUBLE_EDGE |
-                        GPIO_INT_DEBOUNCE));
-
-    gpio_init_callback(&pwr_key_gpio_cb, pwr_key_callback, BIT(POWER_KEY));
-    gpio_add_callback(__gpio0_dev, &pwr_key_gpio_cb);
-    gpio_pin_enable_callback(__gpio0_dev, POWER_KEY);
-#endif
     /* Sync charge state */
     chrq_input_callback(__gpio0_dev, &chrq_input_callback, IO_NCHRQ);
     checkCHRQ();
@@ -180,7 +153,7 @@ void gpio_poweroff(void)
 void PowerOffIndicator(void)
 {
     int  i;
-    //ui_leds_stop();
+
     for(i =0;i<3;i++){
         gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
         k_sleep(K_MSEC(1000));
@@ -191,14 +164,14 @@ void PowerOffIndicator(void)
     k_sleep(K_MSEC(5000));
 }
 
-// read SN  in pebbleGo firmware
+/*  read SN  in pebbleGo firmware */
 static void uart_comtool_rx_handler(u8_t character) {
     if(rev_index < COMMAND_LENGTH) {
         rev_buf[rev_index++]=character;
         if(rev_buf[0] != COM_HEAD)
             rev_index = 0;
         if(rev_index == COMMAND_LENGTH) {
-            //uart_rx_disable(guart_dev_comtool);
+            /* uart_rx_disable(guart_dev_comtool); */
             rev_index = 0;            
             rev_buf[COM_REV_STR_LEN] = 0;
             testCmdReved = 1;         
@@ -244,7 +217,6 @@ static bool snExist(uint8_t *sn)
 {
     uint8_t buf[300];
     uint8_t *pbuf;
-    //PebbleSYSParam devparam;
     uint8_t devSN[20];
 
     memset(buf, 0, sizeof(buf));
@@ -253,8 +225,7 @@ static bool snExist(uint8_t *sn)
     {        
         memcpy(devSN, pbuf, 10);        
         devSN[10] = 0;
-        printk("SN:%s\n", devSN);
-        //printk("devparam.app_ver[0]:%c,devparam.app_ver[1]:%c",devparam.app_ver[0],devparam.app_ver[1]);
+        LOG_INF("SN:%s\n", devSN);
         if(isActiveSn(devSN)){
             memcpy(sn, devSN,10);
             return true;
@@ -297,26 +268,26 @@ void setI2Cspeed(unsigned int level) {
     volatile int *i2cFrq = 0x4000A524;
     unsigned int speed[] = {100,250,400};
     if(level >= sizeof(speed)/sizeof(int)) {
-        printk("Bad i2c speed level :%d\n", level);
+        LOG_ERR("Bad i2c speed level :%d\n", level);
         return;
     }
-    printk("Read out i2c-2 speed configure : \n");
+    LOG_INF("Read out i2c-2 speed configure : \n");
     switch(*i2cFrq){
         case 0x01980000 :
-            printk("i2c-2 speed: 100kbps \n");
+            LOG_INF("i2c-2 speed: 100kbps \n");
             break;
         case 0x04000000 :
-            printk("i2c-2 speed: 250kbps \n");
+            LOG_INF("i2c-2 speed: 250kbps \n");
             break;
         case 0x06400000 :
-            printk("i2c-2 speed: 400kbps \n");            
+            LOG_INF("i2c-2 speed: 400kbps \n");            
             break;
         default:
-            printk("i2c-2 speed not supported \n");
+            LOG_INF("i2c-2 speed not supported \n");
             break;
     }
 
-    printk("i2c-2 speed set to %dkbps \n",speed[level]);
+    LOG_INF("i2c-2 speed set to %dkbps \n",speed[level]);
     switch(level){
         case 0:
             *i2cFrq = 0x01980000;
@@ -328,22 +299,22 @@ void setI2Cspeed(unsigned int level) {
             *i2cFrq = 0x06400000;
             break;
         default:
-            printk("i2c-2 speed not supported \n");
+            LOG_INF("i2c-2 speed not supported \n");
             break;
     }    
-    printk("Now i2c-2 speed is :");
+    LOG_INF("Now i2c-2 speed is :");
     switch(*i2cFrq){
         case 0x01980000 :
-            printk("100kbps \n");
+            LOG_INF("100kbps \n");
             break;
         case 0x04000000 :
-            printk("250kbps \n");
+            LOG_INF("250kbps \n");
             break;
         case 0x06400000 :
-            printk("400kbps \n");            
+            LOG_INF("400kbps \n");            
             break;
         default:
-            printk("speed not supported \n");
+            LOG_ERR("speed not supported \n");
             break;
     }    
 }
