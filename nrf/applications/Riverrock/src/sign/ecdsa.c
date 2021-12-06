@@ -44,7 +44,7 @@ LOG_MODULE_REGISTER(ecdsa, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 unsigned char* readECCPubKey(void);
 
-static uint16_t CRC16(uint8_t *data, size_t len) {
+uint16_t CRC16(uint8_t *data, size_t len) {
     uint16_t crc = 0x0000;
     size_t j;
     int i;

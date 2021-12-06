@@ -512,7 +512,6 @@ void pebbleInfor(void) {
             dis_OnelineText(3, ALIGN_LEFT, buf[cursor+3],DIS_NORMAL);
         }
         k_sleep(K_MSEC(100)); 
-        outputSn();          
     }
     stopTestCom();
 }

@@ -795,9 +795,9 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GPS)) {
         int i = getGPS(&latitude,&longitude);
         if (!i) {
-            sensordat.latitude = (uint32_t)(int32_t)(latitude * 10000000);
+            sensordat.latitude = (int32_t)(latitude * 10000000);
             sensordat.has_latitude = true;
-            sensordat.longitude = (uint32_t)(int32_t)(longitude * 10000000);
+            sensordat.longitude = (int32_t)(longitude * 10000000);
             sensordat.has_longitude = true;
         } else {
             sensordat.latitude = 2000000000;
@@ -806,7 +806,6 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
             sensordat.has_longitude = true;
         }
     }
-
     /* Env sensor gas */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
         sensordat.gasResistance = (uint32_t)(env_sensor.gas_resistance * 100);

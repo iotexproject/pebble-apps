@@ -61,9 +61,9 @@ typedef struct _SensorData {
     bool has_vbat;
     uint32_t vbat; 
     bool has_latitude;
-    uint32_t latitude; 
+    int32_t latitude; 
     bool has_longitude;
-    uint32_t longitude; 
+    int32_t longitude; 
     bool has_gasResistance;
     uint32_t gasResistance; 
     bool has_temperature;
@@ -148,8 +148,8 @@ extern "C" {
 #define SensorData_FIELDLIST(X, a) \
 X(a, STATIC,   OPTIONAL, UINT32,   snr,               1) \
 X(a, STATIC,   OPTIONAL, UINT32,   vbat,              2) \
-X(a, STATIC,   OPTIONAL, UINT32,   latitude,          3) \
-X(a, STATIC,   OPTIONAL, UINT32,   longitude,         4) \
+X(a, STATIC,   OPTIONAL, SINT32,   latitude,          3) \
+X(a, STATIC,   OPTIONAL, SINT32,   longitude,         4) \
 X(a, STATIC,   OPTIONAL, UINT32,   gasResistance,     5) \
 X(a, STATIC,   OPTIONAL, UINT32,   temperature,       6) \
 X(a, STATIC,   OPTIONAL, UINT32,   pressure,          7) \

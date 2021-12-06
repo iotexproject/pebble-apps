@@ -10,5 +10,6 @@ int  get_ecc_public_key(char *pub);
 void InitLowsCalc(void);
 int doESDASign(char *inbuf, uint32_t len, char *buf, int* sinlen);
 int safeRandom(void);
+uint16_t CRC16(uint8_t *data, size_t len);
 
 #endif
