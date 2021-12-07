@@ -24,7 +24,7 @@
 #define WOM_THRESHOLD_INITIAL_MG 200
 
 /* WOM threshold to be applied to ICM, ranges from 1 to 255, in 4mg unit */
-static uint8_t wom_threshold = WOM_THRESHOLD_INITIAL_MG/8;
+static uint8_t wom_threshold = WOM_THRESHOLD_INITIAL_MG / 8;
 
 static int ConfigureInvDevice_wom(uint8_t is_low_noise_mode, 
                        ICM426XX_ACCEL_CONFIG0_FS_SEL_t acc_fsr_g,
@@ -59,32 +59,34 @@ static int ConfigureInvDevice_wom(uint8_t is_low_noise_mode,
 
 int womConf(void)
 {
-    if(!IS_LOW_NOISE_MODE) {
-        /*In case LPM is used, accel frequency is 12.5Hz */        
+    if (!IS_LOW_NOISE_MODE) {
+        /*In case LPM is used, accel frequency is 12.5Hz */
         return ConfigureInvDevice_wom((uint8_t )IS_LOW_NOISE_MODE, \
                ICM426XX_ACCEL_CONFIG0_FS_SEL_4g, ICM426XX_ACCEL_CONFIG0_ODR_12_5_HZ);
-    }
-    else {
+    } else {
         /*In case LNM is used, accel frequency is 50Hz */
         return ConfigureInvDevice_wom((uint8_t )IS_LOW_NOISE_MODE, \
-               ICM426XX_ACCEL_CONFIG0_FS_SEL_4g, ICM426XX_ACCEL_CONFIG0_ODR_50_HZ);        
-    }        
+               ICM426XX_ACCEL_CONFIG0_FS_SEL_4g, ICM426XX_ACCEL_CONFIG0_ODR_50_HZ);
+    }
 }
 
 int womDetect(void)
 {
     int status;
     uint8_t int_status;
+
     i2cLock();
     status = inv_icm426xx_read_reg(getICMDriver(), MPUREG_INT_STATUS2, 1, &int_status);
-    i2cUnlock(); 
+    i2cUnlock();
+
     if (status) {
         printk("error wom status read : 0x%x\n",int_status);
         sys_reboot(0);
         return  0;
-    }    
-    if(int_status & (BIT_INT_STATUS2_WOM_X_INT|BIT_INT_STATUS2_WOM_Y_INT|BIT_INT_STATUS2_WOM_Z_INT)) {
+    }
+
+    if (int_status & (BIT_INT_STATUS2_WOM_X_INT|BIT_INT_STATUS2_WOM_Y_INT|BIT_INT_STATUS2_WOM_Z_INT)) {
         /* printk("wom  detected"); */
         return 1;
-    }    
+    }
 }

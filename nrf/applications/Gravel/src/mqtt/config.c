@@ -17,7 +17,7 @@ static iotex_mqtt_config __config = {
     .bulk_upload = 0,
     .bulk_upload_sampling_cnt = 0,
     .bulk_upload_sampling_freq = 0,
-    .upload_period = SENSOR_UPLOAD_PERIOD,   
+    .upload_period = SENSOR_UPLOAD_PERIOD,
 };
 struct sys_mutex iotex_config_mutex;
 static uint8_t firmwareUrl[200] = "https://pebble-ota.s3.ap-east-1.amazonaws.com/app_update.bin";
@@ -79,7 +79,8 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
         LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
         return 0;
     }
-    return  enc_packstream.bytes_written;   
+
+    return enc_packstream.bytes_written;   
 }
 
 static bool save_mqtt_config(void) {
@@ -180,10 +181,6 @@ static void print_mqtt_config(const iotex_mqtt_config *config, const char *title
         config->current_upload_cnt, config->current_sampling_cnt);
 }
 
-/*
-    parse jscon update configure
-    return 0
-*/
 static int iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_mqtt_config *config) {
     char config_buffer[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
     uint32_t dat;
@@ -336,6 +333,5 @@ int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len) {
 }
 
 uint8_t *getOTAUrl(void) {
-
     return firmwareUrl;
 }

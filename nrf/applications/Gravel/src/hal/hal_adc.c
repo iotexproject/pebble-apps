@@ -41,7 +41,6 @@ int iotex_hal_adc_sample(void) {
 }
 
 int iotex_hal_adc_init(void) {
-
     int err;
     const struct adc_channel_cfg m_1st_channel_cfg = {
         .gain = ADC_GAIN,
@@ -50,7 +49,8 @@ int iotex_hal_adc_init(void) {
         .channel_id = ADC_1ST_CHANNEL_ID,
         .input_positive = ADC_1ST_CHANNEL_INPUT,
         .differential = 0,
-    };    
+    };
+
     __adc_dev = device_get_binding("ADC_0");
     if (!__adc_dev) {
         LOG_ERR("device_get_binding ADC_0 failed\n");
@@ -60,6 +60,6 @@ int iotex_hal_adc_init(void) {
         LOG_ERR("Error in adc setup: %d\n", err);
     }
     NRF_SAADC_NS->TASKS_CALIBRATEOFFSET = 1;
-    iotex_hal_adc_sample(); 
+    iotex_hal_adc_sample();
     return err;
 }

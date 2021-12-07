@@ -1,8 +1,7 @@
 #ifndef _IOTEX_HAL_GPIO_H_
 #define _IOTEX_HAL_GPIO_H_
 
-
-#if (CONFIG_IOTEX_BOARD_VERSION ==3)
+#if (CONFIG_IOTEX_BOARD_VERSION == 3)
 #define LED_GREEN     18         /* p0.00 == LED_GREEN  0=on 1=off */
 #define LED_BLUE      17    /* p0.01 == LED_BLUE   0=on 1=off */
 #define LED_RED       16    /* p0.02 == LED_RED    0=on 1=off */
@@ -11,7 +10,7 @@
 #define IO_POWER_ON  6   /* p0.31 == POWER_ON  1 = on, 0 = off */
 
 #define POWER_KEY    15         /* p0.30 == POWER_KEY  0=down 1=up */
-#elif (CONFIG_IOTEX_BOARD_VERSION ==2)
+#elif (CONFIG_IOTEX_BOARD_VERSION == 2)
 #define LED_GREEN     26         /* p0.00 == LED_GREEN  0=on 1=off */
 #define LED_BLUE      27    /* p0.01 == LED_BLUE   0=on 1=off */
 #define LED_RED       30    /* p0.02 == LED_RED    0=on 1=off */
@@ -21,9 +20,6 @@
 
 #define POWER_KEY    14         /* p0.30 == POWER_KEY  0=down 1=up */
 #endif
-
-
-
 
 #define KEY_POWER_OFF_TIME 3000  /*   press power_key 3S to power off system */
 

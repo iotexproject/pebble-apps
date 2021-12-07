@@ -10,10 +10,10 @@
 
 LOG_MODULE_REGISTER(orientation_detector, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
-#define FLIP_ACCELERATION_THRESHOLD    5.0
+#define FLIP_ACCELERATION_THRESHOLD   5.0
 #define CALIBRATION_ITERATIONS        CONFIG_ACCEL_CALIBRATION_ITERATIONS
 #define MEASUREMENT_ITERATIONS        CONFIG_ACCEL_ITERATIONS
-#define ACCEL_INVERTED            CONFIG_ACCEL_INVERTED
+#define ACCEL_INVERTED                CONFIG_ACCEL_INVERTED
 
 static struct device *dev;
 static double accel_offset[3];
@@ -29,10 +29,10 @@ int orientation_detector_poll(struct orientation_detector_sensor_data *sensor_da
         /* If using the ADXL362 driver, all channels must be fetched */
         if (IS_ENABLED(CONFIG_ADXL362)) {
             err = sensor_sample_fetch_chan(dev, SENSOR_CHAN_ALL);
-        } 
-        else {
+        } else {
             err = sensor_sample_fetch_chan(dev, SENSOR_CHAN_ACCEL_Z);
         }
+
         if (err) {
             LOG_ERR("sensor_sample_fetch failed\n");
             return err;
@@ -44,6 +44,7 @@ int orientation_detector_poll(struct orientation_detector_sensor_data *sensor_da
         }
         aggregated_data[2] += sensor_value_to_double(&accel_data[2]);
     }
+
     sensor_data->z = (aggregated_data[2] / (double)MEASUREMENT_ITERATIONS) - accel_offset[2];
     if (sensor_data->z >= FLIP_ACCELERATION_THRESHOLD) {
         if (IS_ENABLED(ACCEL_INVERTED)) {
@@ -51,15 +52,13 @@ int orientation_detector_poll(struct orientation_detector_sensor_data *sensor_da
         } else {
             current_orientation = ORIENTATION_NORMAL;
         }
-    } 
-    else if (sensor_data->z <= -FLIP_ACCELERATION_THRESHOLD) {
+    } else if (sensor_data->z <= -FLIP_ACCELERATION_THRESHOLD) {
         if (IS_ENABLED(ACCEL_INVERTED)) {
             current_orientation = ORIENTATION_NORMAL;
         } else {
             current_orientation = ORIENTATION_UPSIDE_DOWN;
         }
-    } 
-    else {
+    } else {
         current_orientation = ORIENTATION_ON_SIDE;
     }
     sensor_data->orientation = current_orientation;
@@ -96,6 +95,7 @@ int orientation_detector_calibrate(void) {
     accel_offset[2] = aggregated_data[2] / (double)CALIBRATION_ITERATIONS;
     return 0;
 }
+
 void orientation_detector_init(struct device *accel_device) {
     dev = accel_device;
 }

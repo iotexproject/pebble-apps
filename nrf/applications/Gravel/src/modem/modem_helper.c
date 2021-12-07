@@ -29,7 +29,7 @@ const char *iotex_modem_get_imei(void) {
 
 int iotex_model_get_signal_quality(void) {
     enum at_cmd_state at_state;
-    char snr_ack[32], snr[4] = {0};
+    char snr_ack[32], snr[4] = { 0 };
     char *p = snr_ack;
 
     int err = at_cmd_write("AT+CESQ", snr_ack, 32, &at_state);
@@ -41,12 +41,11 @@ int iotex_model_get_signal_quality(void) {
     p = strchr(p, ',') + 1;
     p = strchr(p, ',') + 1;
     int i = 0;
-    while(*p != ',') {
+    while (*p != ',') {
         snr[i++] = *p++;
     }
     return atoi(snr);
 }
-
 
 const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
     double epoch;
@@ -55,7 +54,7 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
 
     char cclk_r_buf[TIMESTAMP_STR_LEN];
     static char epoch_buf[TIMESTAMP_STR_LEN];
-    int daysPerMonth[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int daysPerMonth[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
     int err = at_cmd_write("AT+CCLK?", cclk_r_buf, sizeof(cclk_r_buf), &at_state);
     if (err) {
@@ -76,9 +75,11 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
     for (int i = 1; i <= 12; i++) {
         daysPerMonth[i] += daysPerMonth[i - 1];
     }
-    epoch  = ss + mm * 60 + hh * 3600 + (daysPerMonth[ MM - 1] + DD - 1) * 86400 +
+
+    epoch = ss + mm * 60 + hh * 3600 + (daysPerMonth[ MM - 1] + DD - 1) * 86400 +
              (YY - 70) * 31536000L + ((YY - 69) / 4) * 86400L -
              ((YY - 1) / 100) * 86400L + ((YY + 299) / 400) * 86400L;
+
     snprintf(epoch_buf, sizeof(epoch_buf), "%.0f", epoch);
     LOG_INF("UTC epoch %s\n", epoch_buf);
 
@@ -95,7 +96,7 @@ double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
     uint32_t YY, MM, DD, hh, mm, ss;
     char cclk_r_buf[TIMESTAMP_STR_LEN];
     char epoch_buf[TIMESTAMP_STR_LEN];
-    int daysPerMonth[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int daysPerMonth[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
     int err = at_cmd_write("AT+CCLK?", cclk_r_buf, sizeof(cclk_r_buf), &at_state);
 
     if (err) {
@@ -116,6 +117,7 @@ double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
     for (int i = 1; i <= 12; i++) {
         daysPerMonth[i] += daysPerMonth[i - 1];
     }
+
     epoch  = ss + mm * 60 + hh * 3600 + (daysPerMonth[ MM - 1] + DD - 1) * 86400 +
              (YY - 70) * 31536000L + ((YY - 69) / 4) * 86400L -
              ((YY - 1) / 100) * 86400L + ((YY + 299) / 400) * 86400L;
@@ -195,28 +197,26 @@ bool getModeVer(uint8_t *buf) {
 }
 
 bool mqttCertExist(void) {
-    char  *vback = NULL, *p = NULL;
-    const  char *pkey = "%CMNG:";
+    char *vback = NULL, *p = NULL;
+    const char *pkey = "%CMNG:";
     enum at_cmd_state at_state;
     int  i;
 
     vback = malloc(2048);
-    if(vback == NULL) {
+    if (!vback) {
         LOG_ERR("line %d space not enough:%d \n", __LINE__, 2048);
         return 0;
     }
+
     at_cmd_write("AT%CMNG=1,16842753", vback, 2048, &at_state);
     p = vback;
     i = 0;
     while ((p = strstr(p, pkey)) != NULL) {
         i++;
         p += strlen(pkey);
-    }    
+    }
     free(vback);
-    if( i >= 3 )
-        return true;    
-    else
-        return false;
+    return i >= 3;
 }
 
 void disableModem(void) {
@@ -259,30 +259,32 @@ uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len) {
     err = at_cmd_write(cmd, buf, len, &at_state);
     if (err) {
         return NULL;
-    }
-    else {
+    } else {
         pbuf = strchr(buf, ',');
         pbuf++;
         pbuf = strchr(pbuf, ',');
         pbuf++;
         pbuf = strchr(pbuf, ',');
         pbuf += 2;
-        return pbuf; 
+        return pbuf;
     }
 }
 
 bool isNB(void) {
     enum at_cmd_state at_state;
-    char vbat_ack[32]; 
-    int err; 
+    char vbat_ack[32];
+    int err;
+
     memset(vbat_ack, 0, sizeof(vbat_ack));
-    err = at_cmd_write("AT%XSYSTEMMODE?", vbat_ack, 32, &at_state);   
+    err = at_cmd_write("AT%XSYSTEMMODE?", vbat_ack, 32, &at_state);
     if (err) {
         LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
-    }    
+    }
+
     if(vbat_ack[14] == '1')
-        return  false;
+        return false;
     else if(vbat_ack[16] == '1')
         return true;
+
     return false;
 }

@@ -3,7 +3,7 @@
 #include <logging/log.h>
 #include "hal/hal_gpio.h"
 #include "keyBoard.h"
-#include  "mqtt/devReg.h"
+#include "mqtt/devReg.h"
 #include "display.h"
 
 LOG_MODULE_REGISTER(keyBoard, CONFIG_ASSET_TRACKER_LOG_LEVEL);
@@ -26,6 +26,7 @@ extern struct device *__gpio0_dev;
 void ClearKey(void) {
     pressedKey = KB_NO_KEY;
 }
+
 uint8_t getKey(void) {
     return pressedKey;
 }
@@ -37,7 +38,8 @@ bool IsEnterPressed(void) {
 bool IsUpPressed(void) {
     return (pressedKey & KB_UP_KEY);
 }
-bool IsDownPressed(void){
+
+bool IsDownPressed(void) {
     return (pressedKey & KB_DOWN_KEY);
 }
 
@@ -45,7 +47,6 @@ bool isUpKeyStartupPressed(void) {
     u32_t key = gpio_pin_get(__gpio0_dev, IO_UP_KEY);
     return key == 0;
 }
-
 
 bool isDownKeyStartupPressed(void) {
     u32_t key = gpio_pin_get(__gpio0_dev, IO_DOWN_KEY);
@@ -99,7 +100,6 @@ static void power_off_handler(struct k_work *work) {
 }
 
 void iotex_key_init(void) {
-
     ClearKey();
     /* up_key pin */
     gpio_pin_configure(__gpio0_dev, IO_UP_KEY,

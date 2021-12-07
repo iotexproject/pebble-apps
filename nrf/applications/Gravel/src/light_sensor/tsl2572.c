@@ -56,26 +56,27 @@ int iotex_TSL2572_init(uint8_t gain)
     i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_ALS_TIMING, 0xED);
     /* turn on */
     i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_ENABLE, 0x03);
-    if(GAIN_DIVIDE_6){
+    if (GAIN_DIVIDE_6) {
         /* scale gain by 0.16 */
         i2c_reg_write_byte(__i2c_dev_tsl2572, TSL2572_I2CADDR, TSL2572_CMD_REGISTER |TSL2572_CMDS_CONFIG, 0x04);
     }
-    if(gain==GAIN_1X) gain_val = 1;
-    else if(gain==GAIN_8X) gain_val = 8;
-    else if(gain==GAIN_16X) gain_val = 16;
-    else if(gain==GAIN_120X) gain_val = 120;
+
+    if (gain == GAIN_1X) gain_val = 1;
+    else if (gain == GAIN_8X) gain_val = 8;
+    else if (gain == GAIN_16X) gain_val = 16;
+    else if (gain == GAIN_120X) gain_val = 120;
 
     return 0;
 }
 
 float iotex_Tsl2572ReadAmbientLight(void)
-{     
-    uint8_t data[4]; 
-    int c0,c1;
-    float lux1,lux2,cpl;
-    
-    i2cLock(); 
-    tsl2572_i2c_read(0xA0 | 0x14, data, sizeof(data));  
+{
+    uint8_t data[4];
+    int c0, c1;
+    float lux1, lux2, cpl;
+
+    i2cLock();
+    tsl2572_i2c_read(0xA0 | 0x14, data, sizeof(data));
     i2cUnlock();
 
     c0 = data[1]<<8 | data[0];
@@ -83,7 +84,7 @@ float iotex_Tsl2572ReadAmbientLight(void)
 
     /* see TSL2572 datasheet */
     cpl = 51.87 * (float)gain_val / 60.0;
-    if(GAIN_DIVIDE_6) cpl/=6.0;
+    if (GAIN_DIVIDE_6) cpl /= 6.0;
     lux1 = ((float)c0 - (1.87 * (float)c1)) / cpl;
     lux2 = ((0.63 * (float)c0) - (float)c1) / cpl;
     cpl = max(lux1, lux2);
