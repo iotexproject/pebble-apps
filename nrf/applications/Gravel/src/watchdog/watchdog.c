@@ -27,6 +27,7 @@ static struct k_work_q *second_work_q;
 static void primary_feed_worker(struct k_work *work_desc) {
     k_work_submit_to_queue(second_work_q, &wdt_data.second_workqueue_work);
 }
+
 static void secondary_feed_worker(struct k_work *work_desc) {
     int err = wdt_feed(wdt_data.wdt_drv, wdt_data.wdt_channel_id);
 
@@ -40,12 +41,12 @@ static void secondary_feed_worker(struct k_work *work_desc) {
 
 static int watchdog_timeout_install(struct wdt_data_storage *data) {
     static const struct wdt_timeout_cfg wdt_settings = {
-            .window = {
-                .min = 0,
-                .max = CONFIG_ASSET_TRACKER_WATCHDOG_TIMEOUT_MSEC,
-            },
-            .callback = NULL,
-            .flags = WDT_FLAG_RESET_SOC
+        .window = {
+            .min = 0,
+            .max = CONFIG_ASSET_TRACKER_WATCHDOG_TIMEOUT_MSEC,
+        },
+        .callback = NULL,
+        .flags = WDT_FLAG_RESET_SOC
     };
 
     __ASSERT_NO_MSG(data != NULL);

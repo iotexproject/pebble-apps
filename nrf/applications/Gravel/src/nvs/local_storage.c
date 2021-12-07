@@ -16,18 +16,18 @@ static struct nvs_fs __local_storage;
 ** #CONFIG_NVS_LOCAL_STORAGE_SECTOR_COUNT define how many pages used as local storage
 */
 int iotex_local_storage_init(void) {
-    int ret;  
+    int ret;
     struct flash_pages_info info;
 
     __local_storage.offset = FLASH_AREA_OFFSET(storage);
-    /* Get flash page info */ 
+    /* Get flash page info */
     if ((ret = flash_get_page_info_by_offs(device_get_binding(DT_CHOSEN_ZEPHYR_FLASH_CONTROLLER_LABEL), __local_storage.offset, &info))) {
         LOG_ERR("Get flash page info failed: %d\n", ret);
         return -1;
     }
     /* Set nvs sector size as flash page size */
     __local_storage.sector_size = info.size;
-    __local_storage.sector_count = CONFIG_NVS_LOCAL_STORAGE_SECTOR_COUNT;  
+    __local_storage.sector_count = CONFIG_NVS_LOCAL_STORAGE_SECTOR_COUNT;
     /* Init nvs filesystem */
     if ((ret = nvs_init(&__local_storage, DT_CHOSEN_ZEPHYR_FLASH_CONTROLLER_LABEL))) {
         LOG_ERR("Init local storage failed: %d\n", ret);
@@ -74,17 +74,16 @@ int iotex_local_storage_hist(iotex_storage_id id, void *data, size_t len, uint16
 
 /* Read all data to #data point buffer, size indicate buffer size return how many items it read */
 int iotex_local_storage_readall(iotex_storage_id id, void *data, size_t size, size_t item_len) {
-
     void *current = data;
     uint16_t read_cnt = 0;
 
     /* Read all data to buffer, the latest data comes first */
     for (read_cnt = 0; current - data + item_len <= size; read_cnt++, current += item_len) {
-
         /* No more data */
         if (iotex_local_storage_hist(id, current, item_len, read_cnt)) {
             break;
         }
     }
+
     return read_cnt;
 }

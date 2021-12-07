@@ -21,10 +21,10 @@
 
 LOG_MODULE_REGISTER(http_update, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
-#define  LED_PORT   "GPIO_0"
-#define TLS_SEC_TAG 42
+#define  LED_PORT     "GPIO_0"
+#define TLS_SEC_TAG   42
 
-#define LED_GREEN     26         /* p0.00 == LED_GREEN  0=on 1=off */
+#define LED_GREEN     26    /* p0.00 == LED_GREEN  0=on 1=off */
 #define LED_BLUE      27    /* p0.01 == LED_BLUE   0=on 1=off */
 #define LED_RED       30    /* p0.02 == LED_RED    0=on 1=off */
 
@@ -37,19 +37,18 @@ LOG_MODULE_REGISTER(http_update, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 #define GPIO_INT_DOUBLE_EDGE  GPIO_INT_EDGE_BOTH
 #define gpio_pin_write  gpio_pin_set
 
-static const struct    device *gpiob;
+static const struct device *gpiob;
 static struct gpio_callback gpio_cb;
 static struct k_work fota_work;
 static struct k_delayed_work fota_status_check;
 static int aliveCnt = 0;
-static  uint8_t otaHost[100];
-static  uint8_t otaFile[200];
-static  int otaProgress = 0;
+static uint8_t otaHost[100];
+static uint8_t otaFile[200];
+static int otaProgress = 0;
 const struct device *dev;
 
-
 int getOTAProgress(void) {
-    return  otaProgress;
+    return otaProgress;
 }
 
 /**@brief Start transfer of the file. */
@@ -80,7 +79,7 @@ static void fota_status(struct k_work *unused)
         aliveCnt = 0;
         LOG_ERR("Received hangup from fota_download\n");
         k_work_submit(&fota_work);
-        k_delayed_work_submit(&fota_status_check, K_MSEC(2000));        
+        k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
     } else {
         k_delayed_work_submit(&fota_status_check, K_MSEC(10000));
     }
@@ -90,14 +89,13 @@ static void fota_status(struct k_work *unused)
 /**@brief Turn on LED0 and LED1 if CONFIG_APPLICATION_VERSION
  * is 2 and LED0 otherwise.
  */
-static int led_app_version(void){
-
+static int led_app_version(void) {
     dev = device_get_binding(LED_PORT);
     if (!dev) {
         LOG_ERR("Nordic nRF GPIO driver was not found!\n");
         return 1;
     }
-    gpio_pin_configure(dev, LED_GREEN, GPIO_DIR_OUT);     /* p0.00 == LED_GREEN */
+    gpio_pin_configure(dev, LED_GREEN, GPIO_DIR_OUT);    /* p0.00 == LED_GREEN */
     gpio_pin_configure(dev, LED_BLUE, GPIO_DIR_OUT);    /* p0.01 == LED_BLUE */
     gpio_pin_configure(dev, LED_RED, GPIO_DIR_OUT);     /* p0.02 == LED_RED */
 
@@ -172,7 +170,6 @@ void fota_dl_handler(const struct fota_download_evt *evt)
 
 static int application_init(void) {
     int err;
-
     k_work_init(&fota_work, app_dfu_transfer_start);
     k_delayed_work_init(&fota_status_check, fota_status);
     err = fota_download_init(fota_dl_handler);
@@ -180,15 +177,12 @@ static int application_init(void) {
 }
 
 static void getHost(uint8_t *url, uint8_t *host, uint8_t *file) {
-
     sscanf(url, "https://%99[^/]/%99[^\n]", host, file);
-
     LOG_INF("host:%s, file:%s\n", host, file);
 }
 
 void initOTA(void) {
     int err;
-
     boot_write_img_confirmed();
     err = application_init();
     if (err != 0) {
@@ -198,7 +192,6 @@ void initOTA(void) {
 }
 
 void startOTA(uint8_t *url) {
-
     getHost(url,otaHost,otaFile);
     k_work_submit(&fota_work);
     k_delayed_work_submit(&fota_status_check, K_MSEC(2000));

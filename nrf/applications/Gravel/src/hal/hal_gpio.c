@@ -16,19 +16,17 @@ LOG_MODULE_REGISTER(hal_gpio, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 #define GPIO_INT_DOUBLE_EDGE  GPIO_INT_EDGE_BOTH
 #define gpio_pin_write  gpio_pin_set
 
-
-#define UART_COMTOOL  "UART_1"   
+#define UART_COMTOOL  "UART_1"
 #define COMMAND_LENGTH      4
 #define COM_HEAD    's'
 #define COM_HEAD_LEN   1
 #define COM_REV_STR_LEN  4
-#define CMD_BUF_LEN      (COM_REV_STR_LEN+1)
+#define CMD_BUF_LEN      (COM_REV_STR_LEN + 1)
 #define  HOW_MANY_REGIONS      5
 static struct device *guart_dev_comtool;
-static unsigned  char rev_buf[CMD_BUF_LEN];
+static unsigned char rev_buf[CMD_BUF_LEN];
 static unsigned char rev_index = 0;
 static unsigned char testCmdReved = 0;
-
 
 struct device *__gpio0_dev;
 static u32_t g_key_press_start_time;
@@ -37,25 +35,21 @@ static struct gpio_callback chrq_gpio_cb, pwr_key_gpio_cb;
 /* extern struct k_delayed_work  event_work; */
 
 void checkCHRQ(void) {
-    u32_t chrq;    
+    u32_t chrq;
     chrq = gpio_pin_get(__gpio0_dev, IO_NCHRQ);
-    if(!chrq) {
+    if (!chrq) {
         /*  charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_ON);
-    }
-    else {
+    } else {
         /*  not charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_OFF);
-    }    
+    }
 }
 
 void CtrlBlueLED(bool on_off) {
-    if(on_off)
-        gpio_pin_write(__gpio0_dev, LED_BLUE, LED_ON);
-    else
-        gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);
+    gpio_pin_write(__gpio0_dev, LED_BLUE, on_off ? LED_ON : LED_OFF);
 }
 
 static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
@@ -63,7 +57,6 @@ static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u
 }
 
 static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
-
     u32_t pwr_key, end_time;
     int32_t key_press_duration, ret;
 
@@ -72,15 +65,13 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
     if (IS_KEY_PRESSED(pwr_key)) {
         g_key_press_start_time = k_uptime_get_32();
         LOG_DBG("Power key pressed:[%u]\n", g_key_press_start_time);
-    }
-    else {
+    } else {
         end_time = k_uptime_get_32();
         LOG_DBG("Power key released:[%u]\n", end_time);
 
         if (end_time > g_key_press_start_time) {
             key_press_duration = end_time - g_key_press_start_time;
-        }
-        else {
+        } else {
             key_press_duration = end_time + (int32_t)g_key_press_start_time;
         }
 
@@ -117,7 +108,6 @@ void iotex_hal_gpio_init(void) {
     checkCHRQ();
 }
 
-
 int iotex_hal_gpio_set(uint32_t pin, uint32_t value) {
     return gpio_pin_write(__gpio0_dev, pin, value);
 }
@@ -152,9 +142,7 @@ void gpio_poweroff(void)
 
 void PowerOffIndicator(void)
 {
-    int  i;
-
-    for(i =0;i<3;i++){
+    for (int i = 0; i < 3; i++) {
         gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
         k_sleep(K_MSEC(1000));
         gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
@@ -166,48 +154,45 @@ void PowerOffIndicator(void)
 
 /*  read SN  in pebbleGo firmware */
 static void uart_comtool_rx_handler(u8_t character) {
-    if(rev_index < COMMAND_LENGTH) {
-        rev_buf[rev_index++]=character;
-        if(rev_buf[0] != COM_HEAD)
+    if (rev_index < COMMAND_LENGTH) {
+        rev_buf[rev_index++] = character;
+        if (rev_buf[0] != COM_HEAD)
             rev_index = 0;
-        if(rev_index == COMMAND_LENGTH) {
+        if (rev_index == COMMAND_LENGTH) {
             /* uart_rx_disable(guart_dev_comtool); */
-            rev_index = 0;            
+            rev_index = 0;
             rev_buf[COM_REV_STR_LEN] = 0;
-            testCmdReved = 1;         
-        }           
+            testCmdReved = 1;
+        }
     }
 }
-
 
 static void uart_comtool_cb(struct device *dev) {
     u8_t character;
     while (uart_fifo_read(dev, &character, 1)) {
         uart_comtool_rx_handler(character);
-    }    
+    }
 }
 
-void ComToolInit(void) { 
-    guart_dev_comtool=device_get_binding(UART_COMTOOL);
+void ComToolInit(void) {
+    guart_dev_comtool = device_get_binding(UART_COMTOOL);
     uart_irq_callback_set(guart_dev_comtool, uart_comtool_cb);
-    rev_index = 0; 
+    rev_index = 0;
     uart_irq_rx_enable(guart_dev_comtool);
-    uart_irq_tx_disable(guart_dev_comtool);   
+    uart_irq_tx_disable(guart_dev_comtool);
 }
+
 void stopTestCom(void) {
     uart_irq_rx_disable(guart_dev_comtool);
 }
+
 static bool isLegacySymble(uint8_t c) {
-    if(((c>='0') && (c<='9')) || ((c>='A') && (c <= 'Z')))
-        return true;
-    else    
-        return false;
+    return (((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'Z')));
 }
+
 static bool isActiveSn(uint8_t *sn) {
-    uint32_t i;
-    for(i = 0; i < 10; i++)
-    {
-        if(!isLegacySymble(sn[i]))
+    for (int i = 0; i < 10; i++) {
+        if (!isLegacySymble(sn[i]))
             return false;
     }
     return true;
@@ -220,67 +205,66 @@ static bool snExist(uint8_t *sn)
     uint8_t devSN[20];
 
     memset(buf, 0, sizeof(buf));
-    pbuf = ReadDataFromModem(PEBBLE_DEVICE_SN, buf, sizeof(buf));     
-    if(pbuf != NULL)
-    {        
-        memcpy(devSN, pbuf, 10);        
+    pbuf = ReadDataFromModem(PEBBLE_DEVICE_SN, buf, sizeof(buf));
+    if (pbuf != NULL) {
+        memcpy(devSN, pbuf, 10);
         devSN[10] = 0;
         LOG_INF("SN:%s\n", devSN);
-        if(isActiveSn(devSN)){
+        if (isActiveSn(devSN)) {
             memcpy(sn, devSN,10);
             return true;
         }
     }
     return false;
 }
+
 static void comtoolOut(uint8_t *buf, uint32_t len)
 {
-    uint32_t i;
-    for(i = 0; i < len; i++)
-    {
-        uart_poll_out(guart_dev_comtool,buf[i]); 
+    for(int i = 0; i < len; i++) {
+        uart_poll_out(guart_dev_comtool, buf[i]); 
     }
     
 }
+
 void outputSn(void) {
     uint8_t sn[11];
     unsigned char *pub;
     uint8_t package[500];
 
-    if(testCmdReved){
+    if (testCmdReved) {
         testCmdReved = 0;
-        if(!strcmp(&rev_buf[0], "secc")) {
-            memset(sn,0, sizeof(sn));
+        if (!strcmp(&rev_buf[0], "secc")) {
+            memset(sn, 0, sizeof(sn));
             pub = readECCPubKey();
-            if(pub == NULL)
-                pub = "";            
-            if(snExist(sn))
-                snprintf(package, sizeof(package), "decc device-id:%s sn:%s ECC-Pub-Key_HexString(mpi_X,mpi_Y):%s ",iotex_mqtt_get_client_id(),sn,pub);
+            if (pub == NULL)
+                pub = "";
+            if (snExist(sn))
+                snprintf(package, sizeof(package), "decc device-id:%s sn:%s ECC-Pub-Key_HexString(mpi_X,mpi_Y):%s ", iotex_mqtt_get_client_id(), sn, pub);
             else
-                snprintf(package, sizeof(package), "decc device-id:%s sn:%s ECC-Pub-Key_HexString(mpi_X,mpi_Y):%s ",iotex_mqtt_get_client_id(),"",pub);
-            comtoolOut(package,strlen(package));
-        } 
+                snprintf(package, sizeof(package), "decc device-id:%s sn:%s ECC-Pub-Key_HexString(mpi_X,mpi_Y):%s ", iotex_mqtt_get_client_id(), "", pub);
+            comtoolOut(package, strlen(package));
+        }
     }
 }
-
 
 void setI2Cspeed(unsigned int level) {
     volatile int *i2cFrq = 0x4000A524;
     unsigned int speed[] = {100,250,400};
-    if(level >= sizeof(speed)/sizeof(int)) {
+    i f(level >= sizeof(speed)/sizeof(int)) {
         LOG_ERR("Bad i2c speed level :%d\n", level);
         return;
     }
+
     LOG_INF("Read out i2c-2 speed configure : \n");
-    switch(*i2cFrq){
-        case 0x01980000 :
+    switch (*i2cFrq) {
+        case 0x01980000:
             LOG_INF("i2c-2 speed: 100kbps \n");
             break;
-        case 0x04000000 :
+        case 0x04000000:
             LOG_INF("i2c-2 speed: 250kbps \n");
             break;
-        case 0x06400000 :
-            LOG_INF("i2c-2 speed: 400kbps \n");            
+        case 0x06400000:
+            LOG_INF("i2c-2 speed: 400kbps \n");
             break;
         default:
             LOG_INF("i2c-2 speed not supported \n");
@@ -288,7 +272,7 @@ void setI2Cspeed(unsigned int level) {
     }
 
     LOG_INF("i2c-2 speed set to %dkbps \n",speed[level]);
-    switch(level){
+    switch (level) {
         case 0:
             *i2cFrq = 0x01980000;
             break;
@@ -301,22 +285,21 @@ void setI2Cspeed(unsigned int level) {
         default:
             LOG_INF("i2c-2 speed not supported \n");
             break;
-    }    
+    }
+
     LOG_INF("Now i2c-2 speed is :");
-    switch(*i2cFrq){
-        case 0x01980000 :
+    switch (*i2cFrq) {
+        case 0x01980000:
             LOG_INF("100kbps \n");
             break;
-        case 0x04000000 :
+        case 0x04000000:
             LOG_INF("250kbps \n");
             break;
-        case 0x06400000 :
-            LOG_INF("400kbps \n");            
+        case 0x06400000:
+            LOG_INF("400kbps \n");
             break;
         default:
             LOG_ERR("speed not supported \n");
             break;
-    }    
+    }
 }
-
-

@@ -42,7 +42,7 @@ typedef struct {
     /* Record current sampling data count, when sampling count is fulfilled enable upload mode */
     uint16_t current_sampling_cnt;
     /*  bytes of once nvs_wrtie */
-    uint32_t  size_of_block;    
+    uint32_t  size_of_block;
 } iotex_mqtt_config;
 
 typedef enum {

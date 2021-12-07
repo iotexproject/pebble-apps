@@ -160,6 +160,7 @@ void error_handler(enum error_type err_type, int err_code)
     }
 #endif /* CONFIG_DEBUG */
 }
+
 /*  Upload sensor data */
 static void uploadSensorData(void) {
     if (!atomic_get(&send_data_enable)) {
@@ -173,15 +174,17 @@ static void uploadSensorData(void) {
     }
     pubOnePack();
 }
+
 /*  Restore work queue */
 void RestartEnvWork(int s) {
     k_delayed_work_cancel(&send_env_data_work);
     k_delayed_work_submit(&send_env_data_work, K_SECONDS(s));
 }
+
 /*  mqtt cert write into modem */
 void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
-    u8_t *certificates[]={root, key, cert};
-    size_t cert_len[] = { strlen(root),strlen(key),strlen(cert)};
+    u8_t *certificates[] = {root, key, cert};
+    size_t cert_len[] = { strlen(root), strlen(key), strlen(cert) };
     int err;
     sec_tag_t sec_tag = CONFIG_CLOUD_CERT_SEC_TAG;
     enum modem_key_mgnt_cred_type cred[] = {
@@ -189,6 +192,7 @@ void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
         MODEM_KEY_MGMT_CRED_TYPE_PRIVATE_CERT,
         MODEM_KEY_MGMT_CRED_TYPE_PUBLIC_CERT,
     };
+
     disableModem();
     /* Delete certificates */
     for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
@@ -201,10 +205,10 @@ void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
     for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
         err = modem_key_mgmt_write(sec_tag, cred[type],
                 certificates[type], cert_len[type]);
-        LOG_ERR("modem_key_mgmt_write => result=%d\n", err);                        
+        LOG_ERR("modem_key_mgmt_write => result=%d\n", err);
     }
-    return;    
 }
+
 /*  Upload sensor data regularly */
 static void periodic_publish_sensors_data(void) {
     int rc;
@@ -216,23 +220,27 @@ static void periodic_publish_sensors_data(void) {
         LOG_ERR("mqtt package error ! \n");
     }
 }
+
 /*  dev registration */
 int publish_dev_ownership(char *buf, int len) {
     return iotex_mqtt_publish_ownership(&client, 0, buf, len);
 }
+
 /*  publish query package */
 int publish_dev_query(char *buf, int len) {
     return iotex_mqtt_publish_query(&client, 0, buf, len);
 }
-void animation_work_fn(struct k_work *work) {    
+
+void animation_work_fn(struct k_work *work) {
     if (atomic_get(&stopAnimation)) {
         return;
-    }  
+    }
     sta_Refresh();
     k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_SECONDS(1));
 }
+
 void stopAnimationWork(void) {
-    atomic_set(&stopAnimation, 1); 
+    atomic_set(&stopAnimation, 1);
 }
 
 /**@brief Initializes and submits delayed work. */
@@ -275,6 +283,7 @@ static void modem_configure(void) {
     }
 #endif
 }
+
 void handle_bsdlib_init_ret(void) {
 #if defined(CONFIG_BSD_LIBRARY)
     int ret = bsdlib_get_init_ret();
@@ -300,6 +309,7 @@ void handle_bsdlib_init_ret(void) {
     }
 #endif /* CONFIG_BSD_LIBRARY */
 }
+
 /*  Sample and store to nv flash */
 static void sampling_and_store_sensor_data(void) {
     /* Data sampling mode */ 
@@ -317,6 +327,7 @@ static void sampling_and_store_sensor_data(void) {
         iotex_mqtt_inc_current_sampling_count();
     }
 }
+
 /*  close mqtt net */
 void stopMqtt(void) {
     mqtt_disconnect(&client);
@@ -360,11 +371,11 @@ void main(void) {
     /*  iotex keyboard */
     iotex_key_init();
     /*  init worker queue */
-    work_init();    
+    work_init();
     /*  init oled */
     ssd1306_init();
     /* Iotex Init ICM42605 */
-    iotex_icm42605_init();   
+    iotex_icm42605_init();
     /*  system  menu */
     MainMenu();
     /*  OTA upgrade  */
@@ -376,46 +387,49 @@ void main(void) {
     handle_bsdlib_init_ret();
 #ifdef CONFIG_UNITTEST
     unittest();
-#endif    
+#endif
     initOTA();
     /*  status bar refresh */
-    sta_Refresh();     
+    sta_Refresh();
 
-    while(true) {
+    while (true) {
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             errCounts++;
             if(errCounts < 4){
                 LOG_INF("**** %s reconnection ****\n",reconnectReminder[errCounts]);
                 continue;
-            }                
+            }
             LOG_ERR("ERROR: mqtt_connect %d, rebooting...\n", err);
             k_sleep(K_MSEC(500));
             sys_reboot(0);
             break;
-        } 
-        errCounts = 0;      
-        if(!iotexDevBinding(&fds,&client)) {
-            LOG_INF("upload sensor data\n");            
+        }
+
+        errCounts = 0;
+        if (!iotexDevBinding(&fds,&client)) {
+            LOG_INF("upload sensor data\n");
             uploadSensorData();
             k_sleep(K_MSEC(200));
-            mqtt_disconnect(&client); 
+            mqtt_disconnect(&client);
             gpsPowerOff();
-            LOG_INF("start sleep\n");  
+            LOG_INF("start sleep\n");
             setModemSleep(1);
             k_sleep(K_SECONDS(1));
-            lte_lc_psm_req(true);                       
+            lte_lc_psm_req(true);
             k_sleep(K_SECONDS(SENSOR_UPLOAD_PERIOD-61));
             gpsPowerOn();
             k_sleep(K_SECONDS(60));
-            lte_lc_psm_req(false);  
-            LOG_INF("wake up\n"); 
+            lte_lc_psm_req(false);
+            LOG_INF("wake up\n");
             setModemSleep(0);
         }
-        if(devRegGet() != DEV_REG_STOP) {
+
+        if (devRegGet() != DEV_REG_STOP) {
             devRegSet(DEV_REG_START);
             ssd1306_display_logo();
-        }        
+        }
     }
+
     /* connect_to_cloud(0); */
     LOG_INF("Disconnecting MQTT client...\n");
     err = mqtt_disconnect(&client);

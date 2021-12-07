@@ -16,7 +16,7 @@ typedef struct {
     uint8_t sdk_ver[20];
     uint8_t modem_ver[20];
     uint8_t app_ver[20];
-}PebbleSYSParam;
+} PebbleSYSParam;
 
 static void truncate(uint8_t *buf, uint32_t len) {
     for (uint32_t i = 0; i < len; i++) {
@@ -35,6 +35,7 @@ static int_fast32_t formatSysParam(PebbleSYSParam *psys) {
     if (!pbuf) {
         return 0;
     }
+
     memcpy(psys, pbuf, sizeof(PebbleSYSParam));
     memset(psys->modem_ver, 0, sizeof(psys->modem_ver));
     getModeVer(buf);
@@ -42,7 +43,7 @@ static int_fast32_t formatSysParam(PebbleSYSParam *psys) {
     truncate(psys->app_ver, sizeof(psys->app_ver));
     truncate(psys->sdk_ver, sizeof(psys->sdk_ver));
     truncate(psys->hw_ver, sizeof(psys->hw_ver));
-    truncate(psys->boot_ver, sizeof(psys->boot_ver));    
+    truncate(psys->boot_ver, sizeof(psys->boot_ver));
 }
 
 void getSysInfor(uint8_t *buf) {
