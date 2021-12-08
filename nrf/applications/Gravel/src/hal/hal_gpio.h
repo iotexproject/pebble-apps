@@ -42,4 +42,15 @@ void gpio_poweroff(void);
 void PowerOffIndicator(void);
 void setI2Cspeed(unsigned int level);
 
+// cmd head 
+#define  CMD_HEAD    0xAA
+
+// cmd  define
+enum COM_COMMAND
+{
+    COM_CMD_INIT=0x20,
+    COM_CMD_READ_ECC,
+    COM_CMD_LAST
+};
+
 #endif /* _IOTEX_HAL_GPIO_H_ */

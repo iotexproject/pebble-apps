@@ -24,7 +24,7 @@ The collected data includes the GPS position, accelerometer readings (the device
 | Light sensor       | LIGHT        |  Lux         |
 
 ### Working mode
-Gravel run in Power Saving Mode (PSM). In this mode, the device requests the PSM feature from the cellular network to save power.The device maintains a continuous cellular link and transmits data every 5 minutes.
+Gravel runs in Power Saving Mode (PSM). In this mode, the device requests the PSM feature from the cellular network to save power.The device maintains a continuous cellular link and transmits data every 5 minutes.
 
 ## Requirements
 

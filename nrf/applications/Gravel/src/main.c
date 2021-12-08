@@ -61,7 +61,7 @@
 #endif /* CONFIG_MODEM_KEY_MGMT */
 #endif /* CONFIG_USE_PROVISIONED_CERTIFICATES */
 
-LOG_MODULE_REGISTER(main, CONFIG_ASSET_TRACKER_LOG_LEVEL);
+LOG_MODULE_REGISTER(Gravel_main, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #if defined(CONFIG_BSD_LIBRARY) && !defined(CONFIG_LTE_LINK_CONTROL)
 #error "Missing CONFIG_LTE_LINK_CONTROL"
@@ -336,7 +336,7 @@ void stopMqtt(void) {
 void main(void) {
     int err, errCounts = 0;
 
-    LOG_INF("APP %s  %s started", APP_NAME, RELEASE_VERSION);
+    LOG_INF("APP %s  %s started", IOTEX_APP_NAME, RELEASE_VERSION);
     k_work_q_start(&application_work_q, application_stack_area,K_THREAD_STACK_SIZEOF(application_stack_area),CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
     /*  open watchdog */
     if (IS_ENABLED(CONFIG_WATCHDOG)) {
@@ -396,7 +396,7 @@ void main(void) {
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             errCounts++;
             if(errCounts < 4){
-                LOG_INF("**** %s reconnection ****\n",reconnectReminder[errCounts]);
+                LOG_ERR("**** %s reconnection ****\n",reconnectReminder[errCounts]);
                 continue;
             }
             LOG_ERR("ERROR: mqtt_connect %d, rebooting...\n", err);

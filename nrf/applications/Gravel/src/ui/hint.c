@@ -177,7 +177,7 @@ void dashBoard(void) {
 
     /* ssd1306_clear_screen(0); */
     /*  app */
-    strcpy(disBuf, "App:"APP_NAME);    
+    strcpy(disBuf, "App:"IOTEX_APP_NAME);    
     dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
     strcpy(disBuf, "Ver:"RELEASE_VERSION);    
     dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);    
@@ -441,7 +441,7 @@ void pebbleInfor(void) {
     sprintf(buf[3], "HW:%s SDK:%s", HW_VERSION, SDK_VERSION);
     dis_OnelineText(3, ALIGN_LEFT, buf[3],DIS_NORMAL);   
     /*  app  */
-    sprintf(buf[4], "APP:%s", APP_NAME);
+    sprintf(buf[4], "APP:%s", IOTEX_APP_NAME);
     sprintf(buf[5], "VER:%s", RELEASE_VERSION);
     /*  bootloader */
     sprintf(buf[6], "%s", sysInfo);
@@ -482,8 +482,7 @@ void pebbleInfor(void) {
             dis_OnelineText(2, ALIGN_LEFT, buf[cursor + 2],DIS_NORMAL);
             dis_OnelineText(3, ALIGN_LEFT, buf[cursor + 3],DIS_NORMAL);
         }
-        k_sleep(K_MSEC(100));
-        outputSn();
+        k_sleep(K_MSEC(100)); 
     }
     stopTestCom();
 }

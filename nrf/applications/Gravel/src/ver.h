@@ -8,12 +8,12 @@
 /*  nordic sdk version */
 #define SDK_VERSION "1.4.0"
 
-#define  APP_NAME  "Gravel"
+#define  IOTEX_APP_NAME  "Gravel"
 
 #define  RELEASE_VERSION    "1.0.2"
 
 /*  application version */
-#define IOTEX_APP_VERSION APP_NAME" "RELEASE_VERSION
+#define IOTEX_APP_VERSION IOTEX_APP_NAME" "RELEASE_VERSION
 
 #define APP_VERSION_INFO HW_VERSION"_"SDK_VERSION"_"IOTEX_APP_VERSION">"
 
