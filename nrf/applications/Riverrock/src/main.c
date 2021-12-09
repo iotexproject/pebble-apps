@@ -511,7 +511,7 @@ void main(void) {
         }
         if(devRegGet() != DEV_REG_STOP) {
             devRegSet(DEV_REG_START);
-            ssd1306_display_logo();
+            pebbleBackGround(0);
         }        
     }
     LOG_INF("Disconnecting MQTT client...\n");

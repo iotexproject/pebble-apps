@@ -218,7 +218,7 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client) {
         }
         mainStatus(client);
         if (!hintTimeDec()) {
-            ssd1306_display_logo();
+            pebbleBackGround(0);
         }
         if(devRegGet() == DEV_REG_STOP) {
             clrHint();

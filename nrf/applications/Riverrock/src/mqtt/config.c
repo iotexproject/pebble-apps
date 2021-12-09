@@ -22,11 +22,11 @@ static iotex_mqtt_config __config = {
     .bulk_upload_sampling_freq = 0,
     .upload_period = DEFAULT_UPLOAD_PERIOD, 
 
-    .appName = "Gravel",
+    .appName = "Riverrock",
     .appVersion = "v1.0.0+",
     .configName = "Common",
     .configVersion = "v1.0.0",
-    .trusttreamTopic = "device/id/data",
+    .trusttreamTopic = "",
     .preciseGPS = false
 };
 struct sys_mutex iotex_config_mutex;
@@ -122,6 +122,13 @@ bool iotex_precise_gps(void) {
     ret = __config.preciseGPS;
     config_mutex_unlock();
     return ret;
+}
+uint8_t *iotex_get_trusttreamTopic(void) {
+    uint8_t *topic = NULL;
+    config_mutex_lock();
+    topic = __config.trusttreamTopic;
+    config_mutex_unlock();
+    return topic;
 }
 
 uint16_t iotex_mqtt_get_upload_period(void) {
@@ -242,6 +249,36 @@ static uint8_t *findDigit(uint8_t *buf) {
     return NULL;
 }
 
+static void parsTopic(uint8_t *out_topic, uint8_t *in_str) {
+    uint8_t buf[20];
+    uint8_t *pstart = NULL, *pend = NULL;
+    out_topic[0] = 0;
+    pstart = strchr(in_str, '$');
+    if(pstart != NULL) {
+        memcpy(out_topic, in_str, pstart-in_str);
+        out_topic[pstart-in_str] = 0;
+        pstart++;
+        if(pstart != (in_str + strlen(in_str))) {
+            pend = strchr(pstart, '/');
+            if(pend) {
+                memcpy(buf, pstart, pend-pstart);
+                buf[pend-pstart] = 0;
+                if(!strcmp(buf, "imei")) {
+                    snprintf(out_topic+strlen(out_topic), "%s",iotex_mqtt_get_client_id());
+                }
+                else {
+                    LOG_ERR("Downloaded config - trusttreamTopic:%s not surport\n", buf);
+                    out_topic[0] = 0;
+                    return;
+                }
+                strcpy(out_topic+strlen(out_topic), pend);
+            }
+        }
+    } else {
+        strcpy(out_topic, in_str);
+    }
+}
+
 /*
     parse jscon update configure
     return 0
@@ -353,7 +390,9 @@ static int iotex_mqtt_parse_config(const uint8_t *payload, uint32_t len, iotex_m
     }    
 
     if (trusttreamTopic && cJSON_IsString(trusttreamTopic)) {
-        strcpy(config->trusttreamTopic, trusttreamTopic->valuestring);
+        if(strlen(trusttreamTopic->valuestring) && (strlen(trusttreamTopic->valuestring) < sizeof(config->trusttreamTopic))) {
+            parsTopic(config->trusttreamTopic, trusttreamTopic->valuestring);
+        }
     }
     if (preciseGPS && cJSON_IsBool(preciseGPS)) {
         config->preciseGPS = cJSON_IsTrue(preciseGPS) ? true : false;

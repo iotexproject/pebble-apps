@@ -153,8 +153,7 @@ static void broker_init(const char *hostname, struct sockaddr_storage *storage) 
 
             LOG_INF("IPv4 Address 0x%08x\n", broker->sin_addr.s_addr);
             break;
-        }
-        else if (addr->ai_addrlen == sizeof(struct sockaddr_in6)) {
+        } else if (addr->ai_addrlen == sizeof(struct sockaddr_in6)) {
             /* IPv6 Address. */
             struct sockaddr_in6 *broker = ((struct sockaddr_in6 *)storage);
             memcpy(broker->sin6_addr.s6_addr,((struct sockaddr_in6 *)addr->ai_addr)->sin6_addr.s6_addr,sizeof(struct in6_addr));
@@ -243,7 +242,6 @@ static int subscribe_regist_topic(struct mqtt_client *client) {
     return mqtt_subscribe(client, &subscription_list);
 }
 
-
 /**@brief Function to print strings without null-termination. */
 static void data_print(u8_t *prefix, u8_t *data, size_t len) {
     char buf[len + 1];
@@ -267,8 +265,7 @@ static int publish_get_payload(struct mqtt_client *c, u8_t *write_buf, size_t le
         int ret = mqtt_read_publish_payload_blocking(c, buf, end - buf);
         if (ret < 0) {
             return ret;
-        }
-        else if (ret == 0) {
+        } else if (ret == 0) {
             return -EIO;
         }
 
@@ -277,7 +274,6 @@ static int publish_get_payload(struct mqtt_client *c, u8_t *write_buf, size_t le
 
     return 0;
 }
-
 
 /**@brief Reboot the device if CONNACK has not arrived. */
 static void cloud_reboot_work_fn(struct k_work *work) {    
@@ -293,10 +289,10 @@ static void cloud_reboot_work_fn(struct k_work *work) {
 
 /**@brief MQTT client event handler */
 static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt *evt) {
-
     int err;
     uint8_t revTopic[100];
     uint32_t status;
+
     switch (evt->type) {
         case MQTT_EVT_CONNACK:
             if (evt->result != 0) {
@@ -310,9 +306,8 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                 subscribe_regist_topic(c);
                 ClearKey();
                 devRegSet(DEV_REG_STATUS);
-            }
-            else {
-                if(devRegGet() == DEV_UPGRADE_ENTRY) {
+            } else {
+                if (devRegGet() == DEV_UPGRADE_ENTRY) {
                     devRegSet(DEV_UPGRADE_CONFIRM);
                 }
             }
@@ -322,7 +317,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
             cnt = 0;
             sta_SetMeta(AWS_LINKER, STA_LINKER_ON);
             connected = 1;
-            atomic_set(&send_data_enable, 1);            
+            atomic_set(&send_data_enable, 1);
             break;
         case MQTT_EVT_DISCONNECT:
             connected = 0;
@@ -343,7 +338,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                         if (IsDevReg())
                             devRegSet(DEV_REG_SUCCESS);
                     } else if (status == 1) {
-                            devRegSet(DEV_REG_ADDR_CHECK);
+                        devRegSet(DEV_REG_ADDR_CHECK);
                     } else {
                         if (devRegGet() != DEV_REG_POLL_FOR_WALLET) {
                             hintString(htNetConnected,HINT_TIME_FOREVER);
@@ -428,6 +423,7 @@ int iotex_mqtt_publish_query(struct mqtt_client *client, enum mqtt_qos qos, char
 {
     struct mqtt_publish_param param;
     u8_t pub_topic[MQTT_TOPIC_SIZE];
+
     iotex_mqtt_query_topic(pub_topic, sizeof(pub_topic));
     param.message.topic.qos = qos;
     param.message.topic.topic.utf8 = pub_topic;
@@ -438,7 +434,7 @@ int iotex_mqtt_publish_query(struct mqtt_client *client, enum mqtt_qos qos, char
     param.dup_flag = 0U;
     param.retain_flag = 0U;
     LOG_INF("publish topic %s \n", pub_topic);
-    if(len)
+    if (len)
         LOG_INF("data: %s \n",data);
     return mqtt_publish(client, &param);
 }
@@ -465,8 +461,14 @@ int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, 
 int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char *data, int len) {
     struct mqtt_publish_param param;
     u8_t pub_topic[MQTT_TOPIC_SIZE];
+    uint8_t *topic = NULL;
 
-    iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
+    topic = iotex_get_trusttreamTopic();
+    if((topic == NULL) || !strlen(topic)) {
+        iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
+    } else {
+        strcpy(pub_topic, topic);
+    }
     param.message.topic.qos = qos;
     param.message.topic.topic.utf8 = pub_topic;
     param.message.topic.topic.size = strlen(param.message.topic.topic.utf8);

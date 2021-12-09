@@ -806,6 +806,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
             sensordat.has_longitude = true;
         }
     }
+
     /* Env sensor gas */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_GAS)) {
         sensordat.gasResistance = (uint32_t)(env_sensor.gas_resistance * 100);

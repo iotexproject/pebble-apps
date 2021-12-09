@@ -75,7 +75,7 @@ void gpsPackageParseHandle(struct k_work *work){
         intpart= rmc.longitude/100;
         fractpart=((rmc.longitude/100)-intpart)/0.6; 
         lon = intpart+fractpart;
-        if(iotex_precise_gps()) {
+        if(!iotex_precise_gps()) {
             /*  gps  Mosaic needed ? */
             fractpart = lat * 100;
             intpart = fractpart / 1;
