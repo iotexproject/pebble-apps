@@ -29,7 +29,7 @@ Gravel runs in Power Saving Mode (PSM). In this mode, the device requests the PS
 ## Requirements
 
 * IoTex pebble development board v3.0
-* [IoTex sdk(Based on Nordic nRF-SDK v1.4.0)](https://github.com/iotexproject/pebble-firmware.git)
+* [IoTex sdk(Based on Nordic nRF-SDK v1.4.0)](https://github.com/iotexproject/pebble-firmware-legacy/tree/v1.4.0)
   
 
 
