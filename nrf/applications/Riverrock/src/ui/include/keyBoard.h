@@ -24,6 +24,7 @@ uint8_t getKey(void);
 void iotex_key_init(void);
 bool IsEnterPressed(void);
 bool isUpKeyStartupPressed(void);
+bool isComninationKeys(enum USER_KEY_DEF combination_keys);
 
 
 

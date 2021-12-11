@@ -31,7 +31,9 @@ Riverrock runs in Power Saving Mode (PSM). In this mode, the device requests the
 * IoTex pebble development board v3.0
 * [IoTex sdk(Based on Nordic nRF-SDK v1.4.0)](https://github.com/iotexproject/pebble-firmware.git)
   
+## Download configuration
 
+After pebble works normally, press and hold the up and down buttons at the same time, pebble will start to connect to the network. After the network connection is complete, pebble prompts to start downloading the configuration on the portal, the device will enter the download configuration state, and keep this state for a maximum of 5 minutes.
 
 ## Developer documentation
 

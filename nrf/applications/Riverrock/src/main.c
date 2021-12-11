@@ -54,8 +54,8 @@
 #include  "mqtt/devReg.h"
 #include "display.h"
 #include "ver.h"
+#include "keyBoard.h"
 #if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
-#include "certificates.h"
 #if defined(CONFIG_MODEM_KEY_MGMT)
 #include <modem/modem_key_mgmt.h>
 #endif /* CONFIG_MODEM_KEY_MGMT */
@@ -315,8 +315,7 @@ void stopMqtt(void) {
 }
 void keyWakeup(void) {
     if((devRegGet() == DEV_REG_STOP) && (!atomic_get(&keyWaitFlg))) {
-        if (IsEnterPressed()) {
-            ClearKey();    
+        if (isComninationKeys(KB_UP_KEY|KB_DOWN_KEY)) {
             atomic_set(&keyWaitFlg,1);
             LOG_INF("start wakeup id:%d\n", mainThreadID);
             k_wakeup(mainThreadID);
