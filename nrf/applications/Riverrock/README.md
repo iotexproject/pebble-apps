@@ -37,4 +37,4 @@ After pebble works normally, press and hold the up and down buttons at the same 
 
 ## Developer documentation
 
-Please refer to: https://iotex.larksuite.com/wiki/wikuseJV1r3A75SvxKR7DbtbxAd
+Please refer to: https://docs.iotex.io/verifiable-data/pebble-tracker/
