@@ -35,4 +35,4 @@ Gravel runs in Power Saving Mode (PSM). In this mode, the device requests the PS
 
 ## Developer documentation
 
-Please refer to: https://iotex.larksuite.com/wiki/wikuseJV1r3A75SvxKR7DbtbxAd
+Please refer to: https://docs.iotex.io/verifiable-data/pebble-tracker/
