@@ -18,7 +18,7 @@ struct device *beep_pwm_dev = NULL;
 int onBeepMePressed(int ms) {
     int err = 0;
     if (!beep_pwm_dev) {
-        beep_pwm_dev = device_get_binding("PWM_1");        
+        beep_pwm_dev = device_get_binding("PWM_1");
     }
     pwm_pin_set_usec(beep_pwm_dev, 11, 370, 185, 0);/* 2.7kHz ==370us  185/370=50% duty */
     k_sleep(K_MSEC(ms));  /* 1.5S delay */
@@ -26,5 +26,3 @@ int onBeepMePressed(int ms) {
 
     return err;
 }
-
-

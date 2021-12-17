@@ -108,9 +108,10 @@ static int ConfigureInvDevice_tilt(ICM426XX_APEX_CONFIG0_DMP_ODR_t tilt_freq,
     config_int.INV_ICM426XX_WOM_Y = INV_ICM426XX_DISABLE;
     config_int.INV_ICM426XX_WOM_Z = INV_ICM426XX_DISABLE;
     inv_icm426xx_set_config_ibi(getICMDriver(), &config_int);
-printk("tilt config rc : 0x%x\n",rc);    
+    /* printk("tilt config rc : 0x%x\n",rc); */
     return rc;
 }
+
 int tiltConf(void)
 {
     return ConfigureInvDevice_tilt(ICM_TILT_FREQUENCY_MODE,
@@ -122,15 +123,16 @@ int tiltDetect(void)
 {
     int status;
     uint8_t int_status;
-    
+
     status |= inv_icm426xx_read_reg(getICMDriver(), MPUREG_INT_STATUS3, 1, &int_status);
     if (status) {
-        printk("error tilt status read : 0x%x\n",int_status);        
+        printk("error tilt status read : 0x%x\n",int_status);
         return  0;
-    }    
-    if(int_status & BIT_INT_STATUS3_TILT_DET){
+    }
+
+    if (int_status & BIT_INT_STATUS3_TILT_DET) {
         printk("tilt event detected\n");
     }
+
     return 1;
 }
-

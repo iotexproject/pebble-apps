@@ -25,7 +25,8 @@ message SensorConfig
     optional uint32 bulkUploadSamplingCnt = 4;
     optional uint32 bulkUploadSamplingFreq = 5;
     optional uint32 beep = 6;
-    optional string firmware = 7; 
+    optional string firmware = 7;
+    optional bool deviceConfigurable = 8;
 }
 
 message SensorState

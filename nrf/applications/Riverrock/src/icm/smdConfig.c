@@ -31,20 +31,20 @@ static int ConfigureInvDevice_smd(uint8_t is_low_noise_mode, ICM426XX_ACCEL_CONF
     rc |= inv_icm426xx_set_accel_fsr(getICMDriver(), acc_fsr_g);
     
     rc |= inv_icm426xx_set_accel_frequency(getICMDriver(), acc_freq);
-    
-    if (is_low_noise_mode)    {
+
+    if (is_low_noise_mode) {
         rc |= inv_icm426xx_enable_accel_low_noise_mode(getICMDriver());
-    }else {
+    } else {
         /* Set 1x averaging, in order to minimize power consumption (16x by default) */
         rc |= inv_icm426xx_set_accel_lp_avg(getICMDriver(), ICM426XX_GYRO_ACCEL_CONFIG0_ACCEL_FILT_AVG_1);
         rc |= inv_icm426xx_enable_accel_low_power_mode(getICMDriver());
     }
 
     /* Configure WOM to compare current sample with the previous sample and to produce signal when all axis exceed 52 mg */
-    rc |= inv_icm426xx_configure_smd_wom(getICMDriver(), 
-        ICM426XX_DEFAULT_WOM_THS_MG, 
-        ICM426XX_DEFAULT_WOM_THS_MG, 
-        ICM426XX_DEFAULT_WOM_THS_MG, 
+    rc |= inv_icm426xx_configure_smd_wom(getICMDriver(),
+        ICM426XX_DEFAULT_WOM_THS_MG,
+        ICM426XX_DEFAULT_WOM_THS_MG,
+        ICM426XX_DEFAULT_WOM_THS_MG,
         ICM426XX_SMD_CONFIG_WOM_INT_MODE_ANDED,
         ICM426XX_SMD_CONFIG_WOM_MODE_CMP_PREV);
 
@@ -71,7 +71,6 @@ static int ConfigureInvDevice_smd(uint8_t is_low_noise_mode, ICM426XX_ACCEL_CONF
     return rc;
 }
 
-
 int smdConf(void)
 {
     return ConfigureInvDevice_smd((uint8_t)IS_LOW_NOISE_MODE, ICM426XX_ACCEL_CONFIG0_FS_SEL_4g, ICM426XX_ACCEL_CONFIG0_ODR_50_HZ);
@@ -81,15 +80,14 @@ int smdDetect(void)
 {
     int status;
     uint8_t int_status;
-    
+
     status |= inv_icm426xx_read_reg(getICMDriver(), MPUREG_INT_STATUS2, 1, &int_status);
     if (status) {
-        printk("error smd status read : 0x%x\n",int_status);        
+        printk("error smd status read : 0x%x\n",int_status);
         return  0;
-    }    
-    if(int_status & (BIT_INT_STATUS2_SMD_INT)) {
+    }
+    if (int_status & (BIT_INT_STATUS2_SMD_INT)) {
         printk("smd event detected\n");
     }
     return 1;
 }
-

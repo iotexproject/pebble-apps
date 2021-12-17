@@ -77,10 +77,11 @@ static void ssd1306_write_byte(uint8_t chData, uint8_t chCmd)  {
 }
 
 void ssd1306_display_on(void) {
-    ssd1306_write_byte(0x8D, SSD1306_CMD);  
-    ssd1306_write_byte(0x14, SSD1306_CMD);  
-    ssd1306_write_byte(0xAF, SSD1306_CMD);  
+    ssd1306_write_byte(0x8D, SSD1306_CMD);
+    ssd1306_write_byte(0x14, SSD1306_CMD);
+    ssd1306_write_byte(0xAF, SSD1306_CMD);
 }
+
 /**
   * @brief  OLED turns off
   *        
@@ -89,31 +90,31 @@ void ssd1306_display_on(void) {
   * @retval  None
 **/
 void ssd1306_display_off(void) {
-    ssd1306_write_byte(0x8D, SSD1306_CMD);  
-    ssd1306_write_byte(0x10, SSD1306_CMD); 
-    ssd1306_write_byte(0xAE, SSD1306_CMD);  
+    ssd1306_write_byte(0x8D, SSD1306_CMD);
+    ssd1306_write_byte(0x10, SSD1306_CMD);
+    ssd1306_write_byte(0xAE, SSD1306_CMD);
 }
 
 void ssd1306_refresh_gram(void) {
     uint8_t i, j;
-    
-    for (i = 0; i < 8; i ++) {  
-        ssd1306_write_byte(0xB0 + i, SSD1306_CMD);    
-        ssd1306_write_byte(0x00, SSD1306_CMD); 
-        ssd1306_write_byte(0x10, SSD1306_CMD);    
+
+    for (i = 0; i < 8; i ++) {
+        ssd1306_write_byte(0xB0 + i, SSD1306_CMD);
+        ssd1306_write_byte(0x00, SSD1306_CMD);
+        ssd1306_write_byte(0x10, SSD1306_CMD);
         for (j = 0; j < 128; j ++) {
-            ssd1306_write_byte(s_chDispalyBuffer[j][i], SSD1306_DAT); 
+            ssd1306_write_byte(s_chDispalyBuffer[j][i], SSD1306_DAT);
         }
-    }  
+    }
 }
 
-void ssd1306_clear_screen(uint8_t chFill) { 
+void ssd1306_clear_screen(uint8_t chFill) {
     memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer));
-    ssd1306_refresh_gram();   
+    ssd1306_refresh_gram();
 }
 
-void ssd1306_clear_buffer(uint8_t chFill) { 
-    memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer)); 
+void ssd1306_clear_buffer(uint8_t chFill) {
+    memset(s_chDispalyBuffer,chFill, sizeof(s_chDispalyBuffer));
 }
 
 /**
@@ -131,7 +132,7 @@ void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint) {
     if (chXpos > 127 || chYpos > 63) {
         return;
     }
-    chPos = 7 - chYpos / 8; /*   */
+    chPos = 7 - chYpos / 8;
     chBx = chYpos % 8;
     chTemp = 1 << (7 - chBx);
     
@@ -141,6 +142,7 @@ void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint) {
         s_chDispalyBuffer[chXpos][chPos] &= ~chTemp;
     }
 }
+
 /**
   * @brief  Fills a rectangle
   *        
@@ -151,14 +153,14 @@ void ssd1306_draw_point(uint8_t chXpos, uint8_t chYpos, uint8_t chPoint) {
   *        
   * @retval 
 **/
-void ssd1306_fill_screen(uint8_t chXpos1, uint8_t chYpos1, uint8_t chXpos2, uint8_t chYpos2, uint8_t chDot) {  
-    uint8_t chXpos, chYpos; 
-    
+void ssd1306_fill_screen(uint8_t chXpos1, uint8_t chYpos1, uint8_t chXpos2, uint8_t chYpos2, uint8_t chDot) {
+    uint8_t chXpos, chYpos;
+
     for (chXpos = chXpos1; chXpos <= chXpos2; chXpos ++) {
         for (chYpos = chYpos1; chYpos <= chYpos2; chYpos ++) {
             ssd1306_draw_point(chXpos, chYpos, chDot);
         }
-    }    
+    }
     
     ssd1306_refresh_gram();
 }
@@ -172,12 +174,12 @@ void ssd1306_fill_screen(uint8_t chXpos1, uint8_t chYpos1, uint8_t chXpos2, uint
   * @param  chMode
   * @retval 
 **/
-void ssd1306_display_char(uint8_t chXpos, uint8_t chYpos, uint8_t chChr, uint8_t chSize, uint8_t chMode) {          
+void ssd1306_display_char(uint8_t chXpos, uint8_t chYpos, uint8_t chChr, uint8_t chSize, uint8_t chMode) {
     uint8_t i, j;
     uint8_t chTemp, chYpos0 = chYpos;
-    
-    chChr = chChr - ' ';                  
-    for (i = 0; i < chSize; i ++) {  
+
+    chChr = chChr - ' ';
+    for (i = 0; i < chSize; i ++) {
         if (chMode) {
             chTemp = c_chFont1608[chChr][i];
         } else {
@@ -192,40 +194,35 @@ void ssd1306_display_char(uint8_t chXpos, uint8_t chYpos, uint8_t chChr, uint8_t
             }
             chTemp <<= 1;
             chYpos ++;
-            
+
             if ((chYpos - chYpos0) == chSize) {
                 chYpos = chYpos0;
                 chXpos ++;
                 break;
             }
-        }      
-    } 
-}  
+        }
+    }
+}
 
 uint8_t *getEndpos(const uint8_t *str) {
     uint32_t i;
-    for(i =0; i<15; i++)
-    {
-        if(*str != '\0')
-        {
-            str++;           
-        }
-        else
-        {
+    for(i = 0; i<15; i++) {
+        if(*str != '\0') {
+            str++;
+        } else {
             break;
-        }        
-    }   
-    if(((*str >= 'a') && (*str <= 'z')) || ((*str >= 'A') && (*str <= 'Z')))
-    {
-        if(((*(str+1) >= 'a') && (*(str+1) <= 'z')) || ((*(str+1) >= 'A') && (*(str+1) <= 'Z')))
-        {
-            while((*str != ' ') && (*str != ','))
-            {
+        }
+    }
+
+    if (((*str >= 'a') && (*str <= 'z')) || ((*str >= 'A') && (*str <= 'Z'))) {
+        if (((*(str+1) >= 'a') && (*(str+1) <= 'z')) || ((*(str+1) >= 'A') && (*(str+1) <= 'Z'))) {
+            while((*str != ' ') && (*str != ',')) {
                 str--;
             }
         }
-    } 
-    return (str+1);
+    }
+
+    return (str + 1);
 }
 
 /**
@@ -238,10 +235,9 @@ uint8_t *getEndpos(const uint8_t *str) {
   * @retval  None
 **/
 void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchString, uint8_t chSize, uint8_t chMode) {
-
     uint8_t *endstr;
     endstr = getEndpos(pchString);
-    while (*pchString != '\0') {      
+    while (*pchString != '\0') {
         if ((chXpos > (SSD1306_WIDTH - chSize / 2)) || (pchString == endstr)) {
             endstr = getEndpos(pchString);
             chXpos = 0;
@@ -263,7 +259,7 @@ void ssd1306_init(void) {
         LOG_ERR("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
         return ;
     }
-    sys_mutex_init(&iotex_i2c_access);       
+    sys_mutex_init(&iotex_i2c_access);
     /* ssd1306_write_byte(0xAE, SSD1306_CMD);--turn off oled panel */
     ssd1306_write_byte(0x00, SSD1306_CMD);/* ---set low column address */
     ssd1306_write_byte(0x10, SSD1306_CMD);/* ---set high column address */
@@ -295,15 +291,13 @@ void ssd1306_init(void) {
 }
 
 void ctrlOLED(bool on_off) {
-    if(on_off)
-        ssd1306_write_byte(0xAF, SSD1306_CMD);
-    else
-        ssd1306_write_byte(0xAE, SSD1306_CMD);
+    ssd1306_write_byte(on_off ? 0xAF : 0xAE, SSD1306_CMD);
 }
 
 void i2cLock(void) {
     sys_mutex_lock(&iotex_i2c_access, K_FOREVER);
 }
+
 void i2cUnlock(void) {
     sys_mutex_unlock(&iotex_i2c_access);
 }
@@ -311,37 +305,35 @@ void i2cUnlock(void) {
 void ssd1306_refresh_lines(uint8_t start_line, uint8_t stop_line) {
     uint8_t i, j;
 
-    i2cLock(); 
-    for (i = start_line; i <= stop_line ; i ++) {          
-        ssd1306_write_byte(0xB0 + i, SSD1306_CMD);    
-        ssd1306_write_byte(0x00, SSD1306_CMD); 
-        ssd1306_write_byte(0x10, SSD1306_CMD);    
+    i2cLock();
+    for (i = start_line; i <= stop_line ; i ++) {
+        ssd1306_write_byte(0xB0 + i, SSD1306_CMD);
+        ssd1306_write_byte(0x00, SSD1306_CMD);
+        ssd1306_write_byte(0x10, SSD1306_CMD);
         for (j = 0; j < SSD1306_WIDTH; j ++) {
-            ssd1306_write_byte(s_chDispalyBuffer[j][i], SSD1306_DAT); 
+            ssd1306_write_byte(s_chDispalyBuffer[j][i], SSD1306_DAT);
         }
-    } 
-    i2cUnlock(); 
+    }
+    i2cUnlock();
 }
 
 void clearDisBuf(uint8_t start_line, uint8_t stop_line) {
     uint8_t i, j;
-    
-    for (i = start_line; i <= stop_line; i ++) {  
+    for (i = start_line; i <= stop_line; i ++) {
         for (j = 0; j < 128; j ++) {
-            s_chDispalyBuffer[j][i]= 0;           
-        }                         
-    }      
+            s_chDispalyBuffer[j][i]= 0;
+        }
+    }
 }
 
 void ssd1306_display_logo(void) {
     uint8_t i, j;
-
-    sys_mutex_lock(&iotex_hint_mutex, K_FOREVER); 
-    for (i = 0; i < 6; i ++) {    
+    sys_mutex_lock(&iotex_hint_mutex, K_FOREVER);
+    for (i = 0; i < 6; i ++) {
         for (j = 0; j < 128; j ++) {
-            s_chDispalyBuffer[j][i]= s_Iotex_logo[j+i*128];           
+            s_chDispalyBuffer[j][i]= s_Iotex_logo[j + i * 128];
         }
-    }   
-    ssd1306_refresh_lines(0,5);
+    }
+    ssd1306_refresh_lines(0, 5);
     sys_mutex_unlock(&iotex_hint_mutex);
 }

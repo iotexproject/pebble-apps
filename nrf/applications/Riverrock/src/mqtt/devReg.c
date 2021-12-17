@@ -30,12 +30,15 @@ extern int hexStr2Bin(char *str, char *bin);
 bool IsDevReg(void) {
     return (devRegStatus >= DEV_REG_START);
 }
+
 void devRegSet(enum DEV_REG_STA esta) {
     devRegStatus = esta;
 }
+
 uint32_t devRegGet(void) {
     return devRegStatus;
 }
+
 int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len) {
     int ret = 0;
 
@@ -49,12 +52,14 @@ int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len) {
         }
         return 0;
     }
+
     regStatus = cJSON_GetObjectItem(root_obj, "status");
     if (!regStatus) {
         LOG_ERR("Poll proposal error\n");
         ret = 0;
         goto cleanup;
     }
+
     if (regStatus->valueint == 1) {
         walletAddress = cJSON_GetObjectItem(root_obj, "proposer");
         if (walletAddress) {
@@ -65,10 +70,12 @@ int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len) {
     } else if (regStatus->valueint == 2) {
         ret = 2;
     }
+
 cleanup:
     cJSON_Delete(root_obj);
     return ret;
 }
+
 int SignAndSend(void)
 {
     char esdaSign[65];
@@ -82,6 +89,7 @@ int SignAndSend(void)
     json_buf = malloc(DATA_BUFFER_SIZE);
     if (!json_buf)
         return -1;
+
     LOG_INF("walletAddr:%s\n", walletAddr);
     confirmAdd.owner.size = hexStr2Bin(walletAddr + 2, confirmAdd.owner.bytes);
     confirmAdd.owner.bytes[confirmAdd.owner.size] = (char)((uint_timestamp & 0xFF000000) >> 24);
@@ -109,7 +117,7 @@ void waitForOtaOver(void) {
     dis_OnelineText(1, ALIGN_LEFT, " ",DIS_NORMAL);
     dis_OnelineText(2, ALIGN_LEFT, " ",DIS_NORMAL);
     dis_OnelineText(3, ALIGN_LEFT, " ",DIS_NORMAL);
-    strcpy(disOTAProgress, "Downloaded: ");    
+    strcpy(disOTAProgress, "Downloaded: ");
     while (devRegGet() != DEV_UPGRADE_COMPLETE) {
         k_sleep(K_MSEC(300));
         sprintf(disOTAProgress+12, "%d", getOTAProgress());
@@ -224,8 +232,7 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client) {
             clrHint();
             err = (err == -EAGAIN ? 0 : err);
             break;
-        }
-        else {
+        } else {
             /*  check  registration  status every 1s */
             k_sleep(K_MSEC(5000));
         }

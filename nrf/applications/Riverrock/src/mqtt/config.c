@@ -58,6 +58,8 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
     confData.beep = 1000;
     confData.has_firmware = true;
     strcpy(confData.firmware, firmwareVersion);
+    confData.has_deviceConfigurable = true;
+    confData.deviceConfigurable = false;
     pb_ostream_t enc_datastream;
     enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
     if (!pb_encode(&enc_datastream, SensorConfig_fields, &confData)) {
@@ -89,7 +91,8 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
         LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_packstream));
         return 0;
     }
-    return  enc_packstream.bytes_written;   
+
+    return enc_packstream.bytes_written;   
 }
 
 static bool save_mqtt_config(void) {
@@ -123,7 +126,7 @@ bool iotex_precise_gps(void) {
     config_mutex_unlock();
     return ret;
 }
-uint8_t *iotex_get_trusttreamTopic(void) {
+uint8_t *iotex_get_truStreamTopic(void) {
     uint8_t *topic = NULL;
     config_mutex_lock();
     topic = __config.trusttreamTopic;
@@ -481,6 +484,5 @@ int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len) {
 }
 
 uint8_t *getOTAUrl(void) {
-
     return firmwareUrl;
 }

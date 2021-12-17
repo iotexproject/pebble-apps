@@ -6,7 +6,7 @@
 
 LOG_MODULE_REGISTER(LowerS, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
-#define     MAXN 200
+#define MAXN 200
 
 struct BigNum {
     int num[MAXN];
@@ -20,13 +20,15 @@ int Comp(struct BigNum *a, struct BigNum *b) {
     int i;
     if (a->len != b->len)
         return (a->len > b->len) ? 1 : -1;
-    for (i = a->len - 1; i >= 0; i--)
+
+    for (i = a->len - 1; i >= 0; i--) {
         if (a->num[i] != b->num[i])
             return (a->num[i] > b->num[i]) ? 1 : -1;
+    }
+
     return 0;
 }
 
-//a >= b
 struct BigNum Sub(struct BigNum *a, struct BigNum *b) {
     struct BigNum c;
     int i, len;
@@ -81,14 +83,13 @@ int hexStr2Bin(char *str, char *bin) {
 }
 
 void printBuf(struct BigNum *a, char *buf) {
-    int i,j;
-    LOG_INF("a->len:%d\n", a->len);
-    if(a->len < 64) a->len = 64;
-    for(i = a->len,j = 0; j < (a->len>>1) ; i--,j++)
-    {
-        buf[j] = (str2Hex(a->num[i-1]) <<4);
+    int i, j;
+    LOG_INF("a->len: %d\n", a->len);
+    if (a->len < 64) a->len = 64;
+    for (i = a->len, j = 0; j < (a->len >> 1) ; i--,j++) {
+        buf[j] = (str2Hex(a->num[i - 1]) << 4);
         i--;
-        buf[j] |= str2Hex(a->num[i-1]);
+        buf[j] |= str2Hex(a->num[i - 1]);
     }
 }
 
@@ -116,7 +117,7 @@ void InitBinary(struct BigNum *a, char *binary, int  len) {
         a->num[j - 1] =((binary[i]&0xF0)>>4);
         j--;
         a->num[j - 1] =(binary[i]&0x0F);
-    }   
+    }
 }
 
 void InitLowsCalc(void) {
@@ -132,10 +133,9 @@ void LowsCalc(char *s, char *out) {
     struct BigNum a;
     int tag = 1;
 
-    InitBinary(&a, s, 32);  
-    if(Comp((struct BigNum *)&Lower_S, &a) < 0)
-    {
-        a = Sub((struct BigNum *)&Max_s , &a); 
-        printBuf(&a, out);        
-    }           
+    InitBinary(&a, s, 32);
+    if (Comp((struct BigNum *)&Lower_S, &a) < 0) {
+        a = Sub((struct BigNum *)&Max_s , &a);
+        printBuf(&a, out);
+    }
 }

@@ -94,6 +94,7 @@ int get_ecc_key(void) {
         return 1;
     return  0;
 }
+
 /*
 pub : ecc public key, sizeof pub not less than 129 bytes
 */
@@ -114,6 +115,7 @@ unsigned char *readECCPubKey(void) {
     pub[130] = 0;
     return pub;
 }
+
 int startup_check_ecc_key(void) {
     return get_ecc_key() ? -4 : 0;
 }

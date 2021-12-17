@@ -40,14 +40,15 @@ const uint8_t *pmqttBrokerHost = "a11homvea4zo8t-ats.iot.ap-east-1.amazonaws.com
 
 extern void mqttGetResponse(void);
 
-static  void iotex_mqtt_get_topic(u8_t *buf, int len) {
+static void iotex_mqtt_get_topic(u8_t *buf, int len) {
     snprintf(buf, len, "device/%s/data",iotex_mqtt_get_client_id());
 }
 
 static void iotex_mqtt_get_firm_topic(u8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/firmware",iotex_mqtt_get_client_id());
 }
-static void iotex_get_heart_beat_topic(u8_t *buf, int len){
+
+static void iotex_get_heart_beat_topic(u8_t *buf, int len) {
     snprintf(buf, len, "device/%s/action/update-state",iotex_mqtt_get_client_id());
 }
 
@@ -58,17 +59,20 @@ static void iotex_mqtt_get_config_topic(u8_t *buf, int len) {
 static void iotex_mqtt_get_reg_topic(u8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/status",iotex_mqtt_get_client_id());
 }
-static void iotex_mqtt_get_ownership_topic(u8_t *buf, int len){
+
+static void iotex_mqtt_get_ownership_topic(u8_t *buf, int len) {
     snprintf(buf, len, "device/%s/confirm",iotex_mqtt_get_client_id());
 }
-static void iotex_mqtt_query_topic(u8_t *buf, int len){
+
+static void iotex_mqtt_query_topic(u8_t *buf, int len) {
     snprintf(buf, len, "device/%s/query",iotex_mqtt_get_client_id());
 }
-static void  iotex_mqtt_backend_ack_topic(u8_t *buf, int len){
+
+static void  iotex_mqtt_backend_ack_topic(u8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/status",iotex_mqtt_get_client_id());
 }
 
-static int packDevState(uint8_t *buf, uint32_t size){
+static int packDevState(uint8_t *buf, uint32_t size) {
     SensorState devSta = SensorState_init_zero;
     BinPackage binpack = BinPackage_init_zero;
     uint32_t uint_timestamp;
@@ -96,6 +100,7 @@ static int packDevState(uint8_t *buf, uint32_t size){
         default:
             break;
     }
+
     if (devSt < 4) {
         uint_timestamp = atoi(iotex_modem_get_clock(NULL));
         pb_ostream_t enc_datastream;
@@ -122,6 +127,7 @@ static int packDevState(uint8_t *buf, uint32_t size){
     }
     return 0;
 }
+
 /*
  * @brief Resolves the configured hostname and
  * initializes the MQTT broker structure
@@ -345,7 +351,8 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                             devRegSet(DEV_REG_PRESS_ENTER);
                         }
                     }
-                } else {   //  download  firmware url
+                } else {
+                    /*   download  firmware url */
                     iotex_mqtt_get_firm_topic(revTopic,sizeof(revTopic));
                     if (!strcmp(p->message.topic.topic.utf8, revTopic)) {
                         if (!IsDevReg()) {
@@ -356,7 +363,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                     }
                     else {
                         iotex_mqtt_get_config_topic(revTopic,sizeof(revTopic));
-                        if (!strcmp(p->message.topic.topic.utf8, revTopic)) {
+                        if (!strcmp(p->message.topic.topic.utf8, revTopic)) {                            
                             iotex_mqtt_update_config(payload_buf, p->message.payload.len);
                             hintString(htupdateConfig,HINT_TIME_FOREVER);
                         }
@@ -463,7 +470,7 @@ int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char 
     u8_t pub_topic[MQTT_TOPIC_SIZE];
     uint8_t *topic = NULL;
 
-    topic = iotex_get_trusttreamTopic();
+    topic = iotex_get_truStreamTopic();
     if((topic == NULL) || !strlen(topic)) {
         iotex_mqtt_get_topic(pub_topic, sizeof(pub_topic));
     } else {

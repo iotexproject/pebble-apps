@@ -38,18 +38,17 @@ const  void (*cmdACK[])(enum COM_COMMAND, unsigned char *, unsigned int) = {
 /* extern struct k_delayed_work  event_work; */
 
 void checkCHRQ(void) {
-    u32_t chrq;    
+    u32_t chrq;
     chrq = gpio_pin_get(__gpio0_dev, IO_NCHRQ);
-    if(!chrq) {
+    if (!chrq) {
         /*  charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_ON);
-    }
-    else {
+    } else {
         /*  not charging */
         gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
         sta_SetMeta(PEBBLE_POWER, STA_LINKER_OFF);
-    }    
+    }
 }
 
 void CtrlBlueLED(bool on_off) {
@@ -64,7 +63,6 @@ static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u
 }
 
 static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
-
     u32_t pwr_key, end_time;
     int32_t key_press_duration, ret;
 
@@ -73,15 +71,13 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
     if (IS_KEY_PRESSED(pwr_key)) {
         g_key_press_start_time = k_uptime_get_32();
         LOG_DBG("Power key pressed:[%u]\n", g_key_press_start_time);
-    }
-    else {
+    } else {
         end_time = k_uptime_get_32();
         LOG_DBG("Power key released:[%u]\n", end_time);
 
         if (end_time > g_key_press_start_time) {
             key_press_duration = end_time - g_key_press_start_time;
-        }
-        else {
+        } else {
             key_press_duration = end_time + (int32_t)g_key_press_start_time;
         }
 
@@ -118,7 +114,6 @@ void iotex_hal_gpio_init(void) {
     checkCHRQ();
 }
 
-
 int iotex_hal_gpio_set(uint32_t pin, uint32_t value) {
     return gpio_pin_write(__gpio0_dev, pin, value);
 }
@@ -153,9 +148,7 @@ void gpio_poweroff(void)
 
 void PowerOffIndicator(void)
 {
-    int  i;
-
-    for(i =0;i<3;i++){
+    for (int i = 0; i < 3; i++) {
         gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
         k_sleep(K_MSEC(1000));
         gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);
@@ -250,10 +243,8 @@ static bool isLegacySymble(uint8_t c) {
         return false;
 }
 static bool isActiveSn(uint8_t *sn) {
-    uint32_t i;
-    for(i = 0; i < 10; i++)
-    {
-        if(!isLegacySymble(sn[i]))
+    for (int i = 0; i < 10; i++) {
+        if (!isLegacySymble(sn[i]))
             return false;
     }
     return true;
@@ -266,13 +257,12 @@ static bool snExist(uint8_t *sn)
     uint8_t devSN[20];
 
     memset(buf, 0, sizeof(buf));
-    pbuf = ReadDataFromModem(PEBBLE_DEVICE_SN, buf, sizeof(buf));     
-    if(pbuf != NULL)
-    {        
-        memcpy(devSN, pbuf, 10);        
+    pbuf = ReadDataFromModem(PEBBLE_DEVICE_SN, buf, sizeof(buf));
+    if (pbuf != NULL) {
+        memcpy(devSN, pbuf, 10);
         devSN[10] = 0;
         LOG_INF("SN:%s\n", devSN);
-        if(isActiveSn(devSN)){
+        if (isActiveSn(devSN)) {
             memcpy(sn, devSN,10);
             return true;
         }
@@ -341,16 +331,17 @@ void setI2Cspeed(unsigned int level) {
         LOG_ERR("Bad i2c speed level :%d\n", level);
         return;
     }
+
     LOG_INF("Read out i2c-2 speed configure : \n");
-    switch(*i2cFrq){
-        case 0x01980000 :
+    switch (*i2cFrq) {
+        case 0x01980000:
             LOG_INF("i2c-2 speed: 100kbps \n");
             break;
-        case 0x04000000 :
+        case 0x04000000:
             LOG_INF("i2c-2 speed: 250kbps \n");
             break;
-        case 0x06400000 :
-            LOG_INF("i2c-2 speed: 400kbps \n");            
+        case 0x06400000:
+            LOG_INF("i2c-2 speed: 400kbps \n");
             break;
         default:
             LOG_INF("i2c-2 speed not supported \n");
@@ -358,7 +349,7 @@ void setI2Cspeed(unsigned int level) {
     }
 
     LOG_INF("i2c-2 speed set to %dkbps \n",speed[level]);
-    switch(level){
+    switch (level) {
         case 0:
             *i2cFrq = 0x01980000;
             break;
@@ -371,22 +362,21 @@ void setI2Cspeed(unsigned int level) {
         default:
             LOG_INF("i2c-2 speed not supported \n");
             break;
-    }    
+    }
+
     LOG_INF("Now i2c-2 speed is :");
-    switch(*i2cFrq){
-        case 0x01980000 :
+    switch (*i2cFrq) {
+        case 0x01980000:
             LOG_INF("100kbps \n");
             break;
-        case 0x04000000 :
+        case 0x04000000:
             LOG_INF("250kbps \n");
             break;
-        case 0x06400000 :
-            LOG_INF("400kbps \n");            
+        case 0x06400000:
+            LOG_INF("400kbps \n");
             break;
         default:
             LOG_ERR("speed not supported \n");
             break;
-    }    
+    }
 }
-
-

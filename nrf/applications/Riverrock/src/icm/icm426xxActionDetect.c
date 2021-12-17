@@ -18,15 +18,14 @@ extern int rawdataConf(void);
 extern int tiltDetect(void);
 extern int womDetect(void);
 extern int smdDetect(void);
-extern int  rawdataDetect(void);
+extern int rawdataDetect(void);
 
-const static int (*sensorConfig[MAX_ACT][2])(void)={
+const static int (*sensorConfig[MAX_ACT][2])(void) = {
     { tiltConf, tiltDetect },
     { womConf, womDetect },
     { smdConf, smdDetect },
-    { rawdataConf, rawdataDetect}
+    { rawdataConf, rawdataDetect }
 };
-
 
 int icm426xxConfig(enum SENSOR_ACTION  act)
 {
@@ -37,4 +36,3 @@ int icm426xxActionDetect(enum SENSOR_ACTION  act)
 {
     return (*sensorConfig[act][1])();
 }
-

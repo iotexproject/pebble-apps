@@ -24,10 +24,12 @@ enum ls_ch_type {
 
     LS_CH__END
 };
+
 struct ls_ch_data {
     enum sensor_channel type;
     struct sensor_value data;
 };
+
 static struct ls_ch_data ls_ch_red = { .type = SENSOR_CHAN_RED };
 static struct ls_ch_data ls_ch_green = { .type = SENSOR_CHAN_GREEN };
 static struct ls_ch_data ls_ch_blue = { .type = SENSOR_CHAN_BLUE };
