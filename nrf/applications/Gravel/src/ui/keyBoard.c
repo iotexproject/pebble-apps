@@ -16,7 +16,7 @@ LOG_MODULE_REGISTER(keyBoard, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 
 static struct gpio_callback up_key_gpio_cb, down_key_gpio_cb, pwr_key_gpio_cb;
-static uint8_t pressedKey;
+static uint8_t pressedKey,combinationKeys=KB_NO_KEY;
 static struct k_delayed_work power_off_button_work;
 static bool b_poweroff = false; /* qhm add 0830*/
 
@@ -53,6 +53,10 @@ bool isDownKeyStartupPressed(void) {
     return key == 0;
 }
 
+bool isComninationKeys(enum USER_KEY_DEF combination_keys) {
+    return ((combinationKeys & combination_keys) == combination_keys);
+}
+
 static void up_key_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
     u32_t key = gpio_pin_get(port, IO_UP_KEY);
     if (key > 0) {
@@ -61,9 +65,11 @@ static void up_key_callback(struct device *port, struct gpio_callback *cb, u32_t
         if (key > 0) {
             k_delayed_work_cancel(&power_off_button_work);
         }
+        combinationKeys &= ~KB_UP_KEY;
         LOG_DBG("up_key_release\n");
     } else {
         LOG_DBG("up_key_press\n");
+        combinationKeys |= KB_UP_KEY;
     }
 }
 
@@ -71,9 +77,11 @@ static void down_key_callback(struct device *port, struct gpio_callback *cb, u32
     u32_t key = gpio_pin_get(port, IO_DOWN_KEY);
     if (key > 0) {
         pressedKey |= KB_DOWN_KEY;
+        combinationKeys &= ~KB_DOWN_KEY;
         LOG_DBG("down_key_release\n");
     } else {
         LOG_DBG("down_key_press\n");
+        combinationKeys |= KB_DOWN_KEY;
     }
 }
 
@@ -81,6 +89,7 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
     u32_t pwr_key = gpio_pin_get(port, POWER_KEY);
     if (0 == pwr_key) {
         pressedKey |= KB_POWER_KEY;
+        combinationKeys |= KB_POWER_KEY;
         k_delayed_work_submit(&power_off_button_work,K_SECONDS(5));
         LOG_DBG("Power key pressed\n");
     } else {
@@ -89,6 +98,7 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
             gpio_pin_write(__gpio0_dev, IO_POWER_ON, POWER_OFF);
             b_poweroff = false;
         }
+        combinationKeys &= ~KB_POWER_KEY;
         /*end of qhm add 0830*/
         LOG_DBG("Power key released\n");
     }

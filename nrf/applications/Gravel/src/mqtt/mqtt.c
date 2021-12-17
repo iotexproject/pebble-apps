@@ -44,12 +44,16 @@ static void iotex_mqtt_get_topic(u8_t *buf, int len) {
     snprintf(buf, len, "device/%s/data",iotex_mqtt_get_client_id());
 }
 
-static void iotex_mqtt_get_config_topic(u8_t *buf, int len) {
+static void iotex_mqtt_get_firm_topic(u8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/firmware",iotex_mqtt_get_client_id());
 }
 
 static void iotex_get_heart_beat_topic(u8_t *buf, int len) {
     snprintf(buf, len, "device/%s/action/update-state",iotex_mqtt_get_client_id());
+}
+
+static void iotex_mqtt_get_config_topic(u8_t *buf, int len) {
+    snprintf(buf, len, "backend/%s/config",iotex_mqtt_get_client_id());
 }
 
 static void iotex_mqtt_get_reg_topic(u8_t *buf, int len) {
@@ -176,6 +180,30 @@ static void broker_init(const char *hostname, struct sockaddr_storage *storage) 
     freeaddrinfo(result);
 }
 
+static int subscribe_firm_topic(struct mqtt_client *client) {
+    uint8_t topic[MQTT_TOPIC_SIZE];
+    iotex_mqtt_get_firm_topic(topic, sizeof(topic));
+    struct mqtt_topic subscribe_topic = {
+        .topic = {
+            .utf8 = (uint8_t *)topic,
+            .size = strlen(topic)
+        },
+        .qos = MQTT_QOS_1_AT_LEAST_ONCE
+    };
+
+    const struct mqtt_subscription_list subscription_list = {
+        .list = &subscribe_topic,
+        .list_count = 1,
+        .message_id = 1234
+    };
+
+    LOG_INF("Subscribing to: %s len %u, qos %u\n",subscribe_topic.topic.utf8,subscribe_topic.topic.size,subscribe_topic.qos);
+
+    return mqtt_subscribe(client, &subscription_list);
+}
+
+
+
 static int subscribe_config_topic(struct mqtt_client *client) {
     uint8_t topic[MQTT_TOPIC_SIZE];
     iotex_mqtt_get_config_topic(topic, sizeof(topic));
@@ -190,7 +218,7 @@ static int subscribe_config_topic(struct mqtt_client *client) {
     const struct mqtt_subscription_list subscription_list = {
         .list = &subscribe_topic,
         .list_count = 1,
-        .message_id = 1234
+        .message_id = 4321
     };
 
     LOG_INF("Subscribing to: %s len %u, qos %u\n",subscribe_topic.topic.utf8,subscribe_topic.topic.size,subscribe_topic.qos);
@@ -290,7 +318,8 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                 }
             }
             /*  get upgrade url */
-            subscribe_config_topic(c);
+			subscribe_firm_topic(c);
+
             cnt = 0;
             sta_SetMeta(AWS_LINKER, STA_LINKER_ON);
             connected = 1;
@@ -324,7 +353,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                     }
                 } else {
                     /*   download  firmware url */
-                    iotex_mqtt_get_config_topic(revTopic,sizeof(revTopic));
+                    iotex_mqtt_get_firm_topic(revTopic,sizeof(revTopic));
                     if (!strcmp(p->message.topic.topic.utf8, revTopic)) {
                         if (!IsDevReg()) {
                             iotex_mqtt_update_url(payload_buf, p->message.payload.len);

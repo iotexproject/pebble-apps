@@ -39,7 +39,7 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
     confData.has_dataChannel = true;
     confData.dataChannel = __config.data_channel;
     confData.has_uploadPeriod = true;
-    confData.uploadPeriod = __config.upload_period;
+    confData.uploadPeriod = SENSOR_UPLOAD_PERIOD;
     confData.has_bulkUploadSamplingCnt = true;
     confData.bulkUploadSamplingCnt = __config.bulk_upload_sampling_cnt;
     confData.has_bulkUploadSamplingFreq = true;
@@ -48,6 +48,8 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
     confData.beep = 1000;
     confData.has_firmware = true;
     strcpy(confData.firmware, firmwareVersion);
+    confData.has_deviceConfigurable = true;
+    confData.deviceConfigurable = false;
     pb_ostream_t enc_datastream;
     enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
     if (!pb_encode(&enc_datastream, SensorConfig_fields, &confData)) {

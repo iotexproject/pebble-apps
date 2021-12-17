@@ -595,12 +595,13 @@ void MainMenu(void) {
         }
         k_sleep(K_MSEC(100));
     }
-    ssd1306_clear_screen(0);
-    ssd1306_display_logo();
-    ssd1306_display_on();
+    ssd1306_clear_screen(0); 
+    pebbleBackGround(0); 
+    ssd1306_display_on();  
 }
 
 void appEntryDetect(void) {
+    pebbleBackGround(0);
     /*  system  startup check proposer status  */
     devRegSet(DEV_REG_START);
     /*  Need to upgrade? */
@@ -609,4 +610,23 @@ void appEntryDetect(void) {
         hintString(htConnecting, HINT_TIME_FOREVER);
         devRegSet(DEV_UPGRADE_ENTRY);
     }
+}
+
+void pebbleBackGround(uint32_t sel) {
+    uint8_t disBuf[20];
+
+    sys_mutex_lock(&iotex_hint_mutex, K_FOREVER);
+    dis_OnelineText(2, ALIGN_LEFT, "",DIS_NORMAL);
+    switch(sel) {
+        case 0:
+            strcpy(disBuf, "App:"IOTEX_APP_NAME);    
+            dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
+            strcpy(disBuf, "Ver:"RELEASE_VERSION);    
+            dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
+            break;
+        default:
+            ssd1306_display_logo();
+            break;
+    }
+    sys_mutex_unlock(&iotex_hint_mutex);
 }

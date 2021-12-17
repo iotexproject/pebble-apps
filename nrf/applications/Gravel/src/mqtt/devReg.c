@@ -166,6 +166,7 @@ void mainStatus(struct mqtt_client *client) {
         case DEV_REG_SUCCESS:
             hintString(htRegSuccess, HINT_TIME_DEFAULT);          
             k_sleep(K_SECONDS(3));
+            ClearKey();
             devRegSet(DEV_REG_STOP);
             break;
         case DEV_UPGRADE_ENTRY:
@@ -225,7 +226,7 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client) {
         }
         mainStatus(client);
         if (!hintTimeDec()) {
-            ssd1306_display_logo();
+            pebbleBackGround(0);
         }
         if(devRegGet() == DEV_REG_STOP) {
             clrHint();

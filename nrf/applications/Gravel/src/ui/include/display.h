@@ -68,7 +68,7 @@ void  hintString(uint8_t *str[], uint8_t tim);
 void MainMenu(void);
 void dashBoard(void);
 void ctrlOLED(bool on_off);
-
+void pebbleBackGround(uint32_t sel);
 
 
 

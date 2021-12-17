@@ -55,7 +55,6 @@
 #include "display.h"
 #include "ver.h"
 #if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
-#include "certificates.h"
 #if defined(CONFIG_MODEM_KEY_MGMT)
 #include <modem/modem_key_mgmt.h>
 #endif /* CONFIG_MODEM_KEY_MGMT */
@@ -192,8 +191,8 @@ void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
         MODEM_KEY_MGMT_CRED_TYPE_PRIVATE_CERT,
         MODEM_KEY_MGMT_CRED_TYPE_PUBLIC_CERT,
     };
-
     disableModem();
+
     /* Delete certificates */
     for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
         err = modem_key_mgmt_delete(sec_tag, type);
@@ -426,7 +425,7 @@ void main(void) {
 
         if (devRegGet() != DEV_REG_STOP) {
             devRegSet(DEV_REG_START);
-            ssd1306_display_logo();
+            pebbleBackGround(0);
         }
     }
 

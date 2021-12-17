@@ -48,6 +48,8 @@ typedef struct _SensorConfig {
     uint32_t beep; 
     bool has_firmware;
     char firmware[160]; 
+    bool has_deviceConfigurable;
+    bool deviceConfigurable; 
 } SensorConfig;
 
 typedef struct _SensorConfirm { 
@@ -100,13 +102,13 @@ extern "C" {
 
 /* Initializer values for message structs */
 #define SensorData_init_default                  {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, {0, 0, 0}, {0, 0, 0}, false, ""}
-#define SensorConfig_init_default                {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, ""}
+#define SensorConfig_init_default                {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, "", false, 0}
 #define SensorState_init_default                 {false, 0}
 #define SensorConfirm_init_default               {false, ""}
 #define BinPackage_init_default                  {_BinPackage_PackageType_MIN, {0, {0}}, 0, {0}}
 #define ConfirmPackage_init_default              {{0, {0}}, 0, {0}, 0}
 #define SensorData_init_zero                     {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, {0, 0, 0}, {0, 0, 0}, false, ""}
-#define SensorConfig_init_zero                   {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, ""}
+#define SensorConfig_init_zero                   {false, 0, false, 0, false, 0, false, 0, false, 0, false, 0, false, "", false, 0}
 #define SensorState_init_zero                    {false, 0}
 #define SensorConfirm_init_zero                  {false, ""}
 #define BinPackage_init_zero                     {_BinPackage_PackageType_MIN, {0, {0}}, 0, {0}}
@@ -128,6 +130,7 @@ extern "C" {
 #define SensorConfig_bulkUploadSamplingFreq_tag  5
 #define SensorConfig_beep_tag                    6
 #define SensorConfig_firmware_tag                7
+#define SensorConfig_deviceConfigurable_tag      8
 #define SensorConfirm_owner_tag                  1
 #define SensorData_snr_tag                       1
 #define SensorData_vbat_tag                      2
@@ -169,7 +172,8 @@ X(a, STATIC,   OPTIONAL, UINT32,   uploadPeriod,      3) \
 X(a, STATIC,   OPTIONAL, UINT32,   bulkUploadSamplingCnt,   4) \
 X(a, STATIC,   OPTIONAL, UINT32,   bulkUploadSamplingFreq,   5) \
 X(a, STATIC,   OPTIONAL, UINT32,   beep,              6) \
-X(a, STATIC,   OPTIONAL, STRING,   firmware,          7)
+X(a, STATIC,   OPTIONAL, STRING,   firmware,          7) \
+X(a, STATIC,   OPTIONAL, BOOL,     deviceConfigurable,   8)
 #define SensorConfig_CALLBACK NULL
 #define SensorConfig_DEFAULT NULL
 
@@ -217,7 +221,7 @@ extern const pb_msgdesc_t ConfirmPackage_msg;
 /* Maximum encoded size of messages (where known) */
 #define BinPackage_size                          577
 #define ConfirmPackage_size                      281
-#define SensorConfig_size                        198
+#define SensorConfig_size                        200
 #define SensorConfirm_size                       202
 #define SensorData_size                          114
 #define SensorState_size                         6

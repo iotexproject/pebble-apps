@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively “Software� is subject
+ * This software, related documentation and any modifications thereto (collectively “Software is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -1190,7 +1190,7 @@ int inv_icm426xx_reset_fifo(struct inv_icm426xx * s)
         status |= inv_icm426xx_write_reg(s, MPUREG_SIGNAL_PATH_RESET, 1, &data);
     }
     else {
-        /* In case no sensor is enabled or in accel low power mode, change the FIFO_MODE to “bypass�(00) mode to force the FIFO reset,
+        /* In case no sensor is enabled or in accel low power mode, change the FIFO_MODE to “bypass(00) mode to force the FIFO reset,
          * potentials remaining data will be flushed 
          * Then proceed to a dummy read to released the FIFO reset synchronously with the serial clock
          */
