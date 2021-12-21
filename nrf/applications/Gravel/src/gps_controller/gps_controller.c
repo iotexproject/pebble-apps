@@ -221,6 +221,13 @@ static int getRMC(char *nmea, gprmc_t *loc)
 
     return 0;
 }
+static void gpsCmdSet(uint8_t *buf, uint32_t len) {
+    uint32_t i;
+    for(i = 0; i < len; i++)
+    {
+        uart_poll_out(guart_dev_gps,buf[i]); 
+    }
+}
 
 int getGPS(double *lat, double *lon) {
     int ret = -1;
@@ -264,3 +271,19 @@ void gpsPowerOn(void) {
 void gpsPowerOff(void) {    
     gpio_pin_write(gpsPower, GPS_EN, 0);
 }
+
+void gpsSleep(void) {
+    /* $PMTK161,0*28<CR><LF> */
+    const uint8_t cmd_buf[]={0x24,0x50,0x4d,0x54,0x4b,0x31,0x36,0x31,0x2c,0x30,0x2a,0x32,0x38,0x0d,0x0a};
+    gpsCmdSet(cmd_buf, sizeof(cmd_buf));
+}
+
+void gpsWakeup(void) {
+    const uint8_t cmd_buf[]={0x0d,0x0a};
+    gpsCmdSet(cmd_buf, sizeof(cmd_buf));
+}
+/* GPS active or not*/
+bool  isGPSActive(void) {
+    return (bgpsAtive == 1);
+}
+

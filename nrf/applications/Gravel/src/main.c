@@ -410,14 +410,14 @@ void main(void) {
             uploadSensorData();
             k_sleep(K_MSEC(200));
             mqtt_disconnect(&client);
-            gpsPowerOff();
+            gpsSleep();
             LOG_INF("start sleep\n");
             setModemSleep(1);
             k_sleep(K_SECONDS(1));
             lte_lc_psm_req(true);
-            k_sleep(K_SECONDS(SENSOR_UPLOAD_PERIOD-61));
-            gpsPowerOn();
-            k_sleep(K_SECONDS(60));
+            k_sleep(K_SECONDS(SENSOR_UPLOAD_PERIOD-31));
+            gpsWakeup();
+            k_sleep(K_SECONDS(30));
             lte_lc_psm_req(false);
             LOG_INF("wake up\n");
             setModemSleep(0);
