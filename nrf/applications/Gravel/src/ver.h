@@ -10,7 +10,7 @@
 
 #define  IOTEX_APP_NAME  "Gravel"
 
-#define  RELEASE_VERSION    "1.0.4"
+#define  RELEASE_VERSION    "1.0.5"
 
 /*  application version */
 #define IOTEX_APP_VERSION IOTEX_APP_NAME" "RELEASE_VERSION
