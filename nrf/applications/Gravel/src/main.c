@@ -90,6 +90,7 @@ static struct pollfd fds;
 /* MQTT Broker details. */
 static struct mqtt_client client;
 static atomic_val_t stopAnimation = ATOMIC_INIT(0);
+static atomic_val_t pebbleStartup = ATOMIC_INIT(1);
 /* Structures for work */
 static struct k_delayed_work send_env_data_work;
 static struct k_delayed_work   animation_work;
@@ -162,7 +163,7 @@ void error_handler(enum error_type err_type, int err_code)
 
 /*  Upload sensor data */
 static void uploadSensorData(void) {
-    if (!atomic_get(&send_data_enable)) {
+    if (!atomic_get(&send_data_enable) || atomic_get(&pebbleStartup)) {
         return;
     }    
     if (iotex_mqtt_is_bulk_upload()) {
@@ -421,6 +422,7 @@ void main(void) {
             lte_lc_psm_req(false);
             LOG_INF("wake up\n");
             setModemSleep(0);
+            atomic_set(&pebbleStartup, 0);
         }
 
         if (devRegGet() != DEV_REG_STOP) {

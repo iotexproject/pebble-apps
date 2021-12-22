@@ -177,10 +177,10 @@ void dashBoard(void) {
 
     /* ssd1306_clear_screen(0); */
     /*  app */
-    strcpy(disBuf, "App:"IOTEX_APP_NAME);    
-    dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
-    strcpy(disBuf, "Ver:"RELEASE_VERSION);    
-    dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);    
+    strcpy(disBuf, IOTEX_APP_NAME);
+    dis_OnelineText(1, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
+    strcpy(disBuf, "v"RELEASE_VERSION);
+    dis_OnelineText(2, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);    
     /*  packages */
     strcpy(disBuf, "Package Sent:");
     sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
@@ -619,10 +619,10 @@ void pebbleBackGround(uint32_t sel) {
     dis_OnelineText(2, ALIGN_LEFT, "",DIS_NORMAL);
     switch(sel) {
         case 0:
-            strcpy(disBuf, "App:"IOTEX_APP_NAME);    
-            dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
-            strcpy(disBuf, "Ver:"RELEASE_VERSION);    
-            dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
+            strcpy(disBuf, IOTEX_APP_NAME);
+            dis_OnelineText(1, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
+            strcpy(disBuf, "v"RELEASE_VERSION);
+            dis_OnelineText(3, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
             break;
         default:
             ssd1306_display_logo();
