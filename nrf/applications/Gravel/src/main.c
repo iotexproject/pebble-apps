@@ -416,9 +416,9 @@ void main(void) {
             setModemSleep(1);
             k_sleep(K_SECONDS(1));
             lte_lc_psm_req(true);
-            k_sleep(K_SECONDS(SENSOR_UPLOAD_PERIOD-31));
+            k_sleep(K_SECONDS(SENSOR_UPLOAD_PERIOD-(getSatelliteSearchingTime()+1)));
             gpsWakeup();
-            k_sleep(K_SECONDS(30));
+            searchingSatelliteTime();
             lte_lc_psm_req(false);
             LOG_INF("wake up\n");
             setModemSleep(0);

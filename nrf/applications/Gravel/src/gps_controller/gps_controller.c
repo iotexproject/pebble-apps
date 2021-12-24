@@ -58,8 +58,11 @@ struct sys_mutex iotex_gps_mutex;
 static struct k_work gpsPackageParse;
 static double gpsLat = 200.0, gpsLon = 200.0;
 static uint8_t bgpsAtive = 0;
+const uint8_t searchTime[] = {30,40,50,60,70,80,90,100,110,120};
+static uint8_t timeIndex = 0;
 
 static int getRMC(char *nmea, gprmc_t *loc);
+
 
 void gpsPackageParseHandle(struct k_work *work) {
     gprmc_t rmc;
@@ -286,4 +289,17 @@ void gpsWakeup(void) {
 bool  isGPSActive(void) {
     return (bgpsAtive == 1);
 }
+
+void searchingSatelliteTime(void) {
+    if(!isGPSActive()) {
+        timeIndex++;
+        if(timeIndex > sizeof(searchTime))
+            timeIndex = sizeof(searchTime) -1 ;
+    }
+    k_sleep(K_SECONDS(searchTime[timeIndex]));
+}
+uint32_t getSatelliteSearchingTime(void) {
+    return (searchTime[timeIndex]);
+}
+
 
