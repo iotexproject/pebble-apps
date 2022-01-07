@@ -787,7 +787,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     /* Vbat */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_VBAT)) {
-        sensordat.vbat = (uint32_t)(iotex_modem_get_battery_voltage() / 10);
+        sensordat.vbat = getDevVol()/10;
         sensordat.has_vbat = true;
     }
 
@@ -935,8 +935,8 @@ void PrintSensorData(SensorData *sen, BinPackage *pack)
     LOG_INF("*****************protobuf decode : ************************\n");
     LOG_INF("sen->snr:%d\n", sen->snr);
     LOG_INF("snr:%d.%02d vbat:%d.%02d latitude:%d.%07d longitude:%d.%07d \n", sen->snr / 100,sen->snr % 100, \
-    sen->vbat / 100,sen->vbat % 100, (int)sen->latitude / 10000000, ((int)sen->latitude * (-1)) % 10000000,\
-    (int)sen->longitude / 10000000, ((int)sen->longitude * (-1)) % 10000000);
+    sen->vbat / 100,sen->vbat % 100, (int)sen->latitude / 10000000, ((int)sen->latitude ) % 10000000,\
+    (int)sen->longitude / 10000000, ((int)sen->longitude ) % 10000000);
 
     LOG_INF("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n", sen->gasResistance / 100, sen->gasResistance % 100,\
     sen->temperature / 100, sen->temperature % 100, sen->pressure / 100, sen->pressure % 100,\
@@ -954,7 +954,7 @@ void PrintSensorData(SensorData *sen, BinPackage *pack)
     LOG_INF("signature:");
 
     for (int i = 0; i <64; i++) {
-        LOG_INF("%02x", pack->signature[i]);
+        printk("%02x", pack->signature[i]);
     }
     LOG_INF("\n");
     LOG_INF("***********************************************************\n");

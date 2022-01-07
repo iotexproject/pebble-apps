@@ -36,6 +36,10 @@ void exGPSInit(void);
 void exGPSStart(void);
 void exGPSStop(void);
 int getGPS(double *lat, double *lon);
+void gpsSleep(void);
+void gpsWakeup(void);
+int32_t searchingSatelliteTime(void);
+uint32_t getSatelliteSearchingTime(void);
 
 #ifdef __cplusplus
 }

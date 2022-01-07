@@ -72,6 +72,7 @@ void MainMenu(void);
 void dashBoard(void);
 void ctrlOLED(bool on_off);
 void pebbleBackGround(uint32_t sel);
+int getDevVol(void);
 
 
 

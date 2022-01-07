@@ -124,7 +124,7 @@ bool iotex_precise_gps(void) {
     config_mutex_lock();
     ret = __config.preciseGPS;
     config_mutex_unlock();
-    return ret;
+    return ret; 
 }
 uint8_t *iotex_get_truStreamTopic(void) {
     uint8_t *topic = NULL;

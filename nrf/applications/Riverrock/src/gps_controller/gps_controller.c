@@ -58,6 +58,9 @@ struct sys_mutex iotex_gps_mutex;
 static struct k_work gpsPackageParse;
 static double gpsLat = 200.0, gpsLon = 200.0;
 static uint8_t bgpsAtive = 0;
+const uint8_t searchTime[] = {30,40,50,60,70,80,90,100,110,120};
+static uint8_t timeIndex = 0;
+static  uint8_t legalSatelliteTime = 30;
 
 static int getRMC(char *nmea, gprmc_t *loc);
 
@@ -77,18 +80,14 @@ void gpsPackageParseHandle(struct k_work *work) {
         fractpart = ((rmc.longitude / 100)-intpart) / 0.6;
         lon = intpart + fractpart;
         if(!iotex_precise_gps()) {
-        /*  gps  Mosaic needed ? */
-        fractpart = lat * 100;
-        intpart = fractpart / 1;
-        fractpart -= intpart;
-        fractpart /= 100.0;
-        lat -= fractpart;
+            /*  gps  Mosaic needed ? */
+            fractpart = lat * 100;
+            intpart = (int)(fractpart + 0.5);
+            lat = intpart/100.0;
 
-        fractpart = lon * 100;
-        intpart = fractpart / 1;
-        fractpart -= intpart;
-        fractpart /= 100.0;
-        lon -= fractpart;
+            fractpart = lon * 100;
+            intpart = (int)(fractpart + 0.5);
+            lon = intpart/100.0;
         }
         /*  South West ? */
         if (rmc.lat == 'S')
@@ -169,7 +168,6 @@ static int getRMC(char *nmea, gprmc_t *loc)
     char *p = nmea;
     char *end = nmea + strlen(nmea);
     char buf[20] = { 0 };
-
     CHECK_POINT(p, strchr(p, ','), end);
     CHECK_POINT(p, strchr(p, ','), end);
     if (p[0] != 'A')
@@ -221,6 +219,13 @@ static int getRMC(char *nmea, gprmc_t *loc)
 
     return 0;
 }
+static void gpsCmdSet(uint8_t *buf, uint32_t len) {
+    uint32_t i;
+    for(i = 0; i < len; i++)
+    {
+        uart_poll_out(guart_dev_gps,buf[i]); 
+    }
+}
 
 int getGPS(double *lat, double *lon) {
     int ret = -1;
@@ -230,7 +235,6 @@ int getGPS(double *lat, double *lon) {
         *lon = gpsLon;
         ret = 0;
     }
-
     sys_mutex_unlock(&iotex_gps_mutex);
     return ret;
 }
@@ -264,3 +268,36 @@ void gpsPowerOn(void) {
 void gpsPowerOff(void) {    
     gpio_pin_write(gpsPower, GPS_EN, 0);
 }
+
+void gpsSleep(void) {
+    /* $PMTK161,0*28<CR><LF> */
+    const uint8_t cmd_buf[]={0x24,0x50,0x4d,0x54,0x4b,0x31,0x36,0x31,0x2c,0x30,0x2a,0x32,0x38,0x0d,0x0a};
+    gpsCmdSet(cmd_buf, sizeof(cmd_buf));
+}
+
+void gpsWakeup(void) {
+    const uint8_t cmd_buf[]={0x0d,0x0a};
+    gpsCmdSet(cmd_buf, sizeof(cmd_buf));
+}
+/* GPS active or not*/
+bool  isGPSActive(void) {
+    return (bgpsAtive == 1);
+}
+
+int32_t searchingSatelliteTime(void) {
+    if(!isGPSActive()) {
+        timeIndex++;
+        if(timeIndex > sizeof(searchTime))
+            timeIndex = sizeof(searchTime) -1 ;
+    }
+    if(searchTime[timeIndex] > iotex_mqtt_get_upload_period())
+        legalSatelliteTime = iotex_mqtt_get_upload_period();
+    else
+        legalSatelliteTime = searchTime[timeIndex];
+    return k_sleep(K_SECONDS(legalSatelliteTime));
+}
+uint32_t getSatelliteSearchingTime(void) {
+    return (legalSatelliteTime);
+}
+
+

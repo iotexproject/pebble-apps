@@ -27,12 +27,18 @@ LOG_MODULE_REGISTER(hint, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #define HINT_CENTRAL_LINE   24
 
+#define  PEBBLE_MODEM_NB_IOT        0
+#define  PEBBLE_MODEM_LTE_M         1
+#define  PEBBLE_CONTRACT_MAIN_NET   0
+#define  PEBBLE_CONTRACT_TEST_NET   1
 
 static uint8_t hintAliveTime;
 uint8_t htLanguage;
 struct sys_mutex iotex_hint_mutex;
 static uint32_t pubCounts = 0;
 const uint8_t textLine[] = { 0, 16, 32, 48 };
+static uint8_t pebbleModem = PEBBLE_MODEM_NB_IOT;
+static uint8_t pebbleContractNet = PEBBLE_CONTRACT_MAIN_NET;
 
 extern uint8_t s_chDispalyBuffer[128][8];
 extern  const  uint8_t *pmqttBrokerHost;
@@ -177,10 +183,10 @@ void dashBoard(void) {
 
     /* ssd1306_clear_screen(0); */
     /*  app */
-    strcpy(disBuf, "App:"IOTEX_APP_NAME);    
-    dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
-    strcpy(disBuf, "Ver:"RELEASE_VERSION);    
-    dis_OnelineText(2, ALIGN_LEFT, disBuf,DIS_NORMAL);    
+    strcpy(disBuf, IOTEX_APP_NAME);
+    dis_OnelineText(1, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
+    strcpy(disBuf, "v"RELEASE_VERSION);
+    dis_OnelineText(2, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
     /*  packages */
     strcpy(disBuf, "Package Sent:");
     sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
@@ -257,6 +263,12 @@ void initBrokeHost(void) {
         pbuf[1] = 0;
         selArea = atoi(pbuf);
         pmqttBrokerHost = mqttBrokerHost[selArea];
+        if(selArea == 3) {
+            pebbleContractNet = PEBBLE_CONTRACT_TEST_NET;
+        }
+        else {
+            pebbleContractNet = PEBBLE_CONTRACT_MAIN_NET;
+        }
     }
 
     pbuf = ReadDataFromModem(MODEM_MODE_SEL, buf, sizeof(buf));
@@ -264,8 +276,10 @@ void initBrokeHost(void) {
         pbuf[1] = 0;
         selArea = atoi(pbuf);
         if(selArea == 0) {
+            pebbleModem = PEBBLE_MODEM_NB_IOT;
             lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
         } else {
+            pebbleModem = PEBBLE_MODEM_LTE_M;
             lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
         }
     }
@@ -281,8 +295,8 @@ void initBrokeHost(void) {
 void modemSettings(void) {
     uint8_t modemMode[3][20] = {
         "NB-IOT         ",
-        "LTE-M          ",    
-        "Exit           ", 
+        "LTE-M          ",
+        "Exit           ",
     };
     uint8_t buf[100];
     uint8_t *pbuf;
@@ -319,8 +333,10 @@ void modemSettings(void) {
             if (cursor == (sizeof(modemMode) / sizeof(modemMode[0]) - 1))
                 break;
             else if (cursor == 0) {
+                pebbleModem = PEBBLE_MODEM_NB_IOT;
                 lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
             } else if(cursor == 1) {
+                pebbleModem = PEBBLE_MODEM_LTE_M;
                 lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
             }
             /*  read modem and writing into  sec */
@@ -342,17 +358,42 @@ void modemSettings(void) {
         k_sleep(K_MSEC(100));           
     }      
 }
+int regionIndex(uint8_t *region)
+{
+    int i;
+    uint8_t allArea[][20] = {
+        "Asia - M        ",
+        "Europe          ",
+        "Middle East     ",
+        "East US - T     ",
+        "South America   ",
+    };
 
+    for(i = 0; i < (sizeof(allArea) / sizeof(allArea[0])); i++) {
+        if(!strcmp(region, allArea[i])) {
+            printk("region: %s \n", region);
+            printk("i:%d\n", i);
+            return i;
+        }
+    }
+    return  0;
+}
+/*
+    - M : pebble  will connect to the Main-net
+    - T : pebble  will connect to the Test-net
+*/
 void selectArea(void)
 {
     uint8_t allArea[][20] = {
-        "Asia            ",
-/*        
+        "Asia - M        ",
+/*
         "Europe          ",
         "Middle East     ",
-        "North America   ",
+*/
+        "East US - T     ",
+/* 
         "South America   ",
-*/        
+*/
         "Exit            "
     };
     uint8_t buf[100];
@@ -364,9 +405,11 @@ void selectArea(void)
     if (pbuf != NULL) {
         pbuf[1] = 0;
         selArea = atoi(pbuf);
+        if(selArea > 1)
+            selArea = 1;
     }   
     allArea[selArea][15] = 'X';
-    for (i = 0; i < (sizeof(allArea) / sizeof(allArea[0])); i++) {
+    for (i = 0; i < (sizeof(allArea) / sizeof(allArea[0])) && i < 4 ; i++) {
         dis_OnelineText(i,ALIGN_CENTRALIZED, allArea[i],DIS_CURSOR(i, cursor));
     }
     allArea[selArea][15] = ' ';
@@ -377,29 +420,35 @@ void selectArea(void)
             ClearKey();
             cursor--;
             if (cursor < 0)
-                cursor = 0;
-            if (cursor < 3)
+                cursor = 0; 
+            if(cursor < first)
                 first = cursor;
         } else if (IsDownPressed()) {
             ClearKey();
             cursor++;
             if (cursor > (sizeof(allArea) / sizeof(allArea[0]) - 1))
                 cursor = (sizeof(allArea) / sizeof(allArea[0]) - 1);
-            if (cursor > 3)
+            if (cursor > first+3)
                 first = cursor - 3;
         } else if (IsEnterPressed()) {
             ClearKey();
             if (cursor == (sizeof(allArea) / sizeof(allArea[0]) - 1))
                 break;
             /*  read modem and writing into  sec */
-            if (selArea != cursor)
-                updateCert(cursor);
+            if (selArea != cursor) {
+                updateCert(regionIndex(allArea[cursor]));
+                if(cursor == 1) {
+                    pebbleContractNet = PEBBLE_CONTRACT_TEST_NET;
+                } else {
+                    pebbleContractNet = PEBBLE_CONTRACT_MAIN_NET;
+                }
+            }
             selArea = cursor;
             last_cur = cursor + 1;
         }
         if (last_cur != cursor) {
             allArea[selArea][15] = 'X';
-            for (i = 0; i < (sizeof(allArea) / sizeof(allArea[0])); i++)
+            for (i = 0; i < (sizeof(allArea) / sizeof(allArea[0])) && i < 4; i++)
             {
                 dis_OnelineText(i,ALIGN_CENTRALIZED, allArea[first+i],DIS_CURSOR(first+i, cursor));
             }
@@ -514,7 +563,7 @@ void sysSet(void) {
             ClearKey();
             cursor++;
             if (cursor > (sizeof(mainMenu) / sizeof(mainMenu[0]) - 1))
-                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0]) - 1);         
+                cursor = (sizeof(mainMenu)/sizeof(mainMenu[0]) - 1);
         } else if(IsEnterPressed()) {
             ClearKey();
             if (cursor == 0) {
@@ -619,14 +668,56 @@ void pebbleBackGround(uint32_t sel) {
     dis_OnelineText(2, ALIGN_LEFT, "",DIS_NORMAL);
     switch(sel) {
         case 0:
-            strcpy(disBuf, "App:"IOTEX_APP_NAME);    
-            dis_OnelineText(1, ALIGN_LEFT, disBuf,DIS_NORMAL);
-            strcpy(disBuf, "Ver:"RELEASE_VERSION);    
-            dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
+            strcpy(disBuf, IOTEX_APP_NAME);
+            dis_OnelineText(1, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
+            strcpy(disBuf, "v"RELEASE_VERSION);
+            dis_OnelineText(2, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
+            if(pebbleModem == PEBBLE_MODEM_NB_IOT) {
+                strcpy(disBuf, "NB-IOT");
+            } else {
+                strcpy(disBuf, "LTE-M");
+            }
+            strcpy(disBuf+strlen(disBuf), "  ");
+            if(pebbleContractNet == PEBBLE_CONTRACT_TEST_NET) {
+                strcpy(disBuf+strlen(disBuf), "Test-Net");
+            } else {
+                strcpy(disBuf+strlen(disBuf), "Main-Net");
+            }
+            dis_OnelineText(3, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
             break;
         default:
             ssd1306_display_logo();
             break;
     }
     sys_mutex_unlock(&iotex_hint_mutex);
+}
+
+bool pebbleWorksAtNBIOT(void) {
+    return (pebbleModem == PEBBLE_MODEM_NB_IOT);
+}
+bool pebbleWorsAtLTEM(void) {
+    return (pebbleModem == PEBBLE_MODEM_LTE_M);
+}
+
+void anotherWorkMode(void) {
+    if(pebbleWorksAtNBIOT()) {
+        pebbleModem = PEBBLE_MODEM_LTE_M;
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+    } else {
+        pebbleModem = PEBBLE_MODEM_NB_IOT;
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+    }
+    pebbleBackGround(0);
+    setDefaultWorkMode();
+}
+
+void setDefaultWorkMode(void) {
+    uint8_t index[5];
+    if(pebbleWorksAtNBIOT()) {
+        index[0] = '0';
+    } else {
+        index[0] = '1';
+    }
+    index[1] = 0;
+    WritDataIntoModem(MODEM_MODE_SEL, index);
 }

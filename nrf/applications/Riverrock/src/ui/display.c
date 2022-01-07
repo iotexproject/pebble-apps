@@ -54,8 +54,8 @@ void ssd1306_init(void);
 
 #define SSD1306_CMD    0
 #define SSD1306_DAT    1
-#define SSD1306_WIDTH    128
-#define SSD1306_HEIGHT  64
+#define SSD1306_WIDTH  128
+#define SSD1306_HEIGHT 64
 
 
 uint8_t s_chDispalyBuffer[128][8];

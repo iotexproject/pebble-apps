@@ -25,6 +25,14 @@ struct STATUS_BAR  staBar={
     { 0 }
 };
 
+struct {
+    int sampleDat[16];
+    uint32_t index;
+} devicePower={
+    {0},
+    0
+};
+
 /*  status bar  ,max size 18 bytes */
 const uint8_t Signal[]=/*{0x00,0x00,0x20,0x30,0x38,0x3C,0x00,0x00}*/{0x00,0x00,0x00,0x04,0x04,0x00,0x0C,0x0C,0x00,0x1C,0x1C,0x00,0x3C,0x3C,0x00,0x00};
 /* const uint8_t lte[]={0x00,0x00,0x3E,0x02,0x02,0x00,0x20,0x20,0x3E,0x20,0x20,0x00,0x3E,0x2A,0x2A,0x2A,0x00,0x00}; */
@@ -71,9 +79,22 @@ bool getModeSleep(void) {
     return  atomic_get(&is_modem_sleep) == (atomic_val_t)1;
 }
 
+int getDevVol(void) {
+    int j,vol;
+    for(vol = 0,j =0; j < sizeof(devicePower.sampleDat)/sizeof(devicePower.sampleDat[0]); j++){
+        if(!devicePower.sampleDat[j])
+            break;
+        vol += devicePower.sampleDat[j];
+    }
+    if(!j)
+        return 0;
+    vol /= j;
+    return vol;
+}
+
 void sta_Refresh(void) {
     int val;
-    uint32_t vol;
+    int vol;
     int i, j;
     static uint8_t index = 0, oledLightTime = 0, ledTime = 0;
 
@@ -119,10 +140,14 @@ void sta_Refresh(void) {
 
     /* power , >= 4.1v ful, 4.1 - 3.2 = 0.9 */
     if (sta_GetMeta(PEBBLE_POWER)) {
+        devicePower.sampleDat[devicePower.index++] = 4100;
+        devicePower.index &= (sizeof(devicePower.sampleDat)/sizeof(devicePower.sampleDat[0]) - 1);
         memcpy(staBar.power_icon, charging, sizeof(charging));
     } else {
         memcpy(staBar.power_icon, power, sizeof(power));
-        vol = iotex_hal_adc_sample();
+        devicePower.sampleDat[devicePower.index++] = iotex_hal_adc_sample();
+        devicePower.index &= (sizeof(devicePower.sampleDat)/sizeof(devicePower.sampleDat[0]) - 1);
+        vol = getDevVol();
         val = vol - 3200;
         if (val <= 0) {
             gpio_poweroff();
@@ -131,7 +156,7 @@ void sta_Refresh(void) {
         val = val > 900 ? 900 : val;
         val /= 90;
         if (val < 9)
-            memset(staBar.power_icon+val + 4, 0x42, 9 - val);
+            memset(staBar.power_icon+val + 4, 0x42, 9 - val); 
     }
     if (!sta_GetMeta(LTE_LINKER)) {
         index++;
@@ -166,17 +191,20 @@ void sta_Refresh(void) {
                 s_chDispalyBuffer[i][7] = modem_mode_m[j];
             }
         }
-        if (womDetect()) {
-            ctrlOLED(true);
-            oledLightTime = 0;
-            if (devRegGet() == DEV_REG_STOP)
-                dashBoard();
-        } else {
-            oledLightTime++;
-            if (oledLightTime > 10) {
+        keyWakeup();
+        if(!isKeyWakeFlg()) {
+            if (womDetect()) {
+                ctrlOLED(true);
                 oledLightTime = 0;
                 if (devRegGet() == DEV_REG_STOP)
-                    ctrlOLED(false);
+                    dashBoard();
+            } else {
+                oledLightTime++;
+                if (oledLightTime > 10) {
+                    oledLightTime = 0;
+                    if (devRegGet() == DEV_REG_STOP)
+                        ctrlOLED(false);
+                }
             }
         }
     }

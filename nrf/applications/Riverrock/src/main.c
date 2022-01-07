@@ -93,6 +93,7 @@ static struct mqtt_client client;
 static atomic_val_t stopAnimation = ATOMIC_INIT(0);
 static atomic_val_t keyWaitFlg = ATOMIC_INIT(0);
 static k_tid_t mainThreadID;
+static atomic_val_t pebbleStartup = ATOMIC_INIT(1);
 
 /* Structures for work */
 static struct k_delayed_work send_env_data_work;
@@ -134,7 +135,7 @@ void bsd_recoverable_error_handler(uint32_t err)
 
 /*  Upload sensor data */
 static void uploadSensorData(void) {
-    if (!atomic_get(&send_data_enable)) {
+    if (!atomic_get(&send_data_enable) || atomic_get(&pebbleStartup)) {
         return;
     }    
     if (iotex_mqtt_is_bulk_upload()) {
@@ -249,16 +250,20 @@ static void modem_configure(void) {
         if (err) {
             LOG_ERR("lte_lc_psm_req erro:%d\n", err);
             error_handler(ERROR_LTE_LC, err);
-        }              
+        }
         /* ui_led_set_pattern(UI_LTE_CONNECTING); */
         /* ui_led_deactive(LTE_CONNECT_MASK,1); */
         err = lte_lc_init_and_connect();
-
         if (err) {
-            LOG_ERR("LTE link could not be established.\n");
-            error_handler(ERROR_LTE_LC, err);
-        }
-
+            lte_lc_deinit();
+            LOG_INF("modem fallback\n");
+            anotherWorkMode();
+            err = lte_lc_init_and_connect();
+            if (err) {
+                LOG_ERR("LTE link could not be established, system will reboot.\n");
+                sys_reboot(0);
+            }
+        }        
         LOG_INF("Connected to LTE network\n");
         /* ui_led_active(LTE_CONNECT_MASK,1); */
         sta_SetMeta(LTE_LINKER, STA_LINKER_ON);
@@ -391,16 +396,17 @@ int psmWork(void) {
     uploadSensorData();
     ret = k_sleep(K_MSEC(200));
     if(ret) {
-        if(atomic_get(&keyWaitFlg)){  
+        if(atomic_get(&keyWaitFlg)){
             LOG_INF("wakeup after data pubs\n");
             hintString(htstartReconf, HINT_TIME_FOREVER);
             eventPolling(300, &fds, &client);
             atomic_set(&keyWaitFlg,0);
         }
     }
-    mqtt_disconnect(&client); 
-    gpsPowerOff();
-    LOG_INF("start sleep\n");  
+    mqtt_disconnect(&client);
+    if(iotex_mqtt_get_upload_period() > 30)
+        gpsSleep();
+    LOG_INF("start sleep\n");
     setModemSleep(1);
     ret = k_sleep(K_SECONDS(1));
     if(ret) {
@@ -413,7 +419,7 @@ int psmWork(void) {
     }
     lte_lc_psm_req(true);
     if(iotex_mqtt_get_upload_period() > 30)
-        ret = k_sleep(K_SECONDS(iotex_mqtt_get_upload_period()-30));
+        ret = k_sleep(K_SECONDS(iotex_mqtt_get_upload_period()-getSatelliteSearchingTime()));
     else
         ret = k_sleep(K_SECONDS(iotex_mqtt_get_upload_period()-1));
     if(ret) {
@@ -423,20 +429,21 @@ int psmWork(void) {
             lte_lc_psm_req(false);
             return 1;
         }
-    }    
-    gpsPowerOn();
+    }
+    gpsWakeup();
     if(iotex_mqtt_get_upload_period() > 30) {
-        ret = k_sleep(K_SECONDS(30));  
+        ret = searchingSatelliteTime();  
         if(atomic_get(&keyWaitFlg)){
             LOG_INF("wakeup after gps start\n");
             hintString(htstartMqtt, HINT_TIME_FOREVER);
             lte_lc_psm_req(false);
-            return 1;       
-        }        
+            return 1;
+        } 
     }
     lte_lc_psm_req(false);  
     LOG_INF("wake up\n"); 
     setModemSleep(0);
+    atomic_set(&pebbleStartup,0);
     return 0;   
 }
 
@@ -480,6 +487,7 @@ void main(void) {
     iotex_key_init();
     /*  init worker queue */
     work_init();
+    initOTA();
     /*  init oled */
     ssd1306_init();
     /* Iotex Init ICM42605 */
@@ -496,7 +504,6 @@ void main(void) {
 #ifdef CONFIG_UNITTEST
     unittest();
 #endif
-    initOTA();
     /*  status bar refresh */
     sta_Refresh();
 
