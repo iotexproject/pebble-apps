@@ -180,13 +180,13 @@ const uint8_t htUpgrading_cn[]={/*  升级�. */
 const uint8_t *htUpgrading[]={htUpgrading_en,htUpgrading_cn,sizeof(htUpgrading_cn)};
 
 
-const uint8_t htConnecting_en[]="Start OTA firmware update ...";
+const uint8_t htConnecting_en[]="OTA Firmware update. Connecting...";
 const uint8_t htConnecting_cn[]={
 };
 const uint8_t *htConnecting[]={htConnecting_en,htConnecting_cn,sizeof(htConnecting_cn)};
 
 
-const uint8_t htSelectApp_en[]="Please choose an app on the portal";
+const uint8_t htSelectApp_en[]="Please choose an app on the portal...";
 const uint8_t htSelectApp_cn[]={
 };
 const uint8_t *htSelectApp[]={htSelectApp_en,htSelectApp_cn,sizeof(htSelectApp_cn)};

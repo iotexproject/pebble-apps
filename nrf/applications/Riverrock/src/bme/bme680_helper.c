@@ -23,11 +23,15 @@ static int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data
 
     uint16_t i;
     int8_t rslt = 0;
+    uint8_t *pdata = reg_data;
 
-    for (i = 0; i < len; i++) {
-        i2c_reg_write_byte(__i2c_dev_bme680, I2C_ADDR_BME680, reg_addr + i, *(reg_data + i));
+    i2c_reg_write_byte(__i2c_dev_bme680, I2C_ADDR_BME680, reg_addr, *pdata );
+    if(--len) {
+        pdata++;
+        for (i = 0; i < len; i++) {
+            i2c_reg_write_byte(__i2c_dev_bme680, I2C_ADDR_BME680, *(pdata + i*2), *(pdata + i*2+1));
+        }
     }
-
     return rslt;
 }
 
@@ -115,12 +119,12 @@ int iotex_bme680_get_sensor_data(iotex_storage_bme680 *bme680) {
 #if 1
     uint16_t meas_period;
     int8_t rslt = BME680_OK;
-    bme680_get_profile_dur(&meas_period, &__gas_sensor);
-
     struct bme680_field_data data;
 
+    bme680_set_sensor_mode(&__gas_sensor); 
+    bme680_get_profile_dur(&meas_period, &__gas_sensor);
     /* Delay till the measurement is ready */
-    user_delay_ms(500);
+    user_delay_ms(meas_period+100);
 
     i2cLock(); 
     if ((rslt = bme680_get_sensor_data(&data, &__gas_sensor))) {
@@ -138,10 +142,7 @@ int iotex_bme680_get_sensor_data(iotex_storage_bme680 *bme680) {
     bme680->temperature -= 2.5;
     bme680->humidity = bme680->humidity*1.1;
     bme680->humidity = bme680->humidity > 100.00 ? 100.00 : bme680->humidity;
-    /* Trigger the next measurement if you would like to read data out continuously */
-    if (__gas_sensor.power_mode == BME680_FORCED_MODE) {
-        rslt = bme680_set_sensor_mode(&__gas_sensor);
-    }
+
 
     return rslt;
 #else

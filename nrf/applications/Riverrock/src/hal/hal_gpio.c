@@ -35,6 +35,8 @@ const  void (*cmdACK[])(enum COM_COMMAND, unsigned char *, unsigned int) = {
     cmdACKReadEcc,
 };
 
+extern atomic_val_t modemWriteProtect;
+
 /* extern struct k_delayed_work  event_work; */
 
 void checkCHRQ(void) {
@@ -120,6 +122,9 @@ int iotex_hal_gpio_set(uint32_t pin, uint32_t value) {
 
 void gpio_poweroffNotice(void)
 {
+    /* wait for modem flash writing over */
+    if(atomic_get(&modemWriteProtect))
+        return;
     /* qhm add 0830*/
     gpio_pin_write(__gpio0_dev, LED_GREEN, LED_ON);
     k_sleep(K_MSEC(300));
@@ -133,6 +138,9 @@ void gpio_poweroffNotice(void)
 
 void gpio_poweroff(void)
 {
+    /* wait for modem flash writing over */
+    if(atomic_get(&modemWriteProtect))
+        return;
     /* qhm add 0830*/
     gpio_pin_write(__gpio0_dev, LED_RED, LED_ON);
     k_sleep(K_MSEC(300));

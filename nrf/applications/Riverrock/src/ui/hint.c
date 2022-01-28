@@ -270,18 +270,20 @@ void initBrokeHost(void) {
             pebbleContractNet = PEBBLE_CONTRACT_MAIN_NET;
         }
     }
-
-    pbuf = ReadDataFromModem(MODEM_MODE_SEL, buf, sizeof(buf));
-    if (pbuf != NULL) {
-        pbuf[1] = 0;
-        selArea = atoi(pbuf);
-        if(selArea == 0) {
-            pebbleModem = PEBBLE_MODEM_NB_IOT;
-            lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
-        } else {
-            pebbleModem = PEBBLE_MODEM_LTE_M;
-            lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
-        }
+    buf[0] = 0xFF;
+    iotex_local_storage_load(SID_MODEM_WORK_MODE, buf, 1);
+    if((buf[0] != 0) && (buf[0] != 1)) {
+        selArea = 0;
+    }
+    else {
+        selArea = buf[0];
+    }
+    if(selArea == 0) {
+        pebbleModem = PEBBLE_MODEM_NB_IOT;
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+    } else {
+        pebbleModem = PEBBLE_MODEM_LTE_M;
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
     }
 
     if (!mqttCertExist()) {
@@ -304,11 +306,15 @@ void modemSettings(void) {
     uint8_t index[5];
     
     ssd1306_clear_screen(0);
-    pbuf = ReadDataFromModem(MODEM_MODE_SEL, buf, sizeof(buf));
-    if (pbuf != NULL) {
-        pbuf[1] = 0;
-        selArea = atoi(pbuf);
+    buf[0] = 0xFF;
+    iotex_local_storage_load(SID_MODEM_WORK_MODE, buf, 1);
+    if((buf[0] != 0) && (buf[0] != 1)) {
+        selArea = 0;
     }
+    else {
+        selArea = buf[0];
+    }
+
     modemMode[selArea][15] = 'X';
     for (i = 0; i < sizeof(modemMode)/sizeof(modemMode[0]); i++) {
         dis_OnelineText(i,ALIGN_CENTRALIZED, modemMode[i],DIS_CURSOR(i, cursor)); 
@@ -341,9 +347,9 @@ void modemSettings(void) {
             }
             /*  read modem and writing into  sec */
             if (selArea != cursor) {
-                itoa(cursor, index, 10);
+                index[0] = cursor;
                 index[1] = 0;
-                WritDataIntoModem(MODEM_MODE_SEL, index);
+                iotex_local_storage_save(SID_MODEM_WORK_MODE, index, 1);
             }
             selArea = cursor;
             last_cur = cursor + 1;
@@ -714,10 +720,10 @@ void anotherWorkMode(void) {
 void setDefaultWorkMode(void) {
     uint8_t index[5];
     if(pebbleWorksAtNBIOT()) {
-        index[0] = '0';
+        index[0] = 0;
     } else {
-        index[0] = '1';
+        index[0] = 1;
     }
     index[1] = 0;
-    WritDataIntoModem(MODEM_MODE_SEL, index);
+    iotex_local_storage_save(SID_MODEM_WORK_MODE, index, 1);
 }

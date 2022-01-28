@@ -63,6 +63,7 @@ typedef enum {
     /* SID_BME680_STA = 0x1002,*/
     /* SID_BME680_STA_LEN = 0x1003,*/
     SID_ECC_KEY = 0x1002,
+    SID_MODEM_WORK_MODE = 0x1003,
 } iotex_storage_id;
 
 

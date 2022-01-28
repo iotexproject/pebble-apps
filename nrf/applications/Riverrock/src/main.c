@@ -94,7 +94,7 @@ static atomic_val_t stopAnimation = ATOMIC_INIT(0);
 static atomic_val_t keyWaitFlg = ATOMIC_INIT(0);
 static k_tid_t mainThreadID;
 static atomic_val_t pebbleStartup = ATOMIC_INIT(1);
-
+extern atomic_val_t modemWriteProtect;
 /* Structures for work */
 static struct k_delayed_work send_env_data_work;
 static struct k_delayed_work   animation_work;
@@ -164,8 +164,11 @@ void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
         MODEM_KEY_MGMT_CRED_TYPE_PRIVATE_CERT,
         MODEM_KEY_MGMT_CRED_TYPE_PUBLIC_CERT,
     };
-    disableModem();
+    /* wait for modem flash writing over */
+    if(atomic_get(&modemWriteProtect))
+        return;
 
+    disableModem();
     /* Delete certificates */
     for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
         err = modem_key_mgmt_delete(sec_tag, type);

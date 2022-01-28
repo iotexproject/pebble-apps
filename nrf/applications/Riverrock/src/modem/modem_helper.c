@@ -9,6 +9,9 @@
 
 LOG_MODULE_REGISTER(modem_helper, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
+atomic_val_t modemWriteProtect = ATOMIC_INIT(0);
+
+
 static bool isLeap(uint32_t year) {
     return (((year % 4) == 0) && (((year % 100) != 0) || ((year % 400) == 0)));
 }
@@ -230,9 +233,11 @@ bool WritDataIntoModem(uint32_t sec, uint8_t *str) {
     char *cmd = NULL;
     unsigned int size;
 
+    atomic_set(&modemWriteProtect,1);
     size = strlen(str) + 32;
     cmd = (char *)malloc(size);
     if (!cmd) {
+        atomic_set(&modemWriteProtect,0);
         return false;
     }
     at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);
@@ -242,6 +247,7 @@ bool WritDataIntoModem(uint32_t sec, uint8_t *str) {
     sprintf(cmd + strlen(cmd), "0,%d,0,\"%s\"", sec, str);
     err = at_cmd_write(cmd, vbat_ack, 32, &at_state);
     free(cmd);
+    atomic_set(&modemWriteProtect,0);
     return err == 0;
 }
 
