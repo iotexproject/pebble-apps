@@ -112,6 +112,7 @@ int packDevConf(uint8_t *buffer, uint32_t size_t);
 int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len);
 uint8_t *getOTAUrl(void);
 void clrfirmwareUrl(void);
+int compareVersion(char * version1, char * version2);
 bool isUrlNull(void);
 bool iotex_precise_gps(void);
 uint8_t *iotex_get_truStreamTopic(void);

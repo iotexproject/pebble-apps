@@ -80,7 +80,7 @@ int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len) {
     app = cJSON_GetObjectItem(root_obj, "firmware");
     ver = cJSON_GetObjectItem(root_obj, "version");
     if (app && cJSON_IsString(app) && !strcmp(app->valuestring, IOTEX_APP_NAME)) {
-        if (ver && cJSON_IsString(ver) && (strcmp(ver->valuestring, RELEASE_VERSION)>0)) {
+        if (ver && cJSON_IsString(ver) && (compareVersion(ver->valuestring, RELEASE_VERSION)>0)) {
             Uri = cJSON_GetObjectItem(root_obj, "uri");
             if (Uri && cJSON_IsString(Uri)) {
                 /* strcpy(url, firmwareUri->valuestring); */
