@@ -483,6 +483,14 @@ int iotex_mqtt_update_url(const uint8_t *payload, uint32_t len) {
     return 0;
 }
 
+void clrfirmwareUrl(void) {
+    memset(firmwareUrl, 0, sizeof(firmwareUrl));
+}
+
+bool isUrlNull(void) {
+    return (strlen(firmwareUrl) == 0);
+}
+
 uint8_t *getOTAUrl(void) {
     return firmwareUrl;
 }

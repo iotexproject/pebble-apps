@@ -314,6 +314,8 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                 devRegSet(DEV_REG_STATUS);
             } else {
                 if (devRegGet() == DEV_UPGRADE_ENTRY) {
+                    subscribe_regist_topic(c);
+                    hintString(htSelectApp, HINT_TIME_FOREVER);
                     devRegSet(DEV_UPGRADE_CONFIRM);
                 }
             }
@@ -339,16 +341,29 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                 iotex_mqtt_backend_ack_topic(revTopic, sizeof(revTopic));
                 if (!strcmp(p->message.topic.topic.utf8, revTopic)) {
                     status = iotex_mqtt_get_wallet(payload_buf, p->message.payload.len);
-                    if (status == 2) {
-                        iotex_mqtt_configure_upload(c, 0);
-                        if (IsDevReg())
-                            devRegSet(DEV_REG_SUCCESS);
-                    } else if (status == 1) {
-                        devRegSet(DEV_REG_ADDR_CHECK);
-                    } else {
-                        if (devRegGet() != DEV_REG_POLL_FOR_WALLET) {
-                            hintString(htNetConnected,HINT_TIME_FOREVER);
-                            devRegSet(DEV_REG_PRESS_ENTER);
+                    if(devRegGet() == DEV_UPGRADE_CONFIRM) {
+                        if (status == 2) {
+                            if(!isUrlNull()) {
+                                hintString(htUpgrading,HINT_TIME_FOREVER);
+                                devRegSet(DEV_UPGRADE_STARTED);
+                            }
+                            else {
+                                hintString(httpNoAppUpgrd,HINT_TIME_FOREVER);
+                            }
+                        }
+                    }
+                    else {
+                        if (status == 2) {
+                            iotex_mqtt_configure_upload(c, 0);
+                            if (IsDevReg())
+                                devRegSet(DEV_REG_SUCCESS);
+                        } else if (status == 1) {
+                            devRegSet(DEV_REG_ADDR_CHECK);
+                        } else {
+                            if (devRegGet() != DEV_REG_POLL_FOR_WALLET) {
+                                hintString(htNetConnected,HINT_TIME_FOREVER);
+                                devRegSet(DEV_REG_PRESS_ENTER);
+                            }
                         }
                     }
                 } else {
@@ -357,13 +372,13 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                     if (!strcmp(p->message.topic.topic.utf8, revTopic)) {
                         if (!IsDevReg()) {
                             iotex_mqtt_update_url(payload_buf, p->message.payload.len);
-                            hintString(htconfirmUpgrade,HINT_TIME_FOREVER);
+                            hintString(htUpgrading,HINT_TIME_FOREVER);
                             devRegSet(DEV_UPGRADE_STARTED);
                         }
                     }
                     else {
                         iotex_mqtt_get_config_topic(revTopic,sizeof(revTopic));
-                        if (!strcmp(p->message.topic.topic.utf8, revTopic)) {                            
+                        if (!strcmp(p->message.topic.topic.utf8, revTopic)) {
                             iotex_mqtt_update_config(payload_buf, p->message.payload.len);
                             hintString(htupdateConfig,HINT_TIME_FOREVER);
                         }

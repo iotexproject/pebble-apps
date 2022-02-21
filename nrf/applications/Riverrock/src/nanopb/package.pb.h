@@ -69,7 +69,7 @@ typedef struct _SensorData {
     bool has_gasResistance;
     uint32_t gasResistance; 
     bool has_temperature;
-    uint32_t temperature; 
+    int32_t temperature; 
     bool has_pressure;
     uint32_t pressure; 
     bool has_humidity;
@@ -154,7 +154,7 @@ X(a, STATIC,   OPTIONAL, UINT32,   vbat,              2) \
 X(a, STATIC,   OPTIONAL, SINT32,   latitude,          3) \
 X(a, STATIC,   OPTIONAL, SINT32,   longitude,         4) \
 X(a, STATIC,   OPTIONAL, UINT32,   gasResistance,     5) \
-X(a, STATIC,   OPTIONAL, UINT32,   temperature,       6) \
+X(a, STATIC,   OPTIONAL, SINT32,   temperature,       6) \
 X(a, STATIC,   OPTIONAL, UINT32,   pressure,          7) \
 X(a, STATIC,   OPTIONAL, UINT32,   humidity,          8) \
 X(a, STATIC,   OPTIONAL, UINT32,   light,             9) \

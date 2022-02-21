@@ -14,6 +14,8 @@
 #include "mqtt/mqtt.h"
 #include "display.h"
 #include "watchdog.h"
+#include "config.h"
+#include "ver.h"
 
 #include "pb_decode.h"
 #include "pb_encode.h"
@@ -45,6 +47,10 @@ int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len) {
     cJSON *walletAddress = NULL;
     cJSON *regStatus = NULL;
     cJSON *root_obj = cJSON_Parse(payload);
+    cJSON *Uri = NULL;
+    cJSON *app = NULL;
+    cJSON *ver = NULL;
+
     if (!root_obj) {
         const char *err_ptr = cJSON_GetErrorPtr();
         if (err_ptr) {
@@ -69,6 +75,19 @@ int iotex_mqtt_get_wallet(const uint8_t *payload, uint32_t len) {
         }
     } else if (regStatus->valueint == 2) {
         ret = 2;
+    }
+    clrfirmwareUrl();
+    app = cJSON_GetObjectItem(root_obj, "firmware");
+    ver = cJSON_GetObjectItem(root_obj, "version");
+    if (app && cJSON_IsString(app) && !strcmp(app->valuestring, IOTEX_APP_NAME)) {
+        if (ver && cJSON_IsString(ver) && (strcmp(ver->valuestring, RELEASE_VERSION)>0)) {
+            Uri = cJSON_GetObjectItem(root_obj, "uri");
+            if (Uri && cJSON_IsString(Uri)) {
+                /* strcpy(url, firmwareUri->valuestring); */
+                strcpy(getOTAUrl(),  Uri->valuestring);
+                LOG_INF("firmwareUrl:%s \n", getOTAUrl());
+            }
+        }
     }
 
 cleanup:
@@ -164,16 +183,16 @@ void mainStatus(struct mqtt_client *client) {
             /* devRegSet(DEV_REG_SUCCESS); */
             break;
         case DEV_REG_SUCCESS:
-            hintString(htRegSuccess, HINT_TIME_DEFAULT);          
+            hintString(htRegSuccess, HINT_TIME_DEFAULT);
             k_sleep(K_SECONDS(3));
             ClearKey();
             devRegSet(DEV_REG_STOP);
             break;
         case DEV_UPGRADE_ENTRY:
-            hintString(htConnecting, HINT_TIME_FOREVER); 
+            hintString(htConnecting, HINT_TIME_FOREVER);
             break;
         case DEV_UPGRADE_CONFIRM:
-            hintString(htSelectApp, HINT_TIME_FOREVER);                      
+            publish_dev_query("", 0);
             break;
         case DEV_UPGRADE_STARTED:
             stopTaskBeforeOTA();

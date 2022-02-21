@@ -815,7 +815,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     /* Env sensor temperature */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_TEMP)) {
-        sensordat.temperature = (uint32_t)(int32_t)(env_sensor.temperature * 100);
+        sensordat.temperature = (int32_t)(env_sensor.temperature * 100);
         sensordat.has_temperature = true;
     }
 

@@ -210,4 +210,10 @@ const uint8_t htupdateConfig_en[]="Updating configuration";
 const uint8_t htupdateConfig_cn[]={
 };
 const uint8_t *htupdateConfig[]={htupdateConfig_en,htupdateConfig_cn,sizeof(htupdateConfig_cn)};
+
+const uint8_t httpNoAppUpgrd_en[] = "No proper version";
+const uint8_t httpNoAppUpgrd_cn[]={
+};
+const uint8_t *httpNoAppUpgrd[]={httpNoAppUpgrd_en,httpNoAppUpgrd_cn, sizeof(httpNoAppUpgrd_cn)};
+
 #endif

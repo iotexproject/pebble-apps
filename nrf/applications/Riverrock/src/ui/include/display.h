@@ -56,6 +56,7 @@ extern const uint8_t *htSelectApp[];
 extern const uint8_t *htstartReconf[];
 extern const uint8_t *htstartMqtt[];
 extern const uint8_t *htupdateConfig[];
+extern const uint8_t *httpNoAppUpgrd[];
 extern uint8_t  htRegaddrChk_en[];
 extern  uint8_t htLanguage;
 
