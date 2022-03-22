@@ -1,0 +1,14 @@
+SensorData.random max_size:17
+SensorData.gyroscope  max_count:3
+SensorData.gyroscope fixed_count:true
+SensorData.accelerometer  max_count:3
+SensorData.accelerometer fixed_count:true
+BinPackage.signature max_size:64
+BinPackage.signature fixed_length:true
+BinPackage.data max_size:500
+ConfirmPackage.owner max_size:200
+ConfirmPackage.signature max_size:64
+ConfirmPackage.signature fixed_length:true
+SensorConfirm.owner   max_size:200
+SensorConfig.firmware  max_size:160
+PedometerData.random max_size:17
