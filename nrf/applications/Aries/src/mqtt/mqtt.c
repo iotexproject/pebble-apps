@@ -42,7 +42,7 @@ const uint8_t *pmqttBrokerHost = "a11homvea4zo8t-ats.iot.ap-east-1.amazonaws.com
 extern void mqttGetResponse(void);
 
 static void iotex_mqtt_get_topic(u8_t *buf, int len) {
-    snprintf(buf, len, "device/%s/%s/data",iotex_mqtt_get_client_id(), BACKEND_ID);
+    snprintf(buf, len, "device/%s/data",iotex_mqtt_get_client_id(), BACKEND_ID);
 }
 
 static void iotex_mqtt_get_firm_topic(u8_t *buf, int len) {
