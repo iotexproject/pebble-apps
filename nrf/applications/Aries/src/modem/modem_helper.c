@@ -74,6 +74,7 @@ uint32_t iotex_modem_get_local_time(void)
         hh = localTime/60;
         mm = localTime - hh * 60;
     }
+    hh = hh >= 24 ? (hh-24) : hh;
     localTime = (uint32_t)(hh<<16) |(uint32_t)(mm<<8) |(uint32_t)ss;
 
     return localTime;

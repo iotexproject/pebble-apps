@@ -30,12 +30,12 @@
  * Use type ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_t to define the valid step peak threshold
  * These types are defined in Icm426xxDefs.h
  */
-#define ICM_PEDOMETER_VALID_STEP_THRESHOLD ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_62MG
+#define ICM_PEDOMETER_VALID_STEP_THRESHOLD /*ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_62MG*/  ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_30MG
 		
 /*
  * Minimum number of steps that must be detected before the pedometer step count begins incrementing 
  */
-#define ICM_PEDOMETER_STEP_COUNTER_THRESHOLD 5
+#define ICM_PEDOMETER_STEP_COUNTER_THRESHOLD 2
 
 /* 
  * Duration of non-walk in number of samples to exit the current walk mode.

@@ -217,7 +217,7 @@ IO_ERR_STOP:
 			sys_mutex_unlock(&pedometer.pedometerMutex);
 		//}
 	}
-	/* clear step_cnt every day 00:00:00 ~ 00:01:00 */
+	/* clear step_cnt every day 01:00:00 ~ 01:01:00 */
 	localTime = iotex_modem_get_local_time();
 	if((localTime > 0x010000) && (localTime < 0x010100)){	
 		sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
