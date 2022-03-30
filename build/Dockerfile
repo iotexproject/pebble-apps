@@ -41,7 +41,6 @@ RUN pip3 install -r zephyr/scripts/requirements.txt && \
     pip3 install -r bootloader/mcuboot/scripts/requirements.txt
 
 WORKDIR /app
-RUN git clone https://github.com/iotexproject/pebble-firmware-legacy.git
 
 RUN wget https://launchpad.net/ubuntu/+source/device-tree-compiler/1.4.7-1/+build/15279267/+files/device-tree-compiler_1.4.7-1_amd64.deb && \
     apt install ./device-tree-compiler_1.4.7-1_amd64.deb

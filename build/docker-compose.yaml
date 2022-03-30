@@ -18,7 +18,7 @@ services:
       # - CONFIG_CC310_BACKEND=true
       # - SOC_FAMILY_NRF=y
     volumes:
-      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/external:/external/"
+      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/external/pebble-firmware-legacy:/app/pebble-firmware-legacy"
       - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/zephyr:/app/zephyr"
       - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/tools:/app/tools"
       - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/build:/app/build"
