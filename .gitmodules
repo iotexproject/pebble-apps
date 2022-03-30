@@ -1,0 +1,6 @@
+[submodule "external/pebble-firmware"]
+	path = external/pebble-firmware
+	url = https://github.com/iotexproject/pebble-firmware
+[submodule "external/pebble-firmware-legacy"]
+	path = external/pebble-firmware-legacy
+	url = https://github.com/iotexproject/pebble-firmware-legacy

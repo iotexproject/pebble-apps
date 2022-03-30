@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# # Environment variables
+red=`tput setaf 1`
+# purple=`tput setaf 93`
+# blue=`tput setaf 21`
+green=`tput setaf 2`
+gold=`tput setaf 214`
+reset=`tput sgr0`
+
+case $FIRMWARE_SELECTION in
+  aries)
+    echo "This script will attempt to install ${green}west build -b thingy91_nrf9160ns /app/pebble-firmware-legacy/nrf/applications/asset_tracker/${reset}"
+    west build -b thingy91_nrf9160ns /app/pebble-firmware-legacy/nrf/applications/Aries/ ;;
+
+  asset-tracker)
+    echo "This script will attempt to install ${green}west build -b thingy91_nrf9160ns /app/pebble-firmware-legacy/nrf/applications/asset_tracker/${reset}"
+    # echo "If there is no data in this directory, the blockchain will attempt to synchronize from block height 0. You will need to provide your Infura or Pocket endpoint in the configuration files" ;;
+    west build -b thingy91_nrf9160ns /app/pebble-firmware-legacy/nrf/applications/asset_tracker/ ;;
+
+  *)
+    echo "${red}Not a valid answer. Terminating${reset}"
+    exit 0 ;;
+esac
