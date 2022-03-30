@@ -2,12 +2,7 @@ FROM ubuntu:bionic
 ENV DEBIAN_FRONTEND noninteractive
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
-WORKDIR /app/pebble-firmware
-#COPY . .
-
-COPY ./kitware-archive.sh /app/tools/kitware-archive.sh
-
-RUN /app/tools/kitware-archive.sh
+RUN /build/kitware-archive.sh
 
 RUN apt install --no-install-recommends git cmake ninja-build gperf \
     ccache dfu-util device-tree-compiler wget \
@@ -20,11 +15,8 @@ RUN wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/
     rm gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
 
 RUN wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.14.0/zephyr-sdk-0.14.0_linux-aarch64.tar.gz -P /app/zephyr && \
-    tar -xvf /app/zephyr/zephyr-sdk-0.14.0_linux-aarch64.tar.gz -C /app/zephyr
-
-RUN echo 'export ZEPHYR_TOOLCHAIN_VARIANT=gnuarmemb' >> ~/.zephyrrc && \
-    echo 'export GNUARMEMB_TOOLCHAIN_PATH="/app/pebble-firmware/gnuarmemb"' >> ~/.zephyrrc && \
-    echo 'export PATH=~/.local/bin:"$PATH"' >> ~/.bashrc
+    tar -xvf /app/zephyr/zephyr-sdk-0.14.0_linux-aarch64.tar.gz -C /app/zephyr && \
+    rm zephyr-sdk-0.14.0_linux-aarch64.tar.gz
 
 RUN python3 -m pip install --upgrade pip setuptools tk wheel && \
     pip3 install west
@@ -32,6 +24,7 @@ RUN python3 -m pip install --upgrade pip setuptools tk wheel && \
 RUN source ~/.bashrc
 
 WORKDIR /app/pebble-firmware/ncs
+
 RUN west init -m https://github.com/nrfconnect/sdk-nrf --mr v1.4.0 && \
     west update && \
     west zephyr-export
@@ -40,25 +33,16 @@ RUN pip3 install -r zephyr/scripts/requirements.txt && \
     pip3 install -r nrf/scripts/requirements.txt && \
     pip3 install -r bootloader/mcuboot/scripts/requirements.txt
 
-WORKDIR /app
-
 RUN wget https://launchpad.net/ubuntu/+source/device-tree-compiler/1.4.7-1/+build/15279267/+files/device-tree-compiler_1.4.7-1_amd64.deb && \
-    apt install ./device-tree-compiler_1.4.7-1_amd64.deb
+    apt install ./device-tree-compiler_1.4.7-1_amd64.deb && \
+    rm ./device-tree-compiler_1.4.7-1_amd64.deb
 
 RUN rm -rf /app/pebble-firmware/ncs/nrf/boards/arm/thingy91_nrf9160 && \
     cp -rv /app/pebble-firmware-legacy/nrf/boards/arm/thingy91_nrf9160 /app/pebble-firmware/ncs/nrf/boards/arm/
 
 RUN source /app/pebble-firmware/ncs/zephyr/zephyr-env.sh
 
-RUN rm -rf /app/build
-
-
-
-WORKDIR /app/zephyr
-#RUN /app/zephyr/zephyr.run
-
-RUN wget https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v0.14.0/zephyr-sdk-0.14.0_linux-aarch64.tar.gz && \
-    tar -xvf /app/zephyr/zephyr-sdk-0.14.0_linux-aarch64.tar.gz
+#RUN /zephyr/zephyr.run
 
 WORKDIR /app/pebble-firmware/ncs
 

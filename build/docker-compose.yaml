@@ -18,12 +18,10 @@ services:
       # - CONFIG_CC310_BACKEND=true
       # - SOC_FAMILY_NRF=y
     volumes:
-      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/external/pebble-firmware-legacy:/app/pebble-firmware-legacy"
-      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/zephyr:/app/zephyr"
-      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/tools:/app/tools"
-      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/build:/app/build"
-      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/nrf/applications/Aries/:/app/pebble-firmware/nrf/applications/Aries/"
-      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/external/pebble-firmware-legacy/nrf/applications/asset_tracker:/app/pebble-firmware-legacy/nrf/applications/asset_tracker/"
+      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/zephyr:/zephyr/"
+      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/tools:/tools/"
+      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/build:/build/"
+      - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/external:/app/"
     #   - "/home/jeremi/Code/jrpc_beta/external/pebble-firmware/tools/Kconfig:/app/pebble-firmware-legacy/nrf/applications/asset_tracker/Kconfig"
     #   - "$JRPC/log/IoTeX_Mainnet_Log:/var/log"
     #   - "$JRPC/etc/IoTeX_Mainnet_Etc/config.yaml:/etc/iotex/config_override.yaml"
