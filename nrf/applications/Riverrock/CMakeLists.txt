@@ -55,17 +55,6 @@ target_sources(app PRIVATE src/ota/http_update.c)
 #target_sources(app PRIVATE src/unittest/nanopb_unittest.c)
 #target_sources(app PRIVATE src/unittest/nanopb_unittest.pb.c)
 
-target_sources(app PRIVATE src/icm/icm42605_helper.c)
-target_sources(app PRIVATE src/icm/Icm426xxDriver_HL_apex.c)
-target_sources(app PRIVATE src/icm/Icm426xxDriver_HL.c)
-target_sources(app PRIVATE src/icm/Icm426xxTransport.c)
-
-# Tide:  ICM Action detect Debug codec
-target_sources(app PRIVATE src/icm/tiltConfig.c)
-target_sources(app PRIVATE src/icm/womConfig.c)
-target_sources(app PRIVATE src/icm/smdConfig.c)
-target_sources(app PRIVATE src/icm/icm426xxActionDetect.c)
-
 target_sources(app PRIVATE src/light_sensor/tsl2572.c)
 # NORDIC SDK APP END
 zephyr_include_directories(src)
@@ -82,6 +71,7 @@ zephyr_library_include_directories(
   src/light_sensor
   src/watchdog
   src/sign
+  src/icm
 #  src/antenna_sdk/src
 #  src/antenna_sdk/src/crypto
   )
@@ -94,6 +84,7 @@ add_subdirectory(src/cloud_codec)
 add_subdirectory(src/gps_controller)
 add_subdirectory(src/env_sensors)
 add_subdirectory_ifdef(CONFIG_WATCHDOG src/watchdog)
+add_subdirectory(src/icm)
 #add_subdirectory_ifdef(CONFIG_LIGHT_SENSOR src/light_sensor)
 #add_subdirectory(src/antenna_sdk/src)
 #add_subdirectory(src/antenna_sdk/src/crypto)

@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively ‚ÄúSoftware‚Äù) is subject
+ * This software, related documentation and any modifications thereto (collectively ‚ÄúSoftware‚Ä is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -27,9 +27,9 @@
  *  @{
  */
 
-#include "Icm426xxDefsInternal.h"
-#include "Icm426xxExtFunc.h"
-#include "Icm426xxTransport.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxExtFunc.h"
+#include "icm42605/Icm426xxTransport.h"
 
 
 /** @brief Set CHIP_ID register
@@ -133,8 +133,8 @@ int inv_icm426xx_wr_apex_config0_highg_en(struct inv_icm426xx * s, ICM426XX_APEX
 /** @brief Set PWR_MGMT_0 register S4S_EN bit
  *
  *  <pre>
- *  0 ‚Äì disable s4s
- *  1 ‚Äì enable s4s
+ *  0 ‚Ädisable s4s
+ *  1 ‚Äenable s4s
  *  </pre>
  * @param[in] new_value See enum ICM426XX_PWR_MGMT_0_S4S_t
  * @return 0 in case of success, negative value on error. See enum inv_error
@@ -159,8 +159,8 @@ int inv_icm426xx_wr_pwr_mgmt0_s4s_en(struct inv_icm426xx * s, ICM426XX_PWR_MGMT_
 /** @brief Read PWR_MGMT_0 register S4S_EN bit
  *
  *  <pre>
- *  0 ‚Äì s4s disabled
- *  1 ‚Äì s4s enabled
+ *  0 ‚Äs4s disabled
+ *  1 ‚Äs4s enabled
  *  </pre>
  * @param[out] value See enum ICM426XX_PWR_MGMT_0_S4S_t
  * @return 0 in case of success, negative value on error. See enum inv_error

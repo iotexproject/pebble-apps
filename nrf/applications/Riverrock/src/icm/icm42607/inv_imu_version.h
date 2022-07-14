@@ -1,6 +1,6 @@
 /*
  * ________________________________________________________________________________________________________
- * Copyright (c) 2015-2015 InvenSense Inc. All rights reserved.
+ * Copyright (c) 2019 InvenSense Inc. All rights reserved.
  *
  * This software, related documentation and any modifications thereto (collectively “Software”) is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
@@ -21,37 +21,17 @@
  * ________________________________________________________________________________________________________
  */
 
-#include "Icm426xxTransport.h"
+#ifndef _INV_IMU_VERSION_H_
+#define _INV_IMU_VERSION_H_
 
-#include "InvError.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#define INV_IMU_VERSION_STRING "2.0.4"
 
-int inv_icm426xx_read_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, uint8_t * buf)
-{
-    /*  First field of struct inv_icm426xx is assumed to be a struct inv_icm426xx_serif object. */
-    /*  So let's cast s to struct inv_icm426xx_serif and ignore the rest of struct inv_icm426xx. */
-    struct inv_icm426xx_serif *serif = (struct inv_icm426xx_serif *)s;
-    
-    if(len > serif->max_read)
-        return INV_ERROR_SIZE;
-
-    if(serif->read_reg(serif, reg, buf, len) != 0)
-        return INV_ERROR_TRANSPORT;
-
-    return 0;
+#ifdef __cplusplus
 }
+#endif
 
-int inv_icm426xx_write_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, const uint8_t * buf)
-{
-    /*  First field of struct inv_icm426xx is assumed to be a struct inv_icm426xx_serif object. */
-    /*  So let's cast s to struct inv_icm426xx_serif and ignore the rest of struct inv_icm426xx. */
-    struct inv_icm426xx_serif *serif = (struct inv_icm426xx_serif *)s;
-
-    if(len > serif->max_write)
-        return INV_ERROR_SIZE;
-
-    if(serif->write_reg(serif, reg, buf, len) != 0)
-        return INV_ERROR_TRANSPORT;
-
-    return 0;
-}
+#endif /* _INV_IMU_VERSION_H_ */

@@ -94,7 +94,7 @@ typedef struct {
     float temperature;
     int16_t gyroscope[3];
     int16_t accelerometer[3];
-} iotex_storage_icm42605;
+} iotex_storage_icm;
 
 
 int iotex_local_storage_test(void);

@@ -48,13 +48,14 @@
 #include "nvs/local_storage.h"
 #include "bme/bme680_helper.h"
 #include "modem/modem_helper.h"
-#include "icm/icm42605_helper.h"
+#include "icm/icm_chip_helper.h"
 #include "ecdsa.h"
 #include "light_sensor/tsl2572.h"
 #include  "mqtt/devReg.h"
 #include "display.h"
 #include "ver.h"
 #include "keyBoard.h"
+#include "icm42605/icm426xx_pedometer.h"
 #if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
 #if defined(CONFIG_MODEM_KEY_MGMT)
 #include <modem/modem_key_mgmt.h>
@@ -137,7 +138,7 @@ void bsd_recoverable_error_handler(uint32_t err)
 static void uploadSensorData(void) {
     if (!atomic_get(&send_data_enable) || atomic_get(&pebbleStartup)) {
         return;
-    }    
+    }
     if (iotex_mqtt_is_bulk_upload()) {
         sampling_and_store_sensor_data();
     }
@@ -203,8 +204,8 @@ static void bulk_publish_sersor_data(void) {
         rc = get_block_size();
         iotex_local_storage_hist(SID_MQTT_BULK_UPLOAD_DATA, mqttPubBuf, rc, get_his_block());
         rc = iotex_mqtt_publish_data(&client, 0, mqttPubBuf, rc);
-        LOG_INF("mqtt_bulk_upload: %d \n", rc);  
-        iotex_mqtt_inc_current_upload_count();        
+        LOG_INF("mqtt_bulk_upload: %d \n", rc);
+        iotex_mqtt_inc_current_upload_count();
     }  
 }
 
@@ -494,7 +495,7 @@ void main(void) {
     /*  init oled */
     ssd1306_init();
     /* Iotex Init ICM42605 */
-    iotex_icm42605_init();
+    iotex_icm_chip_init();
     /*  system  menu */
     MainMenu();
     /*  OTA upgrade  */

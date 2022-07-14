@@ -64,12 +64,15 @@ static  uint8_t legalSatelliteTime = 30;
 
 static int getRMC(char *nmea, gprmc_t *loc);
 
+static atomic_val_t  flgRMC = ATOMIC_INIT(0);
+static atomic_val_t  gpsStatus = ATOMIC_INIT(0); /* 0 : gps sleep, 1 : gps wakeup and running */
+
 void gpsPackageParseHandle(struct k_work *work) {
     gprmc_t rmc;
     int intpart;
     double fractpart;
     double lat,lon;
-
+    atomic_set(&flgRMC,1);
     if (!getRMC(uart_buf1, &rmc)) {
         /*  lat  */
         intpart = rmc.latitude/100;
@@ -120,27 +123,23 @@ static void uart_gps_rx_handler(u8_t character) {
         }
     } else {
         uart_buf1[pos1] = character;
-        if ((uart_buf1[pos1 - 1] == '\r') && (character == '\n')) {
-            uart_buf1[pos1 - 1] ='\n'; /* delete '\r',printk  '\n' to '\r'+'\n' */
-            uart_buf1[pos1] = 0;
-            if (strncmp(uart_buf1, strGRMC, strlen(strGRMC)) == 0) {
-                uart_irq_rx_disable(guart_dev_gps);
-                /* printk("%s",uart_buf1); */
-                k_work_submit(&gpsPackageParse);
-            }
+        pos1++;
+        if (pos1 > (sizeof(uart_buf1) - 1)) {
             pos1 = 0;
             bGpsHead = 0;
         } else {
-            pos1++;
-            if (pos1 > (sizeof(uart_buf1) - 1)) {
-                pos1 = 0;
-                bGpsHead = 0;    
-            } else {
-                if (pos1 == strlen(strGRMC)) {
-                    if (strncmp(uart_buf1, strGRMC, strlen(strGRMC))) {
-                        pos1 = 0;
-                        bGpsHead = 0;
-                    }
+            if(character == 0x24) {
+                uart_buf1[pos1-1] = 0;
+                if (strncmp(uart_buf1, strGRMC, strlen(strGRMC)) == 0) {
+                    uart_irq_rx_disable(guart_dev_gps);
+                    pos1 = 0;
+                    bGpsHead = 0;
+                    k_work_submit(&gpsPackageParse);
+                }
+                else { 
+                    pos1 = 1;
+                    bGpsHead = 1;
+                    uart_buf1[0] = character;
                 }
             }
         }
@@ -270,14 +269,16 @@ void gpsPowerOff(void) {
 }
 
 void gpsSleep(void) {
+    atomic_set(&gpsStatus,0);
     /* $PMTK161,0*28<CR><LF> */
     const uint8_t cmd_buf[]={0x24,0x50,0x4d,0x54,0x4b,0x31,0x36,0x31,0x2c,0x30,0x2a,0x32,0x38,0x0d,0x0a};
-    gpsCmdSet(cmd_buf, sizeof(cmd_buf));
+    gpsCmdSet(cmd_buf, sizeof(cmd_buf));    
 }
 
 void gpsWakeup(void) {
     const uint8_t cmd_buf[]={0x0d,0x0a};
     gpsCmdSet(cmd_buf, sizeof(cmd_buf));
+    atomic_set(&gpsStatus,1);
 }
 /* GPS active or not*/
 bool  isGPSActive(void) {
@@ -300,4 +301,23 @@ uint32_t getSatelliteSearchingTime(void) {
     return (legalSatelliteTime);
 }
 
+void resetGps(void) {
+    static uint8_t counter = 0;
+    if(!atomic_get(&gpsStatus))
+        return;
+    if(!atomic_get(&flgRMC)) {
+        counter++;
+        if(counter == 5) {
+            gpsPowerOff();
+        }
+        else if(counter > 6) {
+            counter = 0;
+            gpsPowerOn();
+        }
+    }
+    else {
+        counter = 0;
+        atomic_set(&flgRMC,0);
+    }
+}
 

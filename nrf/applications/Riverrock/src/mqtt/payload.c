@@ -9,7 +9,7 @@
 #include "nvs/local_storage.h"
 #include "modem/modem_helper.h"
 #include "bme/bme680_helper.h"
-#include "icm/icm42605_helper.h"
+#include "icm/icm_chip_helper.h"
 #include "gps_controller.h"
 #include "light_sensor/tsl2572.h"
 
@@ -121,11 +121,11 @@ int iotex_mqtt_get_action_sensor_payload(struct mqtt_payload *output) {
     int i;
     int ret = 0;
     const char *device = "ICM42605";
-    iotex_storage_icm42605 data;
+    iotex_storage_icm data;
     int gyroscope[ARRAY_SIZE(data.gyroscope)];
     int accelerometer[ARRAY_SIZE(data.accelerometer)];
 
-    if (iotex_icm42605_get_sensor_data(&data)) {
+    if (iotex_icm_get_sensor_data(&data)) {
         return -1;
     }
 
@@ -176,7 +176,7 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
     uint8_t buffer[128];
     uint32_t write_cnt = 0;
     iotex_storage_bme680 env_sensor;
-    iotex_storage_icm42605 action_sensor;
+    iotex_storage_icm action_sensor;
     double  timestamp;
     float AmbientLight;
     uint16_t vol_Integer;
@@ -194,7 +194,7 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
     }
 
     if (DATA_CHANNEL_ACTION_SENSOR & channel) {
-        if (iotex_icm42605_get_sensor_data(&action_sensor)) {
+        if (iotex_icm_get_sensor_data(&action_sensor)) {
             return false;
         }
     }
@@ -279,7 +279,7 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     int i;
     int ret = -ENOMEM;
     iotex_storage_bme680 env_sensor;
-    iotex_storage_icm42605 action_sensor;
+    iotex_storage_icm action_sensor;
     char esdaSign[65];
     char jsStr[130];
     int sinLen;
@@ -317,7 +317,7 @@ int iotex_mqtt_get_selected_payload(uint16_t channel, struct mqtt_payload *outpu
     }
 
     if (DATA_CHANNEL_ACTION_SENSOR & channel) {
-        if (iotex_icm42605_get_sensor_data(&action_sensor)) {
+        if (iotex_icm_get_sensor_data(&action_sensor)) {
             goto cleanup;
         }
     }
@@ -754,7 +754,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 {
     int i;
     iotex_storage_bme680 env_sensor;
-    iotex_storage_icm42605 action_sensor;
+    iotex_storage_icm action_sensor;
     char esdaSign[65];
     char jsStr[130];
     int sinLen;
@@ -771,9 +771,8 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
             return 0;
         }
     }
-
     if (DATA_CHANNEL_ACTION_SENSOR & channel) {
-        if (iotex_icm42605_get_sensor_data(&action_sensor)) {
+        if (iotex_icm_get_sensor_data(&action_sensor)) {
             return 0;
         }
     }

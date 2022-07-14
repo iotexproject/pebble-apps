@@ -193,7 +193,7 @@ void sta_Refresh(void) {
         }
         keyWakeup();
         if(!isKeyWakeFlg()) {
-            if (womDetect()) {
+            if (iotex_icm_wom_detect()) {
                 ctrlOLED(true);
                 oledLightTime = 0;
                 if (devRegGet() == DEV_REG_STOP)
@@ -225,5 +225,6 @@ void sta_Refresh(void) {
         s_chDispalyBuffer[i][7] = staBar.power_icon[j];
     }
     ssd1306_refresh_lines(7,7);
+    resetGps();
     sys_mutex_unlock(&iotex_hint_mutex);
 }

@@ -52,21 +52,48 @@ typedef enum
   ICM426XX_UI_SPI4,
   ICM426XX_UI_I3C,
   ICM426XX_AUX1_SPI3,
-  ICM426XX_AUX2_SPI3
+  ICM426XX_AUX2_SPI3,
+  ICM426XX_AUX1_SPI4
   
 } ICM426XX_SERIAL_IF_TYPE_t;
  
 /** @brief basesensor serial interface
  */
 struct inv_icm426xx_serif {
-    void *     context;
-    int      (*read_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, uint8_t * buf, uint32_t len);
-    int      (*write_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, const uint8_t * buf, uint32_t len);
-    int      (*configure)(struct inv_icm426xx_serif * serif);
-    uint32_t   max_read;
-    uint32_t   max_write;
-    ICM426XX_SERIAL_IF_TYPE_t serif_type;
+	void *     context;
+	int      (*read_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, uint8_t * buf, uint32_t len);
+	int      (*write_reg)(struct inv_icm426xx_serif * serif, uint8_t reg, const uint8_t * buf, uint32_t len);
+	int      (*configure)(struct inv_icm426xx_serif * serif);
+	uint32_t   max_read;
+	uint32_t   max_write;
+	ICM426XX_SERIAL_IF_TYPE_t serif_type;
 };
+
+/** @brief transport interface
+ */
+struct inv_icm426xx_transport {
+	struct inv_icm426xx_serif serif; /**< Warning : this field MUST be the first one of struct inv_icm426xx_transport */
+
+	/** @brief Contains mirrored values of some IP registers */
+	struct register_cache_42605 {
+		uint8_t intf_cfg_1_reg;   /**< INTF_CONFIG1, Bank: 0, Address: 0x4D */
+		uint8_t pwr_mngt_0_reg;   /**< PWR_MGMT_0, Bank: 0, Address: 0x4E */
+		uint8_t gyro_cfg_0_reg;   /**< GYRO_CONFIG0, Bank: 0, Address: 0x4F */
+		uint8_t accel_cfg_0_reg;  /**< ACCEL_CONFIG0, Bank: 0, Address: 0x50 */
+		uint8_t tmst_cfg_reg;     /**< TMST_CONFIG, Bank: 0, Address: 0x54 */
+		uint8_t bank_sel_reg;     /**< MPUREG_REG_BANK_SEL, All banks, Address 0x76*/
+	} register_cache_42605; /**< Store mostly used register values on SRAM. 
+	                    *  MPUREG_OTP_SEC_STATUS_B1 and MPUREG_INT_STATUS registers
+	                    *  are read before the cache has a chance to be initialized. 
+	                    *  Therefore, these registers shall never be added to the cache 
+						*  Registers from bank 1,2,3 or 4 shall never be added to the cache
+	                    */
+};
+
+/** @brief Init cache variable.
+ * @return            0 in case of success, -1 for any error
+ */
+int inv_icm426xx_init_transport(struct inv_icm426xx * s);
 
 /** @brief Reads data from a register on Icm426xx.
  * @param[in] reg    register address to be read
@@ -84,7 +111,10 @@ int inv_icm426xx_read_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, ui
  */
 int inv_icm426xx_write_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, const uint8_t * buf);
 
-
+/** @brief Enable MCLK so that MREG are clocked and system beyond SOI can be safely accessed
+ * @param[out] idle_en Value of IDLE bit prior to function access, this might be useful to understand if MCLK was already enabled or not
+ * @return            0 in case of success, -1 for any error
+ */
 
 #ifdef __cplusplus
 }

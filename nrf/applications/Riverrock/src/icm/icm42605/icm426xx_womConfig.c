@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <drivers/i2c.h>
-#include "Icm426xxDefs.h"
-#include "Icm426xxTransport.h"
-#include "Icm426xxDriver_HL.h"
-#include "icm42605_helper.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
 
@@ -24,7 +24,7 @@
 #define WOM_THRESHOLD_INITIAL_MG 200
 
 /* WOM threshold to be applied to ICM, ranges from 1 to 255, in 4mg unit */
-static uint8_t wom_threshold = WOM_THRESHOLD_INITIAL_MG / 8;
+#define  WOM_THRESHOLD  (WOM_THRESHOLD_INITIAL_MG / 8)
 
 static int ConfigureInvDevice_wom(uint8_t is_low_noise_mode, 
                        ICM426XX_ACCEL_CONFIG0_FS_SEL_t acc_fsr_g,
@@ -46,11 +46,11 @@ static int ConfigureInvDevice_wom(uint8_t is_low_noise_mode,
     }
 
     /* Configure WOM to produce signal when at least one axis exceed 200 mg */
-    rc |= inv_icm426xx_configure_smd_wom(getICMDriver(), wom_threshold, wom_threshold, wom_threshold, ICM426XX_SMD_CONFIG_WOM_INT_MODE_ORED, ICM426XX_SMD_CONFIG_WOM_MODE_CMP_PREV);
+    rc |= inv_icm426xx_configure_smd_wom(getICMDriver(), WOM_THRESHOLD, WOM_THRESHOLD, WOM_THRESHOLD, ICM426XX_SMD_CONFIG_WOM_INT_MODE_ORED, ICM426XX_SMD_CONFIG_WOM_MODE_CMP_PREV);
     rc |= inv_icm426xx_enable_wom(getICMDriver());
 
     if (rc)
-        printk("Error while configuring WOM threshold to initial value %c", wom_threshold);
+        printk("Error while configuring WOM threshold to initial value %c", WOM_THRESHOLD);
     
     printk("Waiting for detection...");
     return rc;
