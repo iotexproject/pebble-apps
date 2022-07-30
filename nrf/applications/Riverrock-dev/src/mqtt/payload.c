@@ -829,7 +829,6 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
         sensordat.humidity = (uint32_t)(env_sensor.humidity * 100);
         sensordat.has_humidity = true;
     }
-
     /* Env sensor light */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_LIGHT_SENSOR)) {
         AmbientLight = iotex_Tsl2572ReadAmbientLight();

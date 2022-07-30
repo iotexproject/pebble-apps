@@ -522,14 +522,18 @@ uint8_t *getOTAUrl(void) {
     return firmwareUrl;
 }
 
-void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint, uint8_t *port, uint8_t *gps, uint8_t *net ) {
+void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint, uint8_t *port, uint8_t *gps, uint8_t *net, uint8_t *period) {
     config_mutex_lock();
+    __config.data_channel = 0;
     hexStr2Bin(ch, (char *)&(__config.data_channel));
+    __config.upload_period = 0;
+    hexStr2Bin(period, (char *)&(__config.upload_period));
     strcpy(__config.endpoint,  endpoint);
     pmqttBrokerHost = __config.endpoint;
+    mqtt_port = 0;
     hexStr2Bin(port, (char *)&mqtt_port);
     __config.port = mqtt_port;
-    if(strcmp("Ture", gps) == 0) {
+    if(strcmp("True", gps) == 0) {
         __config.preciseGPS = true;
     }
     else

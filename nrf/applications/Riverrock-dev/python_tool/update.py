@@ -18,6 +18,7 @@ except ImportError:
 selected_sensor  = sensor.DATA_CHANNEL_GPS|sensor.DATA_CHANNEL_SNR|sensor.DATA_CHANNEL_VBAT|sensor.DATA_CHANNEL_DEVINFO|sensor.DATA_CHANNEL_GAS|sensor.DATA_CHANNEL_TEMP|sensor.DATA_CHANNEL_PRESSURE|sensor.DATA_CHANNEL_HUMIDITY|sensor.DATA_CHANNEL_ENV_SENSOR|sensor.DATA_CHANNEL_TEMP2|sensor.DATA_CHANNEL_GYROSCOPE|sensor.DATA_CHANNEL_ACCELEROMETER|sensor.DATA_CHANNEL_CUSTOM_MOTION|sensor.DATA_CHANNEL_ACTION_SENSOR|sensor.DATA_CHANNEL_LIGHT_SENSOR
 endpoint = "a11homvea4zo8t-ats.iot.us-east-1.amazonaws.com"
 port = 8883
+upload_period = 10
 precise_gps = True
 network = sensor.PEBBLE_CONTRACT_TEST_NET
 aws_cert_file = './mqtt_cert/certificate.pem'
@@ -54,7 +55,10 @@ def main():
         port_str = hex(port)[2:]
         if len(port_str)& 1 == 1:
             port_str= "0" + port_str
-        trans_string = binascii.unhexlify(ch_str)[::-1].hex() + " " + endpoint +" " + binascii.unhexlify(port_str)[::-1].hex() + " " +  str(precise_gps) + " " + str(network)
+        period_str = hex(upload_period)[2:]
+        if len(period_str)& 1 == 1:
+            period_str= "0" + period_str
+        trans_string = binascii.unhexlify(ch_str)[::-1].hex() + " " + endpoint +" " + binascii.unhexlify(port_str)[::-1].hex() + " " +  str(precise_gps) + " " + str(network) + " " + binascii.unhexlify(period_str)[::-1].hex()
         ret = comTrans.sendCommand(cmd, trans_string, len(trans_string))
         ret , bytePack = comTrans.receiveCommand(6)
         if ret:

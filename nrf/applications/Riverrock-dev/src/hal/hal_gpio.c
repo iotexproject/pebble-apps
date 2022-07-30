@@ -46,7 +46,7 @@ const  void (*cmdACK[])(enum COM_COMMAND, unsigned char *, unsigned int) = {
 uint8_t downloadCert[2048], downloadKey[2048];
 
 extern atomic_val_t modemWriteProtect;
-extern void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint, uint8_t *port, uint8_t *gps, uint8_t *net ) ;
+extern void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint, uint8_t *port, uint8_t *gps, uint8_t *net, uint8_t *period );
 void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root );
 
 /* extern struct k_delayed_work  event_work; */
@@ -319,7 +319,7 @@ static void cmdACKReadEcc(enum COM_COMMAND cmd, unsigned char *data,unsigned int
         free(package);
 }
 static void cmdACKDeviceConfigure(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
-    uint8_t ch[10],port[10],gpsAccuracy[10], net[6];
+    uint8_t ch[10],port[10],gpsAccuracy[10], net[6], period[10];
     uint8_t endpoint[200],buf[200];
     unsigned char ack_cmd[]={0};
     int32_t ret;
@@ -332,8 +332,8 @@ static void cmdACKDeviceConfigure(enum COM_COMMAND cmd, unsigned char *data,unsi
     memcpy(buf, data, len);
     buf[len] = 0;
     printk("buf : %s \n", buf);
-    sscanf(buf, "%s%s%s%s%s", ch, endpoint, port, gpsAccuracy,net);
-    updateConfigureFromString(ch, endpoint, port, gpsAccuracy,net);
+    sscanf(buf, "%s%s%s%s%s%s", ch, endpoint, port, gpsAccuracy,net,period);
+    updateConfigureFromString(ch, endpoint, port, gpsAccuracy,net, period);
     buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
 }
 
