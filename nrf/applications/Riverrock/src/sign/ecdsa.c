@@ -61,38 +61,13 @@ uint16_t CRC16(uint8_t *data, size_t len) {
 int get_ecc_key(void) {
     uint8_t *pbuf;
     char buf[MODEM_READ_BUF_SIZE];
-    uint8_t decrypted_buf[PRIV_STR_BUF_SIZE];
-    uint8_t binBuf[PRIV_STR_BUF_SIZE];
-    unsigned char pub[PUB_STR_BUF_SIZE];
 
     memset(buf, 0, sizeof(buf));
     pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
-    if (pbuf) {
-        memcpy(decrypted_buf, pbuf, PRIV_STR_LEN);
-        decrypted_buf[PRIV_STR_LEN] = 0;
-        hexStr2Bin(decrypted_buf, binBuf);
-        for (int i = 0; i < 4; i++) {
-            if (cc3xx_decrypt(AES_KMU_SLOT, decrypted_buf+(i<<4), binBuf+(i<<4))) {
-                LOG_ERR("cc3xx_decrypt erro\n");
-                return -1;
-            }
-        }
-        decrypted_buf[64] = 0;
-#ifdef TEST_VERFY_SIGNATURE    
-        memcpy(pub, UNCOM_PUB_STR_ADD(pbuf)+2, 128);
-        pub[128] = 0;
-        SetEccPrivKey(decrypted_buf, pub);
-        LOG_INF("pub:%s \n", pub);
-#else
-        memcpy(pub, UNCOM_PUB_STR_ADD(pbuf), 130);
-        pub[130] = 0;
-        LOG_INF("pub:%s \n", pub);
-        SetEccPrivKey(decrypted_buf);
-#endif            
-    }
+    if (pbuf) 
+        return updateKey(pbuf);
     else
         return 1;
-    return  0;
 }
 
 /*

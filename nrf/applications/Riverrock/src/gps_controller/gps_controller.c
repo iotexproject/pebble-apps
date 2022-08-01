@@ -288,7 +288,7 @@ bool  isGPSActive(void) {
 int32_t searchingSatelliteTime(void) {
     if(!isGPSActive()) {
         timeIndex++;
-        if(timeIndex > sizeof(searchTime))
+        if(timeIndex >= sizeof(searchTime))
             timeIndex = sizeof(searchTime) -1 ;
     }
     if(searchTime[timeIndex] > iotex_mqtt_get_upload_period())
