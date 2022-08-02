@@ -18,7 +18,7 @@ except ImportError:
 selected_sensor  = sensor.DATA_CHANNEL_GPS|sensor.DATA_CHANNEL_SNR|sensor.DATA_CHANNEL_VBAT|sensor.DATA_CHANNEL_DEVINFO|sensor.DATA_CHANNEL_GAS|sensor.DATA_CHANNEL_TEMP|sensor.DATA_CHANNEL_PRESSURE|sensor.DATA_CHANNEL_HUMIDITY|sensor.DATA_CHANNEL_ENV_SENSOR|sensor.DATA_CHANNEL_TEMP2|sensor.DATA_CHANNEL_GYROSCOPE|sensor.DATA_CHANNEL_ACCELEROMETER|sensor.DATA_CHANNEL_CUSTOM_MOTION|sensor.DATA_CHANNEL_ACTION_SENSOR|sensor.DATA_CHANNEL_LIGHT_SENSOR
 endpoint = "a11homvea4zo8t-ats.iot.us-east-1.amazonaws.com"
 port = 8883
-upload_period = 10
+upload_period = 30
 precise_gps = True
 network = sensor.PEBBLE_CONTRACT_TEST_NET
 aws_cert_file = './mqtt_cert/certificate.pem'
