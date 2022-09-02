@@ -28,8 +28,9 @@ static iotex_mqtt_config __config = {
     .configVersion = "v1.0.0",
     .trusttreamTopic = "",
     .preciseGPS = false,
-    .localHostActive = false,
-    .endpoint = "a11homvea4zo8t-ats.iot.ap-east-1.amazonaws.com"
+    .endpoint = "a11homvea4zo8t-ats.iot.ap-east-1.amazonaws.com",
+    .port = 8883,
+    .net = 0
 };
 struct sys_mutex iotex_config_mutex;
 static uint8_t firmwareUrl[200] = "https://pebble-ota.s3.ap-east-1.amazonaws.com/app_update.bin";
@@ -522,39 +523,68 @@ uint8_t *getOTAUrl(void) {
     return firmwareUrl;
 }
 
-void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint, uint8_t *port, uint8_t *gps, uint8_t *net, uint8_t *period) {
+void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint_M, uint8_t *endpoint_T, uint8_t *gps, uint8_t *period) {
+    uint8_t buf[10]={0};
     config_mutex_lock();
-    __config.data_channel = 0;
-    hexStr2Bin(ch, (char *)&(__config.data_channel));
-    __config.upload_period = 0;
-    hexStr2Bin(period, (char *)&(__config.upload_period));
-    strcpy(__config.endpoint,  endpoint);
-    pmqttBrokerHost = __config.endpoint;
-    mqtt_port = 0;
-    hexStr2Bin(port, (char *)&mqtt_port);
-    __config.port = mqtt_port;
-    if(strcmp("True", gps) == 0) {
-        __config.preciseGPS = true;
+    if(ch) {
+        __config.data_channel = 0;
+        hexStr2Bin(ch, (char *)&(__config.data_channel));
     }
-    else
-        __config.preciseGPS = false;
-    __config.net = *net - '0';
-    __config.localHostActive = true;
+    if(period) {
+        __config.upload_period = 0;
+        hexStr2Bin(period, (char *)&(__config.upload_period));
+    }
+    if(gps) {
+        if(strcmp("True", gps) == 0) {
+            __config.preciseGPS = true;
+        }
+        else
+            __config.preciseGPS = false;
+    }
+    if(endpoint_M) {
+        sscanf(endpoint_M, "%[^:]:%d", __config.endpoint,&__config.port);
+        pmqttBrokerHost = __config.endpoint;
+        mqtt_port = __config.port;
+        WritDataIntoModem(USER_MAIN_ENDPOINT_SEC, __config.endpoint);
+        itoa(__config.port,buf,10);
+        WritDataIntoModem(USER_MAIN_PORT_SEC, buf);
+    } 
+    if(endpoint_T) {
+        sscanf(endpoint_T, "%[^:]:%d", __config.endpoint,&__config.port);
+        pmqttBrokerHost = __config.endpoint;
+        mqtt_port = __config.port;
+        WritDataIntoModem(USER_TEST_ENDPOINT_SEC, __config.endpoint);
+        itoa(__config.port,buf,10);
+        WritDataIntoModem(USER_TEST_PORT_SEC, buf);
+    }
     save_mqtt_config();
     config_mutex_unlock();
 }
 
-bool useLocalHost(void) {
-    return __config.localHostActive;
+void saveNet(uint8_t *host, uint8_t *port, uint8_t net) {
+    config_mutex_lock();
+    strcpy(__config.endpoint,  host);
+    mqtt_port = atoi(port);
+    __config.port = mqtt_port;
+    pmqttBrokerHost = __config.endpoint;
+    __config.net = net;
+    save_mqtt_config();
+    config_mutex_unlock();
 }
-void setHost(uint8_t **host, uint8_t *port, uint8_t *net) {
-    *host = __config.endpoint;
-    *port = __config.port;
-    *net = __config.net;
+void getEndpointFromConf(void) {
+    config_mutex_lock();
+    pmqttBrokerHost = __config.endpoint;
+    mqtt_port = __config.port;
+    config_mutex_unlock();
 }
 void useDefaultHost(void) {
     config_mutex_lock();
-    __config.localHostActive = false;
     save_mqtt_config();
+    config_mutex_unlock();
+}
+void getSysInfo(uint8_t *pbuf) {
+    config_mutex_lock();
+    snprintf(pbuf, 2048, "name:%s,ver:%s,endpoint:%s,port:%d,channel:%d,period:%d,gps:%s,net_type:%d",IOTEX_APP_NAME, RELEASE_VERSION,__config.endpoint,__config.port,
+            __config.data_channel, __config.upload_period, __config.preciseGPS ? "True":"False", __config.net);
     config_mutex_unlock();
 }

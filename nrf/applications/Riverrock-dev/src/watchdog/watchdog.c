@@ -43,12 +43,11 @@ static int watchdog_timeout_install(struct wdt_data_storage *data) {
     static const struct wdt_timeout_cfg wdt_settings = {
         .window = {
             .min = 0,
-            .max = CONFIG_ASSET_TRACKER_WATCHDOG_TIMEOUT_MSEC,
+            .max = 150000,
         },
         .callback = NULL,
         .flags = WDT_FLAG_RESET_SOC
     };
-
     __ASSERT_NO_MSG(data != NULL);
     data->wdt_channel_id = wdt_install_timeout(
             data->wdt_drv, &wdt_settings);
@@ -131,6 +130,10 @@ static int watchdog_enable(struct wdt_data_storage *data) {
 
 void stopWatchdog(void) {
     wdt_disable(wdt_data.wdt_drv);
+}
+
+void watchdogFeed(void) {
+    wdt_feed(wdt_data.wdt_drv, wdt_data.wdt_channel_id);
 }
 
 int watchdog_init_and_start(struct k_work_q *work_q) {

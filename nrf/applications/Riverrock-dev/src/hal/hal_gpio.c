@@ -7,6 +7,7 @@
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
 #include "display.h"
+#include "ver.h"
 
 LOG_MODULE_REGISTER(hal_gpio, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
@@ -17,7 +18,7 @@ LOG_MODULE_REGISTER(hal_gpio, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 #define gpio_pin_write  gpio_pin_set
 
 
-#define UART_COMTOOL  "UART_1"   
+#define UART_COMTOOL    "UART_1"
 struct device *__gpio0_dev;
 static u32_t g_key_press_start_time;
 static struct gpio_callback chrq_gpio_cb, pwr_key_gpio_cb;
@@ -25,29 +26,50 @@ static struct device *guart_dev_comtool;
 static atomic_val_t uartReceiveLen = ATOMIC_INIT(0);
 struct k_delayed_work  uartIRQMonit;
 unsigned char *uartReceiveBuff, *uartTransBuff;
+static unsigned char entryComConf = 0;
 
 static void cmdACKReadEcc(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
 static void buildPackage(enum COM_COMMAND cmd, unsigned char *data, unsigned short data_len);
-static void cmdACKDeviceConfigure(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+static void cmdACKDnEndp(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
 static void packageProcess(void);
 static void cmdACKCert(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
 static void cmdACKKey(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
 static void cmdACKRoot(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+static void cmdSysReboot(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+static void cmdACKDnPeriod(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+static void cmdACKDnChan(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+static void cmdACKDnGPS(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+static void cmdACKDnIndex(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+static void cmdUpinfoACK(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
+
 
 const  void (*cmdACK[])(enum COM_COMMAND, unsigned char *, unsigned int) = {
     NULL,
     cmdACKReadEcc,
     NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
-    cmdACKDeviceConfigure,
+    cmdACKDnPeriod,
+    cmdACKDnChan,
+    cmdACKDnGPS,
+    cmdACKDnIndex,
+    cmdACKDnEndp,
+    cmdACKDnEndp,
     cmdACKCert,
     cmdACKKey,
-    cmdACKRoot
+    cmdACKRoot,
+    cmdACKCert,
+    cmdACKKey,
+    cmdACKRoot,
+    cmdSysReboot,
+    cmdUpinfoACK,
 };
 uint8_t downloadCert[2048], downloadKey[2048];
 
 extern atomic_val_t modemWriteProtect;
-extern void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint, uint8_t *port, uint8_t *gps, uint8_t *net, uint8_t *period );
+extern void updateConfigureFromString(uint8_t *ch, uint8_t *endpoint_M, uint8_t *endpoint_T, uint8_t *gps, uint8_t *period);
+extern bool updateCert(int id);
 void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root );
+extern void getSysInfo(uint8_t *pbuf);
+extern void watchdogFeed(void);
 
 /* extern struct k_delayed_work  event_work; */
 
@@ -318,25 +340,74 @@ static void cmdACKReadEcc(enum COM_COMMAND cmd, unsigned char *data,unsigned int
     if(package)
         free(package);
 }
-static void cmdACKDeviceConfigure(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
-    uint8_t ch[10],port[10],gpsAccuracy[10], net[6], period[10];
-    uint8_t endpoint[200],buf[200];
+static void cmdACKDnEndp(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
+    uint8_t endpoint[200];
     unsigned char ack_cmd[]={0};
-    int32_t ret;
 
-    memset(ch,0, sizeof(ch));
-    memset(port,0, sizeof(port));
-    memset(gpsAccuracy,0, sizeof(gpsAccuracy));
     if(len >= sizeof(endpoint))
         return;
-    memcpy(buf, data, len);
-    buf[len] = 0;
-    printk("buf : %s \n", buf);
-    sscanf(buf, "%s%s%s%s%s%s", ch, endpoint, port, gpsAccuracy,net,period);
-    updateConfigureFromString(ch, endpoint, port, gpsAccuracy,net, period);
+    memcpy(endpoint, data, len);
+    endpoint[len] = 0;
+    printk("endpoint : %s \n", endpoint);
+    if( cmd == COM_CMD_DOWNLOAD_M_ENDP) 
+        updateConfigureFromString(NULL, endpoint, NULL, NULL, NULL);
+    else
+        updateConfigureFromString(NULL, NULL, endpoint, NULL, NULL);
     buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
 }
+static void cmdACKDnPeriod(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
+    uint8_t period[10];
+    unsigned char ack_cmd[]={0};
 
+    if(len >= sizeof(period))
+        return;
+    memcpy(period, data, len);
+    period[len] = 0;
+    printk("period : %s \n", period);
+    updateConfigureFromString(NULL, NULL, NULL, NULL, period);
+    buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
+}
+static void cmdACKDnChan(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
+    uint8_t ch[10];
+    unsigned char ack_cmd[]={0};
+
+    if(len >= sizeof(ch))
+        return;
+    memcpy(ch, data, len);
+    ch[len] = 0;
+    printk("ch : %s \n", ch);
+    updateConfigureFromString(ch, NULL, NULL,NULL, NULL);
+    buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
+}
+static void cmdACKDnGPS(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
+    uint8_t gpsAccuracy[10];
+    unsigned char ack_cmd[]={0};
+
+    if(len >= sizeof(gpsAccuracy))
+        return;
+    memcpy(gpsAccuracy, data, len);
+    gpsAccuracy[len] = 0;
+    printk("gpsAccuracy : %s \n", gpsAccuracy);
+    updateConfigureFromString(NULL, NULL, NULL, gpsAccuracy,NULL);
+    buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
+}
+static void cmdACKDnIndex(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
+    uint8_t index[10];
+    int id;
+    unsigned char ack_cmd[]={0};
+
+    if(len >= sizeof(index))
+        return;
+    memcpy(index, data, len);
+    index[len] = 0;
+    printk("index : %s \n", index);
+    id = atoi(index);
+    if(updateCert(id))
+        ack_cmd[0] = 0;
+    else
+        ack_cmd[0] = 1;
+    buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
+}
 static void cmdACKCert(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
     unsigned char ack_cmd[]={0};   
     memcpy(downloadCert, data, len);
@@ -354,7 +425,36 @@ static void cmdACKRoot(enum COM_COMMAND cmd, unsigned char *data,unsigned int le
     unsigned char ack_cmd[]={0};
     data[len] = 0;
     WriteCertIntoModem(downloadCert, downloadKey, data);
+    if(cmd == COM_CMD_DOWNLOAD_M_ROOT) { // Main Net
+        WritDataIntoModem(USER_MAIN_CERT_SEC, downloadCert);
+        WritDataIntoModem(USER_MAIN_KEY_SEC, downloadKey);
+        WritDataIntoModem(USER_MAIN_ROOT_SEC, data);
+    }else {
+        WritDataIntoModem(USER_TEST_CERT_SEC, downloadCert);
+        WritDataIntoModem(USER_TEST_KEY_SEC, downloadKey);
+        WritDataIntoModem(USER_TEST_ROOT_SEC, data);
+    }
     buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
+}
+static void cmdSysReboot(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
+    unsigned char ack_cmd[]={0};
+    buildPackage(cmd, ack_cmd, sizeof(ack_cmd));
+    k_sleep(K_MSEC(200));
+    watchdogFeed();
+    sys_reboot(0);
+}
+static void cmdUpinfoACK(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
+    unsigned char ack_cmd[]={0};
+
+    data[len] = 0;
+    if(*data == '0') {
+        entryComConf = 1;
+    } else {
+        entryComConf = 0;
+    }
+}
+bool startConf(void) {
+    return (entryComConf == 1);
 }
 static void comtoolOut(uint8_t *buf, uint32_t len) {
     uint32_t i;
@@ -362,7 +462,6 @@ static void comtoolOut(uint8_t *buf, uint32_t len) {
     {
         uart_poll_out(guart_dev_comtool,buf[i]); 
     }
-    
 }
 static void packageProcess(void) {
     checkAndACK(uartReceiveBuff, atomic_get(&uartReceiveLen));
@@ -379,6 +478,15 @@ static void buildPackage(enum COM_COMMAND cmd, unsigned char *data, unsigned sho
     uartTransBuff[data_len + 4] = (unsigned char)(crc>>8);
     uartTransBuff[data_len+5] = (unsigned char)crc;
     comtoolOut(uartTransBuff, data_len+6);
+}
+void  uploadSysInfo(void) {
+    uint8_t *pbuf;
+    pbuf = malloc(2048);
+    if(pbuf == NULL)
+        return;
+    getSysInfo(pbuf);
+    buildPackage(COM_CMD_UPLOAD_INFO_ACK,pbuf, strlen(pbuf));
+    free(pbuf);
 }
 
 

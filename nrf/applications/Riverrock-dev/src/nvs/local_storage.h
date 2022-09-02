@@ -36,6 +36,17 @@
 /*  modem  startup mode , LTE-M or  NB-IOT */
 #define   MODEM_MODE_SEL          (CERT_START_SEC+15)
 
+#define   USER_TEST_KEY_SEC           (CERT_START_SEC+16)
+#define   USER_TEST_CERT_SEC          (CERT_START_SEC+17)
+#define   USER_TEST_ROOT_SEC          (CERT_START_SEC+18)
+#define   USER_TEST_ENDPOINT_SEC      (CERT_START_SEC+19)
+#define   USER_TEST_PORT_SEC          (CERT_START_SEC+20)
+#define   USER_MAIN_KEY_SEC           (CERT_START_SEC+21)
+#define   USER_MAIN_CERT_SEC          (CERT_START_SEC+22)
+#define   USER_MAIN_ROOT_SEC          (CERT_START_SEC+23)
+#define   USER_MAIN_ENDPOINT_SEC      (CERT_START_SEC+24)
+#define   USER_MAIN_PORT_SEC          (CERT_START_SEC+25)
+
 
 typedef enum {
     SID_DEVICE_GPS = 0x1,

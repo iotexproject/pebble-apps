@@ -50,7 +50,6 @@ typedef struct {
     uint8_t configVersion[30];
     uint8_t trusttreamTopic[100];
     bool preciseGPS;
-    bool localHostActive;
     uint8_t endpoint[200];
     uint16_t port;
     uint8_t net;
@@ -120,7 +119,6 @@ int compareVersion(char * version1, char * version2);
 bool isUrlNull(void);
 bool iotex_precise_gps(void);
 uint8_t *iotex_get_truStreamTopic(void);
-bool useLocalHost(void);
 void setHost(uint8_t **host, uint8_t *port, uint8_t *net);
 
 #endif /* _IOTEX_MQTT_CONFIG_H_ */
