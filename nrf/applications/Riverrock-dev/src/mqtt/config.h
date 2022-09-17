@@ -53,6 +53,7 @@ typedef struct {
     uint8_t endpoint[200];
     uint16_t port;
     uint8_t net;
+    uint8_t is_tls;
 } iotex_mqtt_config;
 
 typedef enum {

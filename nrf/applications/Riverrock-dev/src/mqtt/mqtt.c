@@ -40,6 +40,7 @@ uint16_t mqtt_port = 8883;
 
 
 extern void mqttGetResponse(void);
+extern bool isTls(void);
 
 static void iotex_mqtt_get_topic(u8_t *buf, int len) {
     snprintf(buf, len, "device/%s/data",iotex_mqtt_get_client_id());
@@ -574,10 +575,10 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     client->tx_buf = tx_buffer;
     client->tx_buf_size = sizeof(tx_buffer);
     /* MQTT transport configuration */
-    if(mqtt_port == 1884)
-        client->transport.type = MQTT_TRANSPORT_NON_SECURE;
-    else
+    if(isTls())
         client->transport.type = MQTT_TRANSPORT_SECURE;
+    else
+        client->transport.type = MQTT_TRANSPORT_NON_SECURE;
     LOG_INF("client->transport.type:%d,CONFIG_MQTT_BROKER_PORT:%d, CONFIG_MQTT_BROKER_HOSTNAME:%s\n", client->transport.type, mqtt_port,pmqttBrokerHost);
     tls_config->peer_verify = 2;
     tls_config->cipher_list = NULL;

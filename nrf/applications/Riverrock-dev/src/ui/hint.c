@@ -58,7 +58,7 @@ extern  const  uint8_t *pmqttBrokerHost;
 extern  uint16_t mqtt_port;
 extern  void ledFlahsWorkerInit(void);
 extern  void useDefaultHost(void);
-extern  void saveNet(uint8_t *host, uint8_t *port, uint8_t net);
+extern  void saveNet(uint8_t *host, uint8_t *port, uint8_t net, uint8_t tls);
 extern  void getEndpointFromConf(void);
 extern bool startConf(void);
 extern void  uploadSysInfo(void);
@@ -273,6 +273,8 @@ bool updateCert(int id) {
     uint8_t *pbuf_key = NULL;
     uint8_t *pbuf_root = NULL;
     uint8_t index[5];
+    uint8_t port[10], flg[6];
+    uint8_t is_tls = 0;
     int selArea = regionIndex(id);
 
     pcert = malloc(2048);
@@ -289,26 +291,11 @@ bool updateCert(int id) {
         return false;
     }
 
-    pbuf_cert = ReadDataFromModem(AreaSec[selArea][0], pcert, 2048);
-    pbuf_key = ReadDataFromModem(AreaSec[selArea][1], pkey, 2048);
-    if(selArea <= 4) {
-        pbuf_root = ReadDataFromModem(AWS_ROOT_CA, proot, 2048);
-    }
-    else {
-        pbuf_root = ReadDataFromModem(AreaSec[selArea][0] + 1, proot, 2048);
-    }
-    if (!pbuf_cert || !pbuf_key || !pbuf_root) {
-        LOG_ERR("read cert error \n");
-        goto out;
-    }
-    pbuf_cert[strlen(pbuf_cert) - 3] = 0;
-    pbuf_key[strlen(pbuf_key) - 3] = 0;
-    pbuf_root[strlen(pbuf_root) - 3] = 0;
-    WriteCertIntoModem(pbuf_cert, pbuf_key, pbuf_root);
     if(selArea <= 4) {
         pmqttBrokerHost = mqttBrokerHost[selArea];
         mqtt_port = 8883;
-        saveNet(pmqttBrokerHost, "8883", pebble_net_type[id]);
+        is_tls = 1;
+        saveNet(pmqttBrokerHost, "8883", pebble_net_type[id],is_tls);
     }else {
         /* Read endpoint */
         pbuf_root = ReadDataFromModem(AreaSec[selArea][0] + 2, proot, 2048);
@@ -320,12 +307,38 @@ bool updateCert(int id) {
             LOG_ERR("read endpoint error \n");
             goto out;
         }
-        saveNet(pbuf_root, pbuf_cert, pebble_net_type[id]);
+        sscanf(pbuf_cert, "%[^:]:%s",port,flg);
+        if(!strcmp(flg,"tls"))
+            is_tls = 1;
+        else
+            is_tls = 0;
+        saveNet(pbuf_root, port, pebble_net_type[id], is_tls);
+    }
+    if(is_tls) {
+        pbuf_cert = ReadDataFromModem(AreaSec[selArea][0], pcert, 2048);
+        pbuf_key = ReadDataFromModem(AreaSec[selArea][1], pkey, 2048);
+        if(selArea <= 4) {
+            pbuf_root = ReadDataFromModem(AWS_ROOT_CA, proot, 2048);
+        }
+        else {
+            pbuf_root = ReadDataFromModem(AreaSec[selArea][0] + 1, proot, 2048);
+        }
+        if (!pbuf_cert || !pbuf_key || !pbuf_root) {
+            LOG_ERR("read cert error \n");
+            goto out;
+        }
+        pbuf_cert[strlen(pbuf_cert) - 3] = 0;
+        pbuf_key[strlen(pbuf_key) - 3] = 0;
+        pbuf_root[strlen(pbuf_root) - 3] = 0;
+        WriteCertIntoModem(pbuf_cert, pbuf_key, pbuf_root);
     }
     pebbleContractNet = pebble_net_type[id];
     itoa(id, index, 10);
     index[1] = 0;
     WritDataIntoModem(MQTT_CERT_INDEX, index);
+    free(pcert);
+    free(pkey);
+    free(proot);
     return true;
 out:
     free(pcert);
