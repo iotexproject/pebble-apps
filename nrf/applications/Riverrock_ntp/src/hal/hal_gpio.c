@@ -424,7 +424,7 @@ static void cmdACKKey(enum COM_COMMAND cmd, unsigned char *data,unsigned int len
 static void cmdACKRoot(enum COM_COMMAND cmd, unsigned char *data,unsigned int len) {
     unsigned char ack_cmd[]={0};
     data[len] = 0;
-    /* WriteCertIntoModem(downloadCert, downloadKey, data); */
+    WriteCertIntoModem(downloadCert, downloadKey, data);
     if(cmd == COM_CMD_DOWNLOAD_M_ROOT) { // Main Net
         WritDataIntoModem(USER_MAIN_CERT_SEC, downloadCert);
         WritDataIntoModem(USER_MAIN_KEY_SEC, downloadKey);

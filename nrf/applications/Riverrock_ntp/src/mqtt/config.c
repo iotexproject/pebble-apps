@@ -74,7 +74,8 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
         LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
         return 0;
     }
-    uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+    //uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+    uint_timestamp = getSysTimestamp_s();
     binpack.data.size = enc_datastream.bytes_written;
     binpack.data.bytes[enc_datastream.bytes_written] = (char)((uint_timestamp & 0xFF000000) >> 24);
     binpack.data.bytes[enc_datastream.bytes_written + 1] = (char)((uint_timestamp & 0x00FF0000) >> 16);

@@ -336,9 +336,6 @@ bool updateCert(int id) {
     itoa(id, index, 10);
     index[1] = 0;
     WritDataIntoModem(MQTT_CERT_INDEX, index);
-    free(pcert);
-    free(pkey);
-    free(proot);
     return true;
 out:
     free(pcert);
@@ -828,3 +825,23 @@ void setDefaultWorkMode(void) {
     index[1] = 0;
     iotex_local_storage_save(SID_MODEM_WORK_MODE, index, 1);
 }
+
+
+//test
+void ntp_err_show(int type) 
+{
+    dis_OnelineText(1, ALIGN_LEFT, "",DIS_NORMAL);
+    if(type == 1)
+    {
+        dis_OnelineText(1, ALIGN_LEFT, "ntp error",DIS_NORMAL);
+    }
+    else {
+        if(type == 2)
+        {
+            dis_OnelineText(1, ALIGN_LEFT, "ntp offline",DIS_NORMAL);
+        }
+    }
+    dis_OnelineText(2, ALIGN_LEFT, "Please restart",DIS_NORMAL);
+    dis_OnelineText(3, ALIGN_LEFT, "",DIS_NORMAL);
+}
+

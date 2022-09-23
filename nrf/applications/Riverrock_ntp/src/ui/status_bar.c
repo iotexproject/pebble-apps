@@ -227,4 +227,5 @@ void sta_Refresh(void) {
     ssd1306_refresh_lines(7,7);
     resetGps();
     sys_mutex_unlock(&iotex_hint_mutex);
+    //syncTimestamp();
 }

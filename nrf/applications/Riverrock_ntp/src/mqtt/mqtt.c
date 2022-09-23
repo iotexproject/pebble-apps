@@ -104,7 +104,8 @@ static int packDevState(uint8_t *buf, uint32_t size) {
     }
 
     if (devSt < 4) {
-        uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+        //uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+        uint_timestamp = getSysTimestamp_s();
         pb_ostream_t enc_datastream;
         enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
         if (!pb_encode(&enc_datastream, SensorState_fields, &devSta)) {

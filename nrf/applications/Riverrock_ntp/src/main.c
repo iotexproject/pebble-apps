@@ -507,9 +507,10 @@ void main(void) {
 #ifdef CONFIG_UNITTEST
     unittest();
 #endif
+    initNTP();
     /*  status bar refresh */
     sta_Refresh();
-
+    readNTP();
     while (true) {
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             errCounts++;
@@ -528,7 +529,7 @@ void main(void) {
             if(psmWork())
                 continue;
         }
-
+        syncNTPTime();
         if (devRegGet() != DEV_REG_STOP) {
             devRegSet(DEV_REG_START);
             pebbleBackGround(0);

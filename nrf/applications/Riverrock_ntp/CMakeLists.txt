@@ -54,6 +54,7 @@ target_sources(app PRIVATE src/ota/http_update.c)
 #target_sources(app PRIVATE src/unittest/mqtt_unittest.c)
 #target_sources(app PRIVATE src/unittest/nanopb_unittest.c)
 #target_sources(app PRIVATE src/unittest/nanopb_unittest.pb.c)
+target_sources(app PRIVATE src/time/ntp.c)
 
 target_sources(app PRIVATE src/light_sensor/tsl2572.c)
 # NORDIC SDK APP END

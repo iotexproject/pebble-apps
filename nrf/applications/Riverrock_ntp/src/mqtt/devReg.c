@@ -104,7 +104,8 @@ int SignAndSend(void)
     uint32_t uint_timestamp;
 
     ConfirmPackage confirmAdd = ConfirmPackage_init_zero;
-    uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+    //uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+    uint_timestamp = getSysTimestamp_s();
     json_buf = malloc(DATA_BUFFER_SIZE);
     if (!json_buf)
         return -1;
