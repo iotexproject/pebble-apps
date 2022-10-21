@@ -62,6 +62,7 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
     int err = at_cmd_write("AT+CCLK?", cclk_r_buf, sizeof(cclk_r_buf), &at_state);
     if (err) {
         LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
+        return NULL;
     }
     LOG_INF("AT CMD Modem time is:%s\n", cclk_r_buf);
     /*  num of years since 1900, the formula works only for 2xxx */
