@@ -759,7 +759,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     char jsStr[130];
     int sinLen;
     float AmbientLight = 0.0;
-    uint32_t uint_timestamp;
+    uint32_t uint_timestamp, ntp_timestamp;
     /* char random[17]; */
     BinPackage binpack = BinPackage_init_zero;
     SensorData sensordat = SensorData_init_zero;
@@ -857,7 +857,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     }
 
     /* Add timestamp */
-    uint_timestamp = atoi(iotex_modem_get_clock(NULL));
+    uint_timestamp = getSysTimestamp_s();
     /*  get random number */
     __disable_irq();
     GenRandom(sensordat.random);
@@ -879,7 +879,6 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     binpack.data.bytes[enc_datastream.bytes_written + 3] = (char)(uint_timestamp & 0x000000FF);
     *(uint32_t*)buffer = BinPackage_PackageType_DATA;
     memcpy(buffer + 4,  binpack.data.bytes, enc_datastream.bytes_written + 4);
-    LOG_INF("uint_timestamp:%d \n",uint_timestamp);
     doESDASign(buffer, enc_datastream.bytes_written + 8, esdaSign, &sinLen);
     LOG_INF("sinLen:%d\n", sinLen);
     memcpy(binpack.signature, esdaSign, 64);

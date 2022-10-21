@@ -828,3 +828,14 @@ void setDefaultWorkMode(void) {
     index[1] = 0;
     iotex_local_storage_save(SID_MODEM_WORK_MODE, index, 1);
 }
+
+
+
+void ntp_err_show(void) 
+{
+    dis_OnelineText(1, ALIGN_LEFT, "",DIS_NORMAL);
+    dis_OnelineText(1, ALIGN_LEFT, "ntp error",DIS_NORMAL);
+    dis_OnelineText(2, ALIGN_LEFT, "Please restart",DIS_NORMAL);
+    dis_OnelineText(3, ALIGN_LEFT, "",DIS_NORMAL);
+}
+

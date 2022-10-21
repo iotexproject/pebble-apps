@@ -6,10 +6,21 @@ import time
 # command  define
 
 
-COM_CMD_DOWNLOAD_CONFIGURE = 0x2F
-COM_CMD_DOWNLOAD_CERT  = 0x30
-COM_CMD_DOWNLOAD_KEY = 0x31
-COM_CMD_DOWNLOAD_ROOT = 0x32
+COM_CMD_DOWNLOAD_PERIOD = 0x2F
+COM_CMD_DOWNLOAD_CHANNEL = 0x30
+COM_CMD_DOWNLOAD_GPS = 0x31
+COM_CMD_DOWNLOAD_INDEX = 0x32
+COM_CMD_DOWNLOAD_ENDP_M = 0x33
+COM_CMD_DOWNLOAD_ENDP_T = 0x34
+COM_CMD_DOWNLOAD_CERT_M = 0x35
+COM_CMD_DOWNLOAD_KEY_M  = 0x36
+COM_CMD_DOWNLOAD_ROOT_M = 0x37
+COM_CMD_DOWNLOAD_CERT_T = 0x38
+COM_CMD_DOWNLOAD_KEY_T = 0x39
+COM_CMD_DOWNLOAD_ROOT_T = 0x3A
+COM_CMD_DOWNLOAD_REBOOT = 0x3B
+COM_CMD_DEV_INFO = 0x3C
+
 
 
 COM_ACK_SUCCESS  =  0
@@ -111,5 +122,32 @@ class COM_TRANSACT:
         except Exception as e:
             #self.closePort()
             print("uart data receive  error")
+            return (False, None)
+        
+    def revMessages(self, cmd, timeout):
+        try:
+            #self.openPort()
+            if self.comSerial.is_open:
+                start = time.time()
+                while True:
+                    length = 1024 * 10
+                    revBytes = self.comSerial.read(length)
+                    if revBytes!= b'':
+                        #print(revBytes)
+                        crcH, crcL = self.calcCRC16(revBytes[1:], len(revBytes)-3)
+                        if crcH == revBytes[-2]  and crcL == revBytes[-1]:
+                            if revBytes[1] == cmd:
+                                return (True, revBytes[4:-2])
+                        return  (False, None)
+                    end = time.time()
+                    if (end - start) > timeout :
+                        #self.closePort()
+                        return  (False, None)
+                    time.sleep(0.3)
+            else:
+                return  (False, None)
+        except Exception as e:
+            #self.closePort()
+            print("uart msg receive  error")
             return (False, None)
 

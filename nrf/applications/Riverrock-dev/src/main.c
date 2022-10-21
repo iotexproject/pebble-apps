@@ -509,7 +509,7 @@ void main(void) {
 #endif
     /*  status bar refresh */
     sta_Refresh();
-
+    initNTP();
     while (true) {
         if ((err = iotex_mqtt_client_init(&client, &fds))) {
             errCounts++;
@@ -528,7 +528,7 @@ void main(void) {
             if(psmWork())
                 continue;
         }
-
+        syncNTPTime();
         if (devRegGet() != DEV_REG_STOP) {
             devRegSet(DEV_REG_START);
             pebbleBackGround(0);

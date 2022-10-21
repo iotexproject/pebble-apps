@@ -78,7 +78,7 @@ int hexStr2Bin(char *str, char *bin) {
         bin[j] = (str2Hex(str[i]) <<4);
         i++;
         bin[j] |= str2Hex(str[i]);
-    }
+    }   
     return j; 
 }
 
