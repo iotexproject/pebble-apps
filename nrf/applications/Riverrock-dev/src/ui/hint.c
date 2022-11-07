@@ -299,14 +299,14 @@ bool updateCert(int id) {
     }else {
         /* Read endpoint */
         pbuf_root = ReadDataFromModem(AreaSec[selArea][0] + 2, proot, 2048);
-        pbuf_root[strlen(pbuf_root) - 3] = 0;
         /* Read port */
         pbuf_cert = ReadDataFromModem(AreaSec[selArea][0] + 3, pcert, 2048);
-        pbuf_cert[strlen(pbuf_cert) - 3] = 0;
         if (!pbuf_cert || !pbuf_root) {
             LOG_ERR("read endpoint error \n");
             goto out;
         }
+        pbuf_root[strlen(pbuf_root) - 3] = 0;
+        pbuf_cert[strlen(pbuf_cert) - 3] = 0;
         sscanf(pbuf_cert, "%[^:]:%s",port,flg);
         if(!strcmp(flg,"tls"))
             is_tls = 1;
