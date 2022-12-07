@@ -8,7 +8,7 @@
 #include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
-#include "icm42605/Icm426xxActionDetect.h"
+#include "icm42605/icm426xxActionDetect.h"
 
 extern int tiltConf(void);
 extern int womConf(void);
