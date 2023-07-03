@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively “Software� is subject
+ * This software, related documentation and any modifications thereto (collectively “Software� is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -38,8 +38,8 @@
 extern "C" {
 #endif
 
-#include "Icm426xxDefs.h"
-#include "Icm426xxTransport.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxTransport.h"
 
 #include "InvError.h"
 

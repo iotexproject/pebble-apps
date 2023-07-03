@@ -10,7 +10,7 @@
 
 #define  IOTEX_APP_NAME  "Aries"
 
-#define  RELEASE_VERSION    "1.0.1"
+#define  RELEASE_VERSION    "1.0.2"
 
 /*  application version */
 #define IOTEX_APP_VERSION IOTEX_APP_NAME" "RELEASE_VERSION

@@ -21,11 +21,11 @@
  * ________________________________________________________________________________________________________
  */
 
-#include "Icm426xxSelfTest.h"
-#include "Icm426xxDefs.h"
-#include "Icm426xxExtFunc.h"
-#include "Icm426xxTransport.h"
-#include "Icm426xxDriver_HL.h"
+#include "icm42605/Icm426xxSelfTest.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxExtFunc.h"
+#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/Icm426xxDriver_HL.h"
 
 #include <stdio.h>
 #include <math.h>

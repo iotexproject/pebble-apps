@@ -9,7 +9,7 @@
 #include "nvs/local_storage.h"
 #include "modem/modem_helper.h"
 #include "bme/bme680_helper.h"
-#include "icm/icm42605_helper.h"
+#include "icm/icm_chip_helper.h"
 #include "gps_controller.h"
 #include "light_sensor/tsl2572.h"
 

@@ -38,7 +38,7 @@
 extern "C" {
 #endif
 
-#include "Icm426xxDefs.h"
+#include "icm42605/Icm426xxDefs.h"
 
 #include "InvError.h"
 

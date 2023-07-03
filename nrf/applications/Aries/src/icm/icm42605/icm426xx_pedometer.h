@@ -1,7 +1,7 @@
 #ifndef    __PEDOMETER_H__
 #define    __PEDOMETER_H__
-#include <sys/mutex.h>
-#include "Icm426xxDefs.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm_chip_helper.h"
 
 /*
  * Pedometer frequency 
@@ -12,7 +12,7 @@
  * ICM426XX_APEX_CONFIG0_DMP_ODR_25Hz  (Low Power mode), 
  * ICM426XX_APEX_CONFIG0_DMP_ODR_50Hz  (Normal mode)
  */
-#define ICM_PEDOMETER_FREQUENCY_MODE ICM426XX_APEX_CONFIG0_DMP_ODR_25Hz
+#define ICM_PEDOMETER_FREQUENCY_MODE  ICM426XX_APEX_CONFIG0_DMP_ODR_25Hz
 
 /*
  * Pedometer power save mode
@@ -61,29 +61,6 @@
  */
 #define ICM_PEDOMETER_SENSITIVITY_MODE ICM426XX_APEX_CONFIG9_SENSITIVITY_MODE_NORMAL
 
-enum PEDOMETER_CLASS_TYPE{
-	PEDOMETER_STOP = 0,
-	PEDOMETER_WALK,
-	PEDOMETER_RUN,
-};
-
-enum PEDOMETER_STATUS{
-	NOT_MOVED,
-	MOVED,
-};
-
-
-struct _PEDOMETER{
-    uint32_t  cadence_step_per_sec;
-    uint64_t  step_cnt;
-	uint64_t  discard_cnt;
-    enum PEDOMETER_CLASS_TYPE  classType;
-	struct sys_mutex  pedometerMutex;
-	uint32_t  pedometerWOM;
-	uint32_t  startTime;
-	uint32_t  sportTime;
-};
-
 
 int pedometerConfig(struct inv_icm426xx *icm_driver, ICM426XX_APEX_CONFIG0_DMP_ODR_t pedometer_freq,
 					ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_t power_mode,
@@ -94,15 +71,7 @@ int pedometerConfig(struct inv_icm426xx *icm_driver, ICM426XX_APEX_CONFIG0_DMP_O
 					ICM426XX_APEX_CONFIG9_SENSITIVITY_MODE_t sensitivity_mode);
 
 int readSteps(struct inv_icm426xx *icm_driver);
-bool isPedometerActive(void);
-void setPedometerStop(void);
-enum PEDOMETER_CLASS_TYPE readPedometer(uint32_t *pace, uint64_t *steps, uint32_t *time);
-uint32_t getCalK(void);
-bool isPedometerWOM(void);
-uint64_t getSteps(void);
-bool stepsComp(uint64_t steps,enum PEDOMETER_CLASS_TYPE type);
-enum PEDOMETER_CLASS_TYPE getType(void);
-void sportTiming(void);
+
 
 
 #endif

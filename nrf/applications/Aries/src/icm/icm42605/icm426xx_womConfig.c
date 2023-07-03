@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <drivers/i2c.h>
-#include "Icm426xxDefs.h"
-#include "Icm426xxTransport.h"
-#include "Icm426xxDriver_HL.h"
-#include "icm42605_helper.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
 

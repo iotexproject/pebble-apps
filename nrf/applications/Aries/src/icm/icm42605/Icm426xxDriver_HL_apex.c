@@ -21,10 +21,10 @@
  * ________________________________________________________________________________________________________
  */
 
-#include "Icm426xxDefs.h"
-#include "Icm426xxExtFunc.h"
-#include "Icm426xxDriver_HL.h"
-#include "Icm426xxDriver_HL_apex.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxExtFunc.h"
+#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm42605/Icm426xxDriver_HL_apex.h"
 
 static int inv_icm426xx_resume_dmp(struct inv_icm426xx * s);
 

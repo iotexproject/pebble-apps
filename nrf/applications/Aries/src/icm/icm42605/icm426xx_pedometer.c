@@ -3,14 +3,14 @@
 #include <stdlib.h>
 #include <drivers/i2c.h>
 #include <logging/log.h>
-#include "Icm426xxDefs.h"
-#include "Icm426xxTransport.h"
-#include "Icm426xxDriver_HL.h"
-#include "icm42605_helper.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
-#include "Icm426xxDriver_HL_apex.h"
-#include "pedometer.h"
+#include "icm42605/Icm426xxDriver_HL_apex.h"
+#include "icm42605/Icm426xx_pedometer.h"
 
 LOG_MODULE_REGISTER(pedometer, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
@@ -22,7 +22,7 @@ uint8_t testPrint[300];
 
 static uint8_t dmp_odr_hz;
 
-struct _PEDOMETER  pedometer;
+extern struct _PEDOMETER  pedometer;
 
 int pedometerConfig(struct inv_icm426xx *icm_driver, ICM426XX_APEX_CONFIG0_DMP_ODR_t pedometer_freq,
 					ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_t power_mode,
@@ -219,7 +219,8 @@ IO_ERR_STOP:
 	}
 	/* clear step_cnt every day 01:00:00 ~ 01:01:00 */
 	localTime = iotex_modem_get_local_time();
-	if((localTime > 0x010000) && (localTime < 0x010100)){	
+	/*printk("localTime : 0x%04X, %02d:%02d:%02d\n", localTime, (localTime&0x00FF0000)>>16, (localTime&0x0000FF00)>>8, (localTime&0x000000FF));*/
+	if((localTime > 0x010000) && (localTime < 0x010100)){
 		sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
 		if((pedometer.classType != PEDOMETER_WALK) && (pedometer.classType != PEDOMETER_RUN)) {
 			pedometer.discard_cnt = step_cnt;
@@ -233,96 +234,6 @@ IO_ERR_STOP:
 	}
 	return rc;
 }
-bool isPedometerActive(void) {
-	bool ret;
 
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	ret = (pedometer.classType == PEDOMETER_WALK) || (pedometer.classType == PEDOMETER_RUN);
-	sys_mutex_unlock(&pedometer.pedometerMutex);
-	return ret;
-}
-
-bool isPedometerStop(void)
-{
-	bool ret;
-
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	ret = (pedometer.classType == PEDOMETER_STOP);
-	sys_mutex_unlock(&pedometer.pedometerMutex);
-	return ret;	
-}
-bool isPedometerWOM(void)
-{
-	bool ret;
-
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	ret = (pedometer.pedometerWOM == 1);
-	pedometer.pedometerWOM = 0;
-	sys_mutex_unlock(&pedometer.pedometerMutex);	
-	return ret;
-}
-uint32_t getCalK(void)
-{
-	uint32_t ret;
-	static enum PEDOMETER_CLASS_TYPE activeAction = PEDOMETER_WALK;
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	if((pedometer.classType == PEDOMETER_WALK) || (pedometer.classType == PEDOMETER_RUN)){
-		activeAction = pedometer.classType;
-	}
-	if(activeAction == PEDOMETER_WALK)
-		ret = 8214;
-	else if(activeAction == PEDOMETER_RUN)
-		ret = 10360;
-	else
-		ret = 0;
-	sys_mutex_unlock(&pedometer.pedometerMutex);
-	return ret;
-}
-
-enum PEDOMETER_CLASS_TYPE readPedometer(uint32_t *pace, uint64_t *steps, uint32_t *time)
-{
-	bool ret;
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	ret = (pedometer.classType == PEDOMETER_WALK) || (pedometer.classType == PEDOMETER_RUN);
-	*pace  = pedometer.cadence_step_per_sec;
-	*steps = pedometer.step_cnt;
-	*time = pedometer.sportTime;
-	sys_mutex_unlock(&pedometer.pedometerMutex);
-	return ret;
-}
-bool stepsComp(uint64_t steps, enum PEDOMETER_CLASS_TYPE type)
-{
-	bool ret;
-	uint64_t stp = steps;
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	ret =  ((stp == pedometer.step_cnt) && (type == pedometer.classType));
-	sys_mutex_unlock(&pedometer.pedometerMutex);
-	return ret;
-}
-
-uint64_t getSteps(void)
-{
-	uint64_t  ret;
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	ret =  pedometer.step_cnt;
-	sys_mutex_unlock(&pedometer.pedometerMutex);	
-	return ret;
-}
-enum PEDOMETER_CLASS_TYPE getType(void)
-{
-	enum PEDOMETER_CLASS_TYPE  ret;
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	ret =  pedometer.classType;
-	sys_mutex_unlock(&pedometer.pedometerMutex);	
-	return ret;
-}
-
-void sportTiming(void)
-{
-	sys_mutex_lock(&pedometer.pedometerMutex, K_FOREVER);
-	if((pedometer.classType == PEDOMETER_WALK) || (pedometer.classType == PEDOMETER_RUN))
-		pedometer.sportTime++;
-	sys_mutex_unlock(&pedometer.pedometerMutex);
-}
 
 

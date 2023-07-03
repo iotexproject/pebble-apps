@@ -75,14 +75,14 @@ struct inv_icm426xx_transport {
 	struct inv_icm426xx_serif serif; /**< Warning : this field MUST be the first one of struct inv_icm426xx_transport */
 
 	/** @brief Contains mirrored values of some IP registers */
-	struct register_cache {
+	struct register_cache_42605 {
 		uint8_t intf_cfg_1_reg;   /**< INTF_CONFIG1, Bank: 0, Address: 0x4D */
 		uint8_t pwr_mngt_0_reg;   /**< PWR_MGMT_0, Bank: 0, Address: 0x4E */
 		uint8_t gyro_cfg_0_reg;   /**< GYRO_CONFIG0, Bank: 0, Address: 0x4F */
 		uint8_t accel_cfg_0_reg;  /**< ACCEL_CONFIG0, Bank: 0, Address: 0x50 */
 		uint8_t tmst_cfg_reg;     /**< TMST_CONFIG, Bank: 0, Address: 0x54 */
 		uint8_t bank_sel_reg;     /**< MPUREG_REG_BANK_SEL, All banks, Address 0x76*/
-	} register_cache; /**< Store mostly used register values on SRAM. 
+	} register_cache_42605; /**< Store mostly used register values on SRAM. 
 	                    *  MPUREG_OTP_SEC_STATUS_B1 and MPUREG_INT_STATUS registers
 	                    *  are read before the cache has a chance to be initialized. 
 	                    *  Therefore, these registers shall never be added to the cache 

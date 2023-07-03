@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively “Software� is subject
+ * This software, related documentation and any modifications thereto (collectively “Software� is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -48,25 +48,25 @@ extern "C" {
 
 /* Define whoami value for the targeted product and make sure the target is valid */
 #if defined(ICM42600)
-#define ICM_WHOAMI ICM42600_WHOAMI
+#define ICM_42605_WHOAMI ICM42600_WHOAMI
 #elif defined(ICM42602)
-#define ICM_WHOAMI ICM42602_WHOAMI
+#define ICM_42605_WHOAMI ICM42602_WHOAMI
 #elif defined(ICM42605)
-#define ICM_WHOAMI ICM42605_WHOAMI
+#define ICM_42605_WHOAMI ICM42605_WHOAMI
 #elif defined(ICM42622)
-#define ICM_WHOAMI ICM42622_WHOAMI
+#define ICM_42605_WHOAMI ICM42622_WHOAMI
 #elif defined(ICM42631)
-#define ICM_WHOAMI ICM42631_WHOAMI
+#define ICM_42605_WHOAMI ICM42631_WHOAMI
 #elif defined(ICM42633)
-#define ICM_WHOAMI ICM42633_WHOAMI
+#define ICM_42605_WHOAMI ICM42633_WHOAMI
 #elif defined(ICM42686)
-#define ICM_WHOAMI ICM42686_WHOAMI
+#define ICM_42605_WHOAMI ICM42686_WHOAMI
 #elif defined(ICM42688)
-#define ICM_WHOAMI ICM42688_WHOAMI
+#define ICM_42605_WHOAMI ICM42688_WHOAMI
 #elif defined(ICM42608)
-#define ICM_WHOAMI ICM42608_WHOAMI
+#define ICM_42605_WHOAMI ICM42608_WHOAMI
 #elif defined(ICM40608)
-#define ICM_WHOAMI ICM40608_WHOAMI
+#define ICM_42605_WHOAMI ICM40608_WHOAMI
 #else
 #error "Please define which ICM variant is targeted. Possible values: " \
 														"ICM42600, " \
@@ -273,23 +273,6 @@ extern "C" {
 
 #define INVALID_VALUE_FIFO              ((int16_t)0x8000)
 #define INVALID_VALUE_FIFO_1B           ((int8_t)0x80)
-
-/** Describe the content of the FIFO header */
-typedef union
-{
-	unsigned char Byte;
-	struct
-	{
-		unsigned char gyro_odr_different : 1;
-		unsigned char accel_odr_different : 1;
-		unsigned char fsync_bit : 1;
-		unsigned char timestamp_bit : 1;
-		unsigned char twentybits_bit : 1;
-		unsigned char gyro_bit : 1;
-		unsigned char accel_bit : 1;
-		unsigned char msg_bit : 1;
-	}bits;
-} fifo_header_t;
 
 #define I3C_IBI_PAYLOAD_ALL           0xFF
 #define I3C_IBI_PAYLOAD_TIMEC         0x80

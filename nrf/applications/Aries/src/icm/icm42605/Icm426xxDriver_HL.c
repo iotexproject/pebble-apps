@@ -21,11 +21,29 @@
  * ________________________________________________________________________________________________________
  */
 
-#include "Icm426xxDefs.h"
-#include "Icm426xxExtFunc.h"
-#include "Icm426xxDriver_HL.h"
-#include "Icm426xxTransport.h"
-#include "Icm426xxVersion.h"
+#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/Icm426xxExtFunc.h"
+#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/Icm426xxVersion.h"
+
+/** Describe the content of the FIFO header */
+typedef union
+{
+	unsigned char Byte;
+	struct
+	{
+		unsigned char gyro_odr_different : 1;
+		unsigned char accel_odr_different : 1;
+		unsigned char fsync_bit : 1;
+		unsigned char timestamp_bit : 1;
+		unsigned char twentybits_bit : 1;
+		unsigned char gyro_bit : 1;
+		unsigned char accel_bit : 1;
+		unsigned char msg_bit : 1;
+	}bits;
+} fifo_header_t;
+
 
 static int inv_icm426xx_configure_serial_interface(struct inv_icm426xx * s);
 static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s);

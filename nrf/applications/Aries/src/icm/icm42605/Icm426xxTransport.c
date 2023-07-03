@@ -21,8 +21,8 @@
  * ________________________________________________________________________________________________________
  */
  
-#include "Icm426xxTransport.h"
-#include "Icm426xxDefs.h"
+#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/Icm426xxDefs.h"
 
 #include "InvError.h"
 
@@ -39,14 +39,14 @@ int inv_icm426xx_init_transport(struct inv_icm426xx * s)
 	struct inv_icm426xx_transport *t = (struct inv_icm426xx_transport *)s;
 
 	if(!is_aux_interface(t)){
-		status |= t->serif.read_reg(&(t->serif), MPUREG_INTF_CONFIG1,  &(t->register_cache.intf_cfg_1_reg), 1);
-		status |= t->serif.read_reg(&(t->serif), MPUREG_PWR_MGMT_0,    &(t->register_cache.pwr_mngt_0_reg), 1);
-		status |= t->serif.read_reg(&(t->serif), MPUREG_GYRO_CONFIG0,  &(t->register_cache.gyro_cfg_0_reg), 1);
-		status |= t->serif.read_reg(&(t->serif), MPUREG_ACCEL_CONFIG0, &(t->register_cache.accel_cfg_0_reg), 1);
-		status |= t->serif.read_reg(&(t->serif), MPUREG_TMST_CONFIG,   &(t->register_cache.tmst_cfg_reg), 1);
+		status |= t->serif.read_reg(&(t->serif), MPUREG_INTF_CONFIG1,  &(t->register_cache_42605.intf_cfg_1_reg), 1);
+		status |= t->serif.read_reg(&(t->serif), MPUREG_PWR_MGMT_0,    &(t->register_cache_42605.pwr_mngt_0_reg), 1);
+		status |= t->serif.read_reg(&(t->serif), MPUREG_GYRO_CONFIG0,  &(t->register_cache_42605.gyro_cfg_0_reg), 1);
+		status |= t->serif.read_reg(&(t->serif), MPUREG_ACCEL_CONFIG0, &(t->register_cache_42605.accel_cfg_0_reg), 1);
+		status |= t->serif.read_reg(&(t->serif), MPUREG_TMST_CONFIG,   &(t->register_cache_42605.tmst_cfg_reg), 1);
 	}
 	
-	status |= t->serif.read_reg(&(t->serif), MPUREG_REG_BANK_SEL,  &(t->register_cache.bank_sel_reg), 1);
+	status |= t->serif.read_reg(&(t->serif), MPUREG_REG_BANK_SEL,  &(t->register_cache_42605.bank_sel_reg), 1);
 
 	return status;
 }
@@ -61,7 +61,7 @@ int inv_icm426xx_read_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, ui
 	// Registers in cache are only in bank 0
 	// Check if bank0 is used because of duplicate register addresses between banks
 	// For AUX interface, register cache must not be used
-	if((t->register_cache.bank_sel_reg == 0) && (is_aux_interface(t) == 0)) {
+	if((t->register_cache_42605.bank_sel_reg == 0) && (is_aux_interface(t) == 0)) {
 		for(i=0; i<len ; i++) {
 			uint8_t * cache_addr  = get_register_cache_addr(s, reg+i);
 			if(cache_addr)
@@ -97,12 +97,12 @@ int inv_icm426xx_write_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, c
 	for(i=0; i<len; i++) {
 		// Update bank_sel_reg in the cache
 		if((reg+i) == MPUREG_REG_BANK_SEL){
-			t->register_cache.bank_sel_reg = buf[i];
+			t->register_cache_42605.bank_sel_reg = buf[i];
 		}
 		else {
 			uint8_t * cache_addr  = get_register_cache_addr(s, reg+i);
 			if(cache_addr){
-				if (t->register_cache.bank_sel_reg == 0){
+				if (t->register_cache_42605.bank_sel_reg == 0){
 					if(is_aux_interface(t) == 1)
 						return INV_ERROR_BAD_ARG; // Cached registers must not be written from AUX interface
 					else
@@ -127,11 +127,11 @@ static uint8_t * get_register_cache_addr(struct inv_icm426xx * s, uint8_t reg)
 	struct inv_icm426xx_transport *t = (struct inv_icm426xx_transport *)s;
 
 	switch(reg) {
-		case MPUREG_INTF_CONFIG1:     return &(t->register_cache.intf_cfg_1_reg);
-		case MPUREG_PWR_MGMT_0:       return &(t->register_cache.pwr_mngt_0_reg);
-		case MPUREG_GYRO_CONFIG0:     return &(t->register_cache.gyro_cfg_0_reg);
-		case MPUREG_ACCEL_CONFIG0:    return &(t->register_cache.accel_cfg_0_reg);
-		case MPUREG_TMST_CONFIG:      return &(t->register_cache.tmst_cfg_reg);
+		case MPUREG_INTF_CONFIG1:     return &(t->register_cache_42605.intf_cfg_1_reg);
+		case MPUREG_PWR_MGMT_0:       return &(t->register_cache_42605.pwr_mngt_0_reg);
+		case MPUREG_GYRO_CONFIG0:     return &(t->register_cache_42605.gyro_cfg_0_reg);
+		case MPUREG_ACCEL_CONFIG0:    return &(t->register_cache_42605.accel_cfg_0_reg);
+		case MPUREG_TMST_CONFIG:      return &(t->register_cache_42605.tmst_cfg_reg);
 		default:                      return (uint8_t *)0; // Not found
 	}
 }

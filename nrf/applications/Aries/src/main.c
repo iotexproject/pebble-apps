@@ -48,14 +48,14 @@
 #include "nvs/local_storage.h"
 #include "bme/bme680_helper.h"
 #include "modem/modem_helper.h"
-#include "icm/icm42605_helper.h"
+#include "icm/icm_chip_helper.h"
 #include "ecdsa.h"
 #include "light_sensor/tsl2572.h"
 #include  "mqtt/devReg.h"
 #include "display.h"
 #include "ver.h"
 #include "keyBoard.h"
-#include "icm/pedometer.h"
+#include "icm42605/icm426xx_pedometer.h"
 #if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
 #if defined(CONFIG_MODEM_KEY_MGMT)
 #include <modem/modem_key_mgmt.h>
@@ -506,7 +506,7 @@ void main(void) {
     /*  init oled */
     ssd1306_init();
     /* Iotex Init ICM42605 */
-    iotex_icm42605_init();
+    iotex_icm_chip_init();
     /*  system  menu */
     MainMenu();
     /*  OTA upgrade  */
