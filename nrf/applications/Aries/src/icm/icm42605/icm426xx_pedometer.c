@@ -10,7 +10,7 @@
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
 #include "icm42605/Icm426xxDriver_HL_apex.h"
-#include "icm42605/Icm426xx_pedometer.h"
+#include "icm42605/icm426xx_pedometer.h"
 
 LOG_MODULE_REGISTER(pedometer, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
