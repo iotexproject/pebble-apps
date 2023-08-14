@@ -1,7 +1,9 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <drivers/i2c.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/device.h>
+#include <zephyr/logging/log.h>
 #include "icm42605/Icm426xxDefs.h"
 #include "icm42605/Icm426xxTransport.h"
 #include "icm42605/Icm426xxDriver_HL.h"
@@ -17,6 +19,7 @@
 #include "icm42605/icm426xx_pedometer.h"
 
 
+LOG_MODULE_REGISTER(icm, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 static struct device *__i2c_dev_icm_chip;
 static struct inv_icm426xx __icm_driver;
@@ -27,11 +30,11 @@ uint8_t icm_chip_detect;    // 0: unknow device. 1:  icm-42605 . 2: icm-42607p
 static int32_t icm_mounting_matrix[9] = {  0,     -(1<<30), 0,(1<<30), 0,       0, 0,      0,      (1<<30) };
 
 void inv_icm426xx_sleep_us(uint32_t us) {
-    k_busy_wait(us);
+    k_usleep(us);
 }
 
 uint64_t inv_icm426xx_get_time_us(void) {
-    return (SYS_CLOCK_HW_CYCLES_TO_NS64(k_cycle_get_32()) / 1000);
+    return (k_cycle_get_32() * 1000000 / CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC);
 }
 /* ICM-42605  i2C interface*/
 static int inv_icm426xx_io_hal_read_reg(struct inv_icm426xx_serif *serif, uint8_t reg, uint8_t *rbuffer, uint32_t rlen) {
@@ -112,11 +115,11 @@ int  rawdataDetect(void)
     uint8_t int_status;    
     status |= inv_icm426xx_read_reg(&__icm_driver, MPUREG_INT_STATUS, 1, &int_status);
     if (status) {
-        printk("error rawdata: %d\n",int_status);        
+        LOG_INF("error rawdata: %d\n",int_status);        
         return 0;
     }
     if (int_status & BIT_INT_STATUS_DRDY) {
-        printk("rawdata detected \n");
+        LOG_INF("rawdata detected \n");
     }
     return 1;
 }
@@ -125,7 +128,6 @@ static int setup_icm42607(struct inv_imu_serif *icm_serif)
 {
 	int rc = 0;
 	uint8_t who_am_i;
-    
 
 	/* Initialize serial interface between MCU and IMU */
 	icm_serif->context   = 0;        /* no need */
@@ -138,19 +140,19 @@ static int setup_icm42607(struct inv_imu_serif *icm_serif)
 	/* Init device */
 	rc = inv_imu_init(&icm_driver, icm_serif, NULL);
 	if (rc != INV_ERROR_SUCCESS) {
-		printk("Failed to initialize IMU!\n");
+		LOG_INF("Failed to initialize IMU!\n");
 		return rc;
 	}
 	
 	/* Check WHOAMI */
 	rc = inv_imu_get_who_am_i(&icm_driver, &who_am_i);
 	if (rc != INV_ERROR_SUCCESS) {
-		printk("Failed to read whoami!\n");
+		LOG_INF("Failed to read whoami!\n");
 		return rc;
 	}	
 	if (who_am_i != ICM_42607_WHOAMI) {
-		printk("Bad WHOAMI value!\n");
-		printk("Read 0x%02x, expected 0x%02x\n", who_am_i, ICM_42607_WHOAMI);
+		LOG_INF("Bad WHOAMI value!\n");
+		LOG_INF("Read 0x%02x, expected 0x%02x\n", who_am_i, ICM_42607_WHOAMI);
 		return INV_ERROR;
 	}
 
@@ -165,18 +167,18 @@ int iotex_icm_chip_init(void)
     static struct inv_imu_serif icm_serif_42607;
     icm_chip_detect = 0;
     /* ICM42605 i2c bus init */
-    if (!(__i2c_dev_icm_chip = device_get_binding(I2C_DEV_ICM_CHIP))) {
-        printk("I2C: Device driver[%s] not found.\n", I2C_DEV_ICM_CHIP);
+    if (!(__i2c_dev_icm_chip = DEVICE_DT_GET(DT_NODELABEL(i2c2)))) {
+        LOG_INF("I2C: Device driver[%s] not found.\n", I2C_DEV_ICM_CHIP);
         return -1;
     }
 	/* Check WHOAMI */
 	rc = i2c_reg_read_byte(__i2c_dev_icm_chip, I2C_ADDR_ICM42607, MPUREG_WHO_AM_I, &who_am_i);
 	if(rc != INV_ERROR_SUCCESS) {
-        printk("Detect icm-xxx chip error\n");
+        LOG_INF("Detect icm-xxx chip error\n");
         return  -1;
     }
     if(who_am_i == ICM_42607_WHOAMI) {
-        printk("Detected icm-42607 id: %02x\n",who_am_i);
+        LOG_INF("Detected icm-42607 id: %02x\n",who_am_i);
         rc = setup_icm42607(&icm_serif_42607);
         rc |= inv_imu_womconfig(&icm_driver);
         rc |= inv_imu_set_accel_fsr(&icm_driver, ACCEL_CONFIG0_FS_SEL_4g);
@@ -194,18 +196,17 @@ int iotex_icm_chip_init(void)
     rc = inv_icm426xx_init(&__icm_driver, &icm_serif, NULL); 
     rc |= inv_icm426xx_configure_fifo(&__icm_driver, INV_ICM426XX_FIFO_DISABLED);
     if (rc != INV_ERROR_SUCCESS) {
-        printk("!!! ERROR : failed to initialize Icm426xx.\n");
+        LOG_INF("!!! ERROR : failed to initialize Icm426xx: %d\n",rc);
         fatalError();
         return rc;
     }
-
     /* Check WHOAMI */
     rc = inv_icm426xx_get_who_am_i(&__icm_driver, &who_am_i);
     if ((rc != INV_ERROR_SUCCESS) || (who_am_i != ICM_42605_WHOAMI)) {
-        printk("Read ICM-42605 ID  error\n");
+        LOG_INF("Read ICM-42605 ID  error\n");
         return rc;
     }
-    printk("ICM42605 WHOAMI value. Got 0x%02x\n", who_am_i);
+    LOG_INF("ICM42605 WHOAMI value. Got 0x%02x\n", who_am_i);
     womConf();
     icm_chip_detect = 1;
     return   icm426xxConfig(ACT_RAW);
@@ -361,7 +362,7 @@ static int icm42607_get_sensor_data(iotex_storage_icm *icm42607) {
     icm42607->gyroscope[1] = gyro_data[1];
     icm42607->gyroscope[2] = gyro_data[2];
 
-    printk("acce:%d,%d,%d, gyro:%d,%d,%d\n",icm42607->accelerometer[0],icm42607->accelerometer[1],icm42607->accelerometer[2],
+    LOG_INF("acce:%d,%d,%d, gyro:%d,%d,%d\n",icm42607->accelerometer[0],icm42607->accelerometer[1],icm42607->accelerometer[2],
             icm42607->gyroscope[0],icm42607->gyroscope[1],icm42607->gyroscope[2]);
     
     return status;

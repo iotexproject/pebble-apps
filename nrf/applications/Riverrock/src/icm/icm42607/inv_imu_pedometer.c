@@ -1,8 +1,8 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <drivers/i2c.h>
-#include <logging/log.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/logging/log.h>
 #include "icm42607/inv_imu_defs.h"
 #include "icm42607/inv_imu_transport.h"
 #include "icm42607/inv_imu_driver.h"

@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <zephyr.h>
-#include <modem/at_cmd.h>
 #include <string.h>
-#include <logging/log.h>
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/logging/log.h>
+#include <nrf_modem_at.h>
 #include "modem_helper.h"
 
 
@@ -18,26 +19,24 @@ static bool isLeap(uint32_t year) {
 
 const char *iotex_modem_get_imei(void) {
     int err;
-    enum at_cmd_state at_state;
-    static char imei_buf[MODEM_IMEI_LEN + 5];
+    static char imei_buf[MODEM_IMEI_LEN + 50];
 
-    if ((err = at_cmd_write("AT+CGSN", imei_buf, sizeof(imei_buf), &at_state))) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
+    if ((err = nrf_modem_at_cmd(imei_buf, sizeof(imei_buf), "AT+CGSN"))) {
+        LOG_ERR("iotex_modem_get_imei: %d \n", err);
         return "Unknown";
     }
-
     imei_buf[MODEM_IMEI_LEN] = 0;
     return (const char *)imei_buf;
 }
 
 int iotex_model_get_signal_quality(void) {
-    enum at_cmd_state at_state;
-    char snr_ack[32], snr[4] = { 0 };
+    char snr_ack[100], snr[4] = { 0 };
     char *p = snr_ack;
 
-    int err = at_cmd_write("AT+CESQ", snr_ack, 32, &at_state);
+    int err = nrf_modem_at_cmd(snr_ack, sizeof(snr_ack), "AT+CESQ");
     if (err) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        LOG_ERR("iotex_model_get_signal_quality: %d", err);
+        return  0;
     }
     p = strchr(p, ',') + 1;
     p = strchr(p, ',') + 1;
@@ -52,16 +51,15 @@ int iotex_model_get_signal_quality(void) {
 
 const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
     double epoch;
-    enum at_cmd_state at_state;
     uint32_t YY, MM, DD, hh, mm, ss;
 
     char cclk_r_buf[TIMESTAMP_STR_LEN];
     static char epoch_buf[TIMESTAMP_STR_LEN];
     int daysPerMonth[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-    int err = at_cmd_write("AT+CCLK?", cclk_r_buf, sizeof(cclk_r_buf), &at_state);
+    int err = nrf_modem_at_cmd(cclk_r_buf, sizeof(cclk_r_buf), "AT+CCLK?");
     if (err) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d \n", err, at_state);
+        printf("iotex_modem_get_clock: %d \n", nrf_modem_at_err(err));
         return NULL;
     }
     LOG_INF("AT CMD Modem time is:%s\n", cclk_r_buf);
@@ -96,15 +94,15 @@ const char *iotex_modem_get_clock(iotex_st_timestamp *stamp) {
 
 double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
     double epoch;
-    enum at_cmd_state at_state;
+
     uint32_t YY, MM, DD, hh, mm, ss;
     char cclk_r_buf[TIMESTAMP_STR_LEN];
     char epoch_buf[TIMESTAMP_STR_LEN];
     int daysPerMonth[] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-    int err = at_cmd_write("AT+CCLK?", cclk_r_buf, sizeof(cclk_r_buf), &at_state);
+    int err = nrf_modem_at_cmd(cclk_r_buf, sizeof(cclk_r_buf), "AT+CCLK?");
 
     if (err) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        LOG_ERR("iotex_modem_get_clock_raw: %d", err);
     }
     LOG_INF("AT CMD Modem time is:%s\n", cclk_r_buf);
     /*  num of years since 1900, the formula works only for 2xxx */
@@ -132,13 +130,13 @@ double iotex_modem_get_clock_raw(iotex_st_timestamp *stamp) {
 }
 
 uint32_t iotex_modem_get_battery_voltage(void) {   
-    enum at_cmd_state at_state;
+
     char vbat_ack[32], vbat[5];
     char *p = vbat_ack;
-
-    int err = at_cmd_write("AT%XVBAT", vbat_ack, 32, &at_state);
+    int err = nrf_modem_at_cmd(vbat_ack, 32, "AT%%XVBAT");
     if (err) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        LOG_ERR("iotex_modem_get_battery_voltage: %d", err);
+        return 0;
     }
     p = strchr(p, ':') + 1;
     p++;
@@ -148,7 +146,7 @@ uint32_t iotex_modem_get_battery_voltage(void) {
     vbat[4] = 0;
     return (atoi(vbat));
 }
-
+/* power off pebble tracker if voltage is below 3.3v */
 void CheckPower(void) {
     volatile float adc_voltage = 0;
     adc_voltage = iotex_modem_get_battery_voltage();
@@ -158,38 +156,31 @@ void CheckPower(void) {
     }
 }
 
-void dectCard(void) {
-    enum at_cmd_state at_state;
-    char vbat_ack[32];
-    int err = at_cmd_write("AT%XSIM=1", vbat_ack, 32, &at_state);
-    if (err) {
-        LOG_INF("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
-    }
-}
-
+/* Is the sim card inserted */
 bool cardExist(void) {
-    enum at_cmd_state at_state;
+
     char vbat_ack[32];
     int err;
 
     memset(vbat_ack, 0, sizeof(vbat_ack));
-    err = at_cmd_write("AT%XSIM?", vbat_ack, 32, &at_state);
+    err = nrf_modem_at_cmd(vbat_ack, 32, "AT%%XSIM?");
     if (err) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        LOG_ERR("cardExist: %d", err);
+        return  false;
     }
 
     return (vbat_ack[7] == '1');
 }
-
+/* Read modem firmware version*/
 bool getModeVer(uint8_t *buf) {
-    enum at_cmd_state at_state;
+
     char vbat_ack[32];
     int err;
 
     memset(vbat_ack, 0, sizeof(vbat_ack));
-    err = at_cmd_write("AT%SHORTSWVER", vbat_ack, 32, &at_state);
+    err = nrf_modem_at_cmd(vbat_ack, 32, "AT%%SHORTSWVER");
     if (err) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        LOG_ERR("getModeVer: %d", err);
         return false;
     }
 
@@ -199,11 +190,11 @@ bool getModeVer(uint8_t *buf) {
     buf[err - 2] = 0;
     return true;
 }
-
+/* Check for sufficient certificates */
 bool mqttCertExist(void) {
     char *vback = NULL, *p = NULL;
     const char *pkey = "%CMNG:";
-    enum at_cmd_state at_state;
+
     int  i;
 
     vback = malloc(2048);
@@ -212,7 +203,7 @@ bool mqttCertExist(void) {
         return 0;
     }
 
-    at_cmd_write("AT%CMNG=1,16842753", vback, 2048, &at_state);
+    nrf_modem_at_cmd(vback, 2048, "AT%%CMNG=1,16842753");
     p = vback;
     i = 0;
     while ((p = strstr(p, pkey)) != NULL) {
@@ -222,15 +213,15 @@ bool mqttCertExist(void) {
     free(vback);
     return i >= 3;
 }
-
+/* Modem shutdown */
 void disableModem(void) {
-    at_cmd_write("AT+CFUN=4", NULL, 0, NULL);
+    nrf_modem_at_cmd(NULL, 0,"AT+CFUN=4");
 }
-
+/* Wrtie data into modem */
 bool WritDataIntoModem(uint32_t sec, uint8_t *str) {
-    enum at_cmd_state at_state;
+
     int err;
-    char vbat_ack[32];
+    char vbat_ack[100];
     char *cmd = NULL;
     unsigned int size;
 
@@ -239,21 +230,21 @@ bool WritDataIntoModem(uint32_t sec, uint8_t *str) {
     cmd = (char *)malloc(size);
     if (!cmd) {
         atomic_set(&modemWriteProtect,0);
+        LOG_ERR("WritDataIntoModem not enough space\n" );
         return false;
     }
-    at_cmd_write("AT+CFUN=0", vbat_ack, 32, &at_state);
+    nrf_modem_at_cmd(vbat_ack, sizeof(vbat_ack), "AT+CFUN=0");
     memset(vbat_ack, 0, sizeof(vbat_ack));
     memset(cmd, 0, size);
-    strcpy(cmd, "AT%CMNG=");
+    strcpy(cmd, "AT%%CMNG=");
     sprintf(cmd + strlen(cmd), "0,%d,0,\"%s\"", sec, str);
-    err = at_cmd_write(cmd, vbat_ack, 32, &at_state);
+    err = nrf_modem_at_cmd(vbat_ack, sizeof(vbat_ack), cmd);
     free(cmd);
     atomic_set(&modemWriteProtect,0);
     return err == 0;
 }
-
+/* Read data from modem flash*/
 uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len) {
-    enum at_cmd_state at_state;
     int err;
     char cmd[32];
     uint8_t *pbuf;
@@ -261,10 +252,11 @@ uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len) {
     if (len < 79) {
         return NULL;
     }
-    strcpy(cmd, "AT%CMNG=");
+    strcpy(cmd, "AT%%CMNG=");
     sprintf(cmd + strlen(cmd), "2,%d,0", sec);
-    err = at_cmd_write(cmd, buf, len, &at_state);
+    err = nrf_modem_at_cmd(buf, len, cmd);
     if (err) {
+        LOG_ERR("ReadDataFromModem error:%d\n", err);
         return NULL;
     } else {
         pbuf = strchr(buf, ',');
@@ -276,16 +268,16 @@ uint8_t *ReadDataFromModem(uint32_t sec, uint8_t *buf, uint32_t len) {
         return pbuf;
     }
 }
-
+/*Return the modem current model is NB-IOT or not*/
 bool isNB(void) {
-    enum at_cmd_state at_state;
     char vbat_ack[32];
     int err;
 
     memset(vbat_ack, 0, sizeof(vbat_ack));
-    err = at_cmd_write("AT%XSYSTEMMODE?", vbat_ack, 32, &at_state);
+    err = nrf_modem_at_cmd(vbat_ack, sizeof(vbat_ack), "AT%%XSYSTEMMODE?");
     if (err) {
-        LOG_ERR("Error when trying to do at_cmd_write: %d, at_state: %d", err, at_state);
+        LOG_ERR("isNB: %d", err);
+        return false;
     }
 
     if(vbat_ack[14] == '1')

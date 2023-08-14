@@ -1,10 +1,9 @@
 
-#include <zephyr.h>
-#include <sys/util.h>
-#include <drivers/gps.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/util.h>
 #include <modem/lte_lc.h>
-#include <drivers/gpio.h>
-#include <drivers/uart.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>
 #include <stdlib.h>
 
 #include "modem_helper.h"

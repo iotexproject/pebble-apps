@@ -1,8 +1,8 @@
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <drivers/i2c.h>
+#include <zephyr/drivers/i2c.h>
 #include "icm42605/Icm426xxDefs.h"
 #include "icm42605/Icm426xxTransport.h"
 #include "icm42605/Icm426xxDriver_HL.h"

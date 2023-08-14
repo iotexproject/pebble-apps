@@ -1,8 +1,8 @@
 #
-# Copyright (c) 2020 Nordic Semiconductor
+# Copyright (c) 2021 Nordic Semiconductor ASA
 #
-# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-zephyr_include_directories(.)
-target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/watchdog.c)
+target_include_directories(app PRIVATE .)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/watchdog_app.c)

@@ -60,8 +60,8 @@ config NVS_LOCAL_STORAGE_SECTOR_COUNT
 	default 4
 rsource "src/ui/Kconfig"
 rsource "src/mqtt/Kconfig"
-rsource "src/unittest/Kconfig"
 rsource "src/ota/Kconfig"
+rsource "src/watchdog/Kconfig"
 
 config APPLICATION_WORKQUEUE_STACK_SIZE
 	int "Application workqueue stack size"

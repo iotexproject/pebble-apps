@@ -4,21 +4,18 @@
  * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
 
-#include <zephyr.h>
-#include <sys/util.h>
-#include <drivers/gps.h>
+#include <zephyr/kernel.h>
+//#include <zephyr/sys/util.h>
+//#include <drivers/gps.h>
 #include <modem/lte_lc.h>
-#include <drivers/gpio.h>
-#include <drivers/uart.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>
 #include <stdlib.h>
-#include <sys/mutex.h>
-
-
-#include "ui.h"
+#include <zephyr/sys/mutex.h>
 #include "gps_controller.h"
 #include "display.h"
 
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(gps_control, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 /*  gps Mosaic ? */
@@ -39,8 +36,8 @@ LOG_MODULE_REGISTER(gps_control, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 static  struct device *guart_dev_gps;
 struct device *gpsPower;
-static u8_t uart_buf1[128];
-static u8_t pos1=0;
+static uint8_t uart_buf1[128];
+static uint8_t pos1=0;
 static uint8_t  bGpsHead = 0;
 const char strGRMC[7] = "$GNRMC";
 
@@ -114,7 +111,7 @@ void gpsPackageParseHandle(struct k_work *work) {
     uart_irq_rx_enable(guart_dev_gps);
 }
 
-static void uart_gps_rx_handler(u8_t character) {
+static void uart_gps_rx_handler(uint8_t character) {
     if (!bGpsHead) {
         if (0x24 == character) {
             pos1 = 1;
@@ -148,7 +145,7 @@ static void uart_gps_rx_handler(u8_t character) {
 
 static void uart_gps_cb(struct device *dev)
 {
-    u8_t character;
+    uint8_t character;
 
     uart_irq_update(dev);
 
@@ -249,10 +246,10 @@ void exGPSStop(void) {
 void exGPSInit(void) {
     k_work_init(&gpsPackageParse, gpsPackageParseHandle);
     sys_mutex_init(&iotex_gps_mutex);
-    gpsPower = device_get_binding("GPIO_0");
+    gpsPower = DEVICE_DT_GET(DT_NODELABEL(gpio0));
     gpio_pin_configure(gpsPower, GPS_EN, GPIO_DIR_OUT);
     gpio_pin_write(gpsPower, GPS_EN, 1);
-    guart_dev_gps=device_get_binding(UART_GPS);
+    guart_dev_gps = DEVICE_DT_GET(DT_NODELABEL(uart3));
     uart_irq_callback_set(guart_dev_gps, uart_gps_cb);
     gpio_pin_write(gpsPower, GPS_EN, 0);
     uart_irq_rx_enable(guart_dev_gps);
@@ -288,7 +285,7 @@ bool  isGPSActive(void) {
 int32_t searchingSatelliteTime(void) {
     if(!isGPSActive()) {
         timeIndex++;
-        if(timeIndex > sizeof(searchTime))
+        if(timeIndex >= sizeof(searchTime))
             timeIndex = sizeof(searchTime) -1 ;
     }
     if(searchTime[timeIndex] > iotex_mqtt_get_upload_period())

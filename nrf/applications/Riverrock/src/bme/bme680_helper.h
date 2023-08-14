@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "nvs/local_storage.h"
 
-#define I2C_DEV_BME680    "I2C_2"
+#define I2C_DEV_BME680    "i2c2"
 #define I2C_ADDR_BME680   0x77
 
 

@@ -1,14 +1,14 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <drivers/i2c.h>
+#include <zephyr/drivers/i2c.h>
 #include "icm42605/Icm426xxDefs.h"
 #include "icm42605/Icm426xxTransport.h"
 #include "icm42605/Icm426xxDriver_HL.h"
 #include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
-#include "icm42605/icm426xxActionDetect.h"
+#include "icm42605/Icm426xxActionDetect.h"
 
 extern int tiltConf(void);
 extern int womConf(void);

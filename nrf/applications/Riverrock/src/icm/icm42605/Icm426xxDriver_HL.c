@@ -20,12 +20,15 @@
  * OF THE SOFTWARE.
  * ________________________________________________________________________________________________________
  */
-
+#include <zephyr/logging/log.h>
 #include "icm42605/Icm426xxDefs.h"
 #include "icm42605/Icm426xxExtFunc.h"
 #include "icm42605/Icm426xxDriver_HL.h"
 #include "icm42605/Icm426xxTransport.h"
 #include "icm42605/Icm426xxVersion.h"
+
+
+LOG_MODULE_REGISTER(icm426xx, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 /** Describe the content of the FIFO header */
 typedef union
@@ -64,8 +67,8 @@ int inv_icm426xx_init(struct inv_icm426xx * s, struct inv_icm426xx_serif * serif
 	s->transport.serif = *serif;
 	
 	/* Wait some time for ICM to be properly supplied */
-	inv_icm426xx_sleep_us(3000);
-	
+	inv_icm426xx_sleep_us(10000);
+
 	if((status |= inv_icm426xx_configure_serial_interface(s)) != 0 )
 		return status;
 
@@ -73,10 +76,9 @@ int inv_icm426xx_init(struct inv_icm426xx * s, struct inv_icm426xx_serif * serif
 	 * a packet from fifo or inv_icm426xx_get_data_from_registers read data 
 	 */
 	s->sensor_event_cb = sensor_event_cb;
-	
+
 	/* initialize hardware */
 	status |= inv_icm426xx_init_hardware_from_ui(s);
-		
 	/* First data are noisy after enabling sensor
 	 * This variable keeps track of gyro start time. Set to UINT32_MAX at init 
 	 */
@@ -131,12 +133,13 @@ int inv_icm426xx_device_reset(struct inv_icm426xx * s)
 	}
 
 	/* Init transport layer */
-	inv_icm426xx_init_transport(s);
-	
+	status = inv_icm426xx_init_transport(s);
 	status |= inv_icm426xx_set_reg_bank(s, 1);
 	status |= inv_icm426xx_write_reg(s, MPUREG_INTF_CONFIG6_B1, 1, &intf_cfg6_reg);
+	printk("write MPUREG_INTF_CONFIG6_B1 : %d \n", status);
 	/* Configure FSYNC on INT2=pin 9 */
 	status |= inv_icm426xx_read_reg(s, MPUREG_INTF_CONFIG5_B1, 1, &data);
+	printk("read MPUREG_INTF_CONFIG5_B1 : %d \n", status);
 	data &= (uint8_t)~BIT_INTF_CONFIG5_GPIO_PAD_SEL_MASK;
 	data |= (1 << BIT_INTF_CONFIG5_GPIO_PAD_SEL_POS);
 	status |= inv_icm426xx_write_reg(s, MPUREG_INTF_CONFIG5_B1, 1, &data);
@@ -1830,7 +1833,8 @@ static int inv_icm426xx_configure_serial_interface(struct inv_icm426xx * s)
 		case ICM426XX_UI_I2C:
 			/* Enable I2C 50ns spike filtering */
 			status |= inv_icm426xx_read_reg(s, MPUREG_INTF_CONFIG6_B1, 1, &value);
-			value &= (uint8_t)~(BIT_INTF_CONFIG6_I3C_SDR_EN_MASK | BIT_INTF_CONFIG6_I3C_DDR_EN_MASK);
+			//value &= (uint8_t)~(BIT_INTF_CONFIG6_I3C_SDR_EN_MASK | BIT_INTF_CONFIG6_I3C_DDR_EN_MASK);
+			value &= (uint8_t)~(BIT_INTF_CONFIG6_I3C_DDR_EN_MASK);
 			status |= inv_icm426xx_write_reg(s, MPUREG_INTF_CONFIG6_B1, 1, &value);
 			break;
 			
@@ -1896,7 +1900,7 @@ static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s)
 	accel_cfg_0_reg |= (uint8_t)ICM426XX_ACCEL_CONFIG0_FS_SEL_4g;
 	status |= inv_icm426xx_write_reg(s, MPUREG_GYRO_CONFIG0, 1, &gyro_cfg_0_reg);
 	status |= inv_icm426xx_write_reg(s, MPUREG_ACCEL_CONFIG0, 1, &accel_cfg_0_reg);
-	
+
 	/* make sure FIFO is disabled */
 	data = ICM426XX_FIFO_CONFIG_MODE_BYPASS;
 	status |= inv_icm426xx_write_reg(s, MPUREG_FIFO_CONFIG, 1, &data);
@@ -1909,7 +1913,7 @@ static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s)
 	status |= inv_icm426xx_read_reg(s, MPUREG_TMST_CONFIG, 1, &tmst_cfg_reg);
 	tmst_cfg_reg &= (uint8_t)~BIT_TMST_CONFIG_TMST_FSYNC_MASK; // == ICM426XX_FSYNC_CONFIG_UI_SEL_NO
 	status |= inv_icm426xx_write_reg(s, MPUREG_TMST_CONFIG, 1, &tmst_cfg_reg);
-	
+
 	/* Set default timestamp resolution 16us (Mobile use cases) */
 	status |= inv_icm426xx_configure_timestamp_resolution(s, ICM426XX_TMST_CONFIG_RESOL_16us);
 	
@@ -1921,7 +1925,7 @@ static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s)
 	/* Configure the INT1 interrupt pulse as active high */
 	data |= (uint8_t)ICM426XX_INT_CONFIG_INT1_POLARITY_HIGH;
 	status |= inv_icm426xx_write_reg(s, MPUREG_INT_CONFIG, 1, &data);
-	
+
 	/* Set interrupt config */
 	status |= inv_icm426xx_set_config_int1(s,&config_int);
 	config_int.INV_ICM426XX_UI_DRDY  = INV_ICM426XX_ENABLE;
@@ -1945,7 +1949,7 @@ static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s)
 	data &= (uint8_t)~BIT_ACCEL_CONFIG1_ACCEL_UI_FILT_ORD_MASK;
 	data |= (uint8_t)ICM426XX_ACCEL_CONFIG_ACCEL_UI_FILT_ORD_2ND_ORDER;
 	status |= inv_icm426xx_write_reg(s, MPUREG_ACCEL_CONFIG1, 1, &data);
-	
+
 	/* FIFO packets are 16bit format by default (i.e. high res is disabled) */
 	status |= inv_icm426xx_disable_high_resolution_fifo(s);
 	
@@ -1976,7 +1980,7 @@ static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s)
 	status |= inv_icm426xx_read_reg(s, 0x2E, 1, &data); 
 	data &= 0xfd; 
 	status |= inv_icm426xx_write_reg(s, 0x2E, 1, &data);
-	
+
 	/* Reg AMP_GX_TRIM2 */
 	status |= inv_icm426xx_read_reg(s, 0x32, 1, &data); 
 	data &= 0x9f; 
@@ -1986,7 +1990,7 @@ static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s)
 	status |= inv_icm426xx_read_reg(s, 0x37, 1, &data);	
 	data &= 0x9f; 
 	status |= inv_icm426xx_write_reg(s, 0x37, 1, &data);
-	
+
 	/* Reg AMP_GZ_TRIM2 */
 	status |= inv_icm426xx_read_reg(s, 0x3C, 1, &data);	
 	data &= 0x9f; 
@@ -1994,7 +1998,7 @@ static int inv_icm426xx_init_hardware_from_ui(struct inv_icm426xx * s)
 
 	status |= inv_icm426xx_set_reg_bank(s, 0); /* Set memory bank 0 */
 #endif
-	
+
 	return status;
 }
 

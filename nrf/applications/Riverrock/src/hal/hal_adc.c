@@ -1,10 +1,13 @@
-#include <drivers/adc.h>
+#include <zephyr/drivers/adc.h>
 #include <stdio.h>
-#include <zephyr.h>
-#include <logging/log.h>
+#include <zephyr/kernel.h>
+#include <zephyr/logging/log.h>
 #include "hal_adc.h"
 
 LOG_MODULE_REGISTER(hal_adc, CONFIG_ASSET_TRACKER_LOG_LEVEL);
+
+#define ADC_NODE		DT_NODELABEL(adc)
+
 
 static struct device *__adc_dev;
 
@@ -51,7 +54,7 @@ int iotex_hal_adc_init(void) {
         .differential = 0,
     };
 
-    __adc_dev = device_get_binding("ADC_0");
+    __adc_dev = DEVICE_DT_GET(ADC_NODE);
     if (!__adc_dev) {
         LOG_ERR("device_get_binding ADC_0 failed\n");
     }

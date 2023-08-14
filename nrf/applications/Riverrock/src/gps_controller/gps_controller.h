@@ -12,7 +12,7 @@
 #ifndef GPS_CONTROLLER_H__
 #define GPS_CONTROLLER_H__
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #ifdef __cplusplus
 extern "C" {

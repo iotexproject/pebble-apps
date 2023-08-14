@@ -3,7 +3,6 @@
 #include "cJSON.h"
 #include "cJSON_os.h"
 #include "nvs/local_storage.h"
-#include "ui.h"
 #include "pb_decode.h"
 #include "pb_encode.h"
 #include "package.pb.h"
@@ -67,7 +66,6 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
         LOG_ERR("pb encode error in %s [%s]\n", __func__,PB_GET_ERROR(&enc_datastream));
         return 0;
     }
-    
     uint_timestamp = getSysTimestamp_s();
     binpack.data.size = enc_datastream.bytes_written;
     binpack.data.bytes[enc_datastream.bytes_written] = (char)((uint_timestamp & 0xFF000000) >> 24);
@@ -442,6 +440,7 @@ void iotex_mqtt_load_config(void) {
     if (!iotex_local_storage_load(SID_MQTT_DATA_CHANNEL_CONFIG, &__config, sizeof(__config))) {
         print_mqtt_config(&__config, __func__);
     }
+
     sys_mutex_init(&iotex_config_mutex);
 }
 

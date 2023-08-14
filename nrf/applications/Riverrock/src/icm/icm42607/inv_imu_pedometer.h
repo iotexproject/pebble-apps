@@ -1,6 +1,6 @@
 #ifndef    __IN_IMU_PEDOMETER_H__
 #define    __IN_IMU_PEDOMETER_H__
-#include <sys/mutex.h>
+#include <zephyr/sys/mutex.h>
 #include "icm42607/inv_imu_defs.h"
 #include <stdint.h>
 #include "icm42607/inv_imu_transport.h"

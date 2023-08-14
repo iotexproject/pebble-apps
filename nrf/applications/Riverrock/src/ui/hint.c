@@ -1,13 +1,13 @@
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
-#include <drivers/sensor.h>
-#include <console/console.h>
-#include <logging/log.h>
-#include <power/reboot.h>
-#include <sys/mutex.h>
+//#include <drivers/gps.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/xen/console.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/sys/mutex.h>
 #include <modem/lte_lc.h>
 #include "hints_data.h"
 #include "display.h"
@@ -280,10 +280,10 @@ void initBrokeHost(void) {
     }
     if(selArea == 0) {
         pebbleModem = PEBBLE_MODEM_NB_IOT;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT, LTE_LC_SYSTEM_MODE_PREFER_NBIOT);
     } else {
         pebbleModem = PEBBLE_MODEM_LTE_M;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM, LTE_LC_SYSTEM_MODE_PREFER_LTEM);
     }
 
     if (!mqttCertExist()) {
@@ -340,10 +340,10 @@ void modemSettings(void) {
                 break;
             else if (cursor == 0) {
                 pebbleModem = PEBBLE_MODEM_NB_IOT;
-                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT, LTE_LC_SYSTEM_MODE_PREFER_NBIOT);
             } else if(cursor == 1) {
                 pebbleModem = PEBBLE_MODEM_LTE_M;
-                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM, LTE_LC_SYSTEM_MODE_PREFER_LTEM);
             }
             /*  read modem and writing into  sec */
             if (selArea != cursor) {
@@ -602,11 +602,10 @@ void MainMenu(void) {
         "Reboot Pebble  ",
     };
     int cursor = 0, last_cur = 0, i;
-
     initBrokeHost();
-    if (!checkMenuEntry())
+    if (!checkMenuEntry()){
         return;
-
+    }
     /*  clear screen */
     ssd1306_clear_screen(0);
     /*  main menu */
@@ -708,10 +707,10 @@ bool pebbleWorsAtLTEM(void) {
 void anotherWorkMode(void) {
     if(pebbleWorksAtNBIOT()) {
         pebbleModem = PEBBLE_MODEM_LTE_M;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM, LTE_LC_SYSTEM_MODE_PREFER_LTEM);
     } else {
         pebbleModem = PEBBLE_MODEM_NB_IOT;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT, LTE_LC_SYSTEM_MODE_PREFER_NBIOT);
     }
     pebbleBackGround(0);
     setDefaultWorkMode();
@@ -727,7 +726,6 @@ void setDefaultWorkMode(void) {
     index[1] = 0;
     iotex_local_storage_save(SID_MODEM_WORK_MODE, index, 1);
 }
-
 
 void ntp_err_show(void) 
 {

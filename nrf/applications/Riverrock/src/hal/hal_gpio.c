@@ -1,9 +1,8 @@
-#include <zephyr.h>
-#include <drivers/gpio.h>
-#include <drivers/uart.h>
-#include <logging/log.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/uart.h>
+#include <zephyr/logging/log.h>
+#include <hal/nrf_gpio.h>
 #include "hal_gpio.h"
-#include "ui.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
 #include "display.h"
@@ -13,17 +12,17 @@ LOG_MODULE_REGISTER(hal_gpio, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 #define GPIO_DIR_OUT  GPIO_OUTPUT
 #define GPIO_DIR_IN   GPIO_INPUT
 #define GPIO_INT  GPIO_INT_ENABLE
-#define GPIO_INT_DOUBLE_EDGE  GPIO_INT_EDGE_BOTH
+#define GPIO_INT_DOUBLE_EDGE  GPIO_INT_EDGE
 #define gpio_pin_write  gpio_pin_set
 
 
-#define UART_COMTOOL  "UART_1"   
+#define UART_COMTOOL  "UART_1"
 struct device *__gpio0_dev;
-static u32_t g_key_press_start_time;
+static uint32_t g_key_press_start_time;
 static struct gpio_callback chrq_gpio_cb, pwr_key_gpio_cb;
 static struct device *guart_dev_comtool;
 static atomic_val_t uartReceiveLen = ATOMIC_INIT(0);
-struct k_delayed_work  uartIRQMonit;
+struct k_work_delayable  uartIRQMonit;
 unsigned char *uartReceiveBuff, *uartTransBuff;
 
 static void cmdACKReadEcc(enum COM_COMMAND cmd, unsigned char *data,unsigned int len);
@@ -37,10 +36,10 @@ const  void (*cmdACK[])(enum COM_COMMAND, unsigned char *, unsigned int) = {
 
 extern atomic_val_t modemWriteProtect;
 
-/* extern struct k_delayed_work  event_work; */
+/* extern struct k_work_delayable  event_work; */
 
 void checkCHRQ(void) {
-    u32_t chrq;
+    uint32_t chrq;
     chrq = gpio_pin_get(__gpio0_dev, IO_NCHRQ);
     if (!chrq) {
         /*  charging */
@@ -60,12 +59,12 @@ void CtrlBlueLED(bool on_off) {
         gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);
 }
 
-static void chrq_input_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
+static void chrq_input_callback(struct device *port, struct gpio_callback *cb, uint32_t pins) {
     checkCHRQ();
 }
 
-static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_t pins) {
-    u32_t pwr_key, end_time;
+static void pwr_key_callback(struct device *port, struct gpio_callback *cb, uint32_t pins) {
+    uint32_t pwr_key, end_time;
     int32_t key_press_duration, ret;
 
     pwr_key = gpio_pin_get(port, POWER_KEY);
@@ -92,7 +91,7 @@ static void pwr_key_callback(struct device *port, struct gpio_callback *cb, u32_
 }
 
 void iotex_hal_gpio_init(void) {
-    __gpio0_dev = device_get_binding("GPIO_0");
+    __gpio0_dev = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 
     /* Set LED pin as output */
     gpio_pin_configure(__gpio0_dev, IO_POWER_ON, GPIO_DIR_OUT);    /* p0.31 == POWER_ON */
@@ -104,13 +103,12 @@ void iotex_hal_gpio_init(void) {
     gpio_pin_write(__gpio0_dev, LED_BLUE, LED_OFF);    /* p0.00 == LED_BLUE OFF */
     gpio_pin_write(__gpio0_dev, LED_RED, LED_OFF);    /* p0.00 == LED_RED */
     /* USB battery charge pin */
-    gpio_pin_configure(__gpio0_dev, IO_NCHRQ,
-                    (GPIO_DIR_IN | GPIO_INT |
-                    GPIO_INT_EDGE | GPIO_INT_DOUBLE_EDGE |
-                    GPIO_INT_DEBOUNCE));
+    gpio_pin_configure(__gpio0_dev, IO_NCHRQ, GPIO_DIR_IN);
+
     gpio_init_callback(&chrq_gpio_cb, chrq_input_callback, BIT(IO_NCHRQ));
+
     gpio_add_callback(__gpio0_dev, &chrq_gpio_cb);
-    gpio_pin_interrupt_configure(__gpio0_dev, IO_NCHRQ,GPIO_INT_EDGE_BOTH);
+    gpio_pin_interrupt_configure(__gpio0_dev, IO_NCHRQ,GPIO_INT_EDGE_BOTH|GPIO_INT);
     /* Sync charge state */
     chrq_input_callback(__gpio0_dev, &chrq_input_callback, IO_NCHRQ);
     checkCHRQ();
@@ -177,7 +175,7 @@ static void uart_comtool_cb(struct device *dev) {
         atomic_add(&uartReceiveLen, fifo_count);
         atomic_and(&uartReceiveLen, 0x0FFF); 
     }while(fifo_count);
-    k_delayed_work_submit(&uartIRQMonit,K_MSEC(300));
+    k_work_reschedule(&uartIRQMonit,K_MSEC(300));
 }
 
 void uartIRQMonit_callback(struct k_work *work) {
@@ -189,11 +187,13 @@ void uartIRQMonit_callback(struct k_work *work) {
         uart_irq_rx_enable(guart_dev_comtool);
     }
     else
-        k_delayed_work_submit(&uartIRQMonit,K_MSEC(300));
+        k_work_reschedule(&uartIRQMonit,K_MSEC(300));
 }
 
 void ComToolInit(void) { 
     struct device *dev;
+    int  ret;
+
     uartReceiveBuff = malloc(4096+256);
     uartTransBuff = malloc(1024);
     if(uartTransBuff == NULL || uartReceiveBuff == NULL) {
@@ -205,11 +205,12 @@ void ComToolInit(void) {
         return;
     }
     atomic_set(&uartReceiveLen, 0);
-    guart_dev_comtool=device_get_binding(UART_COMTOOL); 
-    uart_irq_callback_set(guart_dev_comtool, uart_comtool_cb);
-    k_delayed_work_init(&uartIRQMonit, uartIRQMonit_callback);
+	guart_dev_comtool = DEVICE_DT_GET(DT_NODELABEL(uart1));
+	uart_irq_rx_disable(guart_dev_comtool);
+	uart_irq_tx_disable(guart_dev_comtool);
+    ret = uart_irq_callback_set(guart_dev_comtool, uart_comtool_cb);
+    k_work_init_delayable(&uartIRQMonit, uartIRQMonit_callback);
     uart_irq_rx_enable(guart_dev_comtool);
-    uart_irq_tx_disable(guart_dev_comtool);
 }
 void stopTestCom(void) {
     if(uartTransBuff != NULL)
@@ -217,7 +218,7 @@ void stopTestCom(void) {
     if(uartReceiveBuff != NULL)
         free(uartReceiveBuff);    
     uart_irq_rx_disable(guart_dev_comtool);
-    k_delayed_work_cancel(&uartIRQMonit);
+    k_work_cancel_delayable(&uartIRQMonit);
 }
 
 static bool checkAndACK(unsigned char *buf, unsigned  int len) {
@@ -315,6 +316,7 @@ static void comtoolOut(uint8_t *buf, uint32_t len) {
     
 }
 static void packageProcess(void) {
+LOG_ERR("Com port  packageProcess");
     checkAndACK(uartReceiveBuff, atomic_get(&uartReceiveLen));
 }
 static void buildPackage(enum COM_COMMAND cmd, unsigned char *data, unsigned short data_len) {

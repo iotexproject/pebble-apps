@@ -3,42 +3,38 @@
  *
  * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
-#include <drivers/sensor.h>
-#include <console/console.h>
-#include <power/reboot.h>
-#include <logging/log_ctrl.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/xen/console.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log_ctrl.h>
 #if defined(CONFIG_BSD_LIBRARY)
 #include <modem/bsdlib.h>
 #include <bsd.h>
 #include <modem/lte_lc.h>
 #include <modem/modem_info.h>
 #endif /* CONFIG_BSD_LIBRARY */
-#include <net/cloud.h>
-#include <net/socket.h>
+#include <zephyr/net/socket.h>
 #include <net/nrf_cloud.h>
 #if defined(CONFIG_NRF_CLOUD_AGPS)
 #include <net/nrf_cloud_agps.h>
 #endif /* CONFIG_NRF_CLOUD_AGPS */
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 #if defined(CONFIG_LWM2M_CARRIER)
 #include <lwm2m_carrier.h>
 #endif /* CONFIG_LWM2M_CARRIER */
 #if defined(CONFIG_BOOTLOADER_MCUBOOT)
-#include <dfu/mcuboot.h>
+#include <zephyr/dfu/mcuboot.h>
 #endif /* CONFIG_BOOTLOADER_MCUBOOT */
-#include <drivers/pwm.h>
-#include "cloud_codec.h"
-#include "env_sensors.h"
-#include "motion.h"
-#include "ui.h"
-#include "service_info.h"
-#include <modem/at_cmd.h>
-#include "watchdog.h"
+#include <zephyr/drivers/pwm.h>
+#include <modem/nrf_modem_lib.h>
+#include <modem/at_monitor.h>
+#include <modem/modem_info.h>
+#include <modem/lte_lc.h>
+#include "watchdog_app.h"
 #include "gps_controller.h"
 
 #include "mqtt/mqtt.h"
@@ -56,6 +52,7 @@
 #include "ver.h"
 #include "keyBoard.h"
 #include "icm42605/icm426xx_pedometer.h"
+
 #if !defined(CONFIG_USE_PROVISIONED_CERTIFICATES)
 #if defined(CONFIG_MODEM_KEY_MGMT)
 #include <modem/modem_key_mgmt.h>
@@ -97,8 +94,8 @@ static k_tid_t mainThreadID;
 static atomic_val_t pebbleStartup = ATOMIC_INIT(1);
 extern atomic_val_t modemWriteProtect;
 /* Structures for work */
-static struct k_delayed_work send_env_data_work;
-static struct k_delayed_work   animation_work;
+static struct k_work_delayable send_env_data_work;
+static struct k_work_delayable   animation_work;
 enum error_type {
     ERROR_CLOUD,
     ERROR_BSD_RECOVERABLE,
@@ -116,6 +113,79 @@ static void work_init(void);
 static void periodic_publish_sensors_data(void);
 static void sampling_and_store_sensor_data(void);
 
+#if defined(CONFIG_NRF_MODEM_LIB)
+NRF_MODEM_LIB_ON_INIT(pebble_init_hook, on_modem_lib_init, NULL);
+
+/* Initialized to value different than success (0) */
+static int modem_lib_init_result = -1;
+
+static void on_modem_lib_init(int ret, void *ctx)
+{
+	modem_lib_init_result = ret;
+}
+#endif /* CONFIG_NRF_MODEM_LIB */
+static const char *modem_crash_reason_get(uint32_t reason)
+{
+	switch (reason) {
+	case NRF_MODEM_FAULT_UNDEFINED:
+		return "Undefined fault";
+
+	case NRF_MODEM_FAULT_HW_WD_RESET:
+		return "HW WD reset";
+
+	case NRF_MODEM_FAULT_HARDFAULT:
+		return "Hard fault";
+
+	case NRF_MODEM_FAULT_MEM_MANAGE:
+		return "Memory management fault";
+
+	case NRF_MODEM_FAULT_BUS:
+		return "Bus fault";
+
+	case NRF_MODEM_FAULT_USAGE:
+		return "Usage fault";
+
+	case NRF_MODEM_FAULT_SECURE_RESET:
+		return "Secure control reset";
+
+	case NRF_MODEM_FAULT_PANIC_DOUBLE:
+		return "Error handler crash";
+
+	case NRF_MODEM_FAULT_PANIC_RESET_LOOP:
+		return "Reset loop";
+
+	case NRF_MODEM_FAULT_ASSERT:
+		return "Assert";
+
+	case NRF_MODEM_FAULT_PANIC:
+		return "Unconditional SW reset";
+
+	case NRF_MODEM_FAULT_FLASH_ERASE:
+		return "Flash erase fault";
+
+	case NRF_MODEM_FAULT_FLASH_WRITE:
+		return "Flash write fault";
+
+	case NRF_MODEM_FAULT_POFWARN:
+		return "Undervoltage fault";
+
+	case NRF_MODEM_FAULT_THWARN:
+		return "Overtemperature fault";
+
+	default:
+		return "Unknown reason";
+	}
+}
+void nrf_modem_fault_handler(struct nrf_modem_fault_info *fault_info)
+{
+	printk("Modem crash reason: 0x%x (%s), PC: 0x%x\n",
+		fault_info->reason,
+		modem_crash_reason_get(fault_info->reason),
+		fault_info->program_counter);
+
+	__ASSERT(false, "Modem crash detected, halting application execution");
+}
+
 /**@brief nRF Cloud error handler. */
 void error_handler(enum error_type err_type, int err_code)
 {
@@ -123,15 +193,9 @@ void error_handler(enum error_type err_type, int err_code)
         if (mqtt_disconnect(&client)) {
             LOG_ERR("Could not disconnect MQTT client during error handler.\n");
         }
-        k_delayed_work_cancel(&send_env_data_work);
+        k_work_cancel_delayable(&send_env_data_work);
         return;
     }
-}
-
-/**@brief Recoverable BSD library error. */
-void bsd_recoverable_error_handler(uint32_t err)
-{
-    error_handler(ERROR_BSD_RECOVERABLE, (int)err);
 }
 
 /*  Upload sensor data */
@@ -150,17 +214,17 @@ static void uploadSensorData(void) {
 
 /*  Restore work queue */
 void RestartEnvWork(int s) {
-    k_delayed_work_cancel(&send_env_data_work);
-    k_delayed_work_submit(&send_env_data_work, K_SECONDS(s));
+    k_work_cancel_delayable(&send_env_data_work);
+    k_work_reschedule(&send_env_data_work, K_SECONDS(s));
 }
 
 /*  mqtt cert write into modem */
 void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
-    u8_t *certificates[] = {root, key, cert};
+    uint8_t *certificates[] = {root, key, cert};
     size_t cert_len[] = { strlen(root), strlen(key), strlen(cert) };
     int err;
     sec_tag_t sec_tag = CONFIG_CLOUD_CERT_SEC_TAG;
-    enum modem_key_mgnt_cred_type cred[] = {
+    enum modem_key_mgmt_cred_type cred[] = {
         MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
         MODEM_KEY_MGMT_CRED_TYPE_PRIVATE_CERT,
         MODEM_KEY_MGMT_CRED_TYPE_PUBLIC_CERT,
@@ -171,19 +235,20 @@ void WriteCertIntoModem(uint8_t *cert, uint8_t *key, uint8_t *root ) {
 
     disableModem();
     /* Delete certificates */
-    for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
+    for (enum modem_key_mgmt_cred_type type = 0; type < 3; type++) {
         err = modem_key_mgmt_delete(sec_tag, type);
         LOG_ERR("modem_key_mgmt_delete(%u, %d) => result=%d\n",
                 sec_tag, type, err);
     }
 
     /* Write certificates */
-    for (enum modem_key_mgnt_cred_type type = 0; type < 3; type++) {
+    for (enum modem_key_mgmt_cred_type type = 0; type < 3; type++) {
         err = modem_key_mgmt_write(sec_tag, cred[type],
                 certificates[type], cert_len[type]);
         LOG_ERR("modem_key_mgmt_write => result=%d\n", err);
     }
 }
+
 /*  Upload sensor data regularly */
 static void periodic_publish_sensors_data(void) {
     int rc;
@@ -222,7 +287,7 @@ void animation_work_fn(struct k_work *work) {
         return;
     }
     sta_Refresh();
-    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_SECONDS(1));
+    k_work_schedule_for_queue(&application_work_q, &animation_work, K_SECONDS(1));
 }
 
 void stopAnimationWork(void) {
@@ -231,47 +296,36 @@ void stopAnimationWork(void) {
 
 /**@brief Initializes and submits delayed work. */
 static void work_init(void) {
-    k_delayed_work_init(&animation_work, animation_work_fn);
+    k_work_init_delayable(&animation_work, animation_work_fn);
 }
 
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
 static void modem_configure(void) {
-#if defined(CONFIG_BSD_LIBRARY)
+    int err;
 
-    if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
-        /* Do nothing, modem is already turned on
-         * and connected.
-         */
-    } else {
-        int err;
-
-        LOG_INF("Connecting to LTE network. ");
-        LOG_INF("This may take several minutes.\n");  
-        err = lte_lc_psm_req(true);
-        if (err) {
-            LOG_ERR("lte_lc_psm_req erro:%d\n", err);
-            error_handler(ERROR_LTE_LC, err);
-        }
-        /* ui_led_set_pattern(UI_LTE_CONNECTING); */
-        /* ui_led_deactive(LTE_CONNECT_MASK,1); */
+    LOG_INF("Connecting to LTE network. ");
+    LOG_INF("This may take several minutes.\n");  
+    err = lte_lc_psm_req(true);
+    if (err) {
+        LOG_ERR("lte_lc_psm_req erro:%d\n", err);
+        error_handler(ERROR_LTE_LC, err);
+    }
+    err = lte_lc_init_and_connect();
+    if (err) {
+        lte_lc_deinit();
+        LOG_INF("modem fallback\n");
+        anotherWorkMode();
         err = lte_lc_init_and_connect();
         if (err) {
-            lte_lc_deinit();
-            LOG_INF("modem fallback\n");
-            anotherWorkMode();
-            err = lte_lc_init_and_connect();
-            if (err) {
-                LOG_ERR("LTE link could not be established, system will reboot.\n");
-                sys_reboot(0);
-            }
-        }        
-        LOG_INF("Connected to LTE network\n");
-        /* ui_led_active(LTE_CONNECT_MASK,1); */
-        sta_SetMeta(LTE_LINKER, STA_LINKER_ON);
-    }
-#endif
+            LOG_ERR("LTE link could not be established, system will reboot.\n");
+            sys_reboot(0);
+        }
+    }        
+    LOG_INF("Connected to LTE network\n");
+    /* ui_led_active(LTE_CONNECT_MASK,1); */
+    sta_SetMeta(LTE_LINKER, STA_LINKER_ON);
 }
 
 void handle_bsdlib_init_ret(void) {
@@ -334,7 +388,6 @@ void keyWakeup(void) {
     if((devRegGet() == DEV_REG_STOP) && (!atomic_get(&keyWaitFlg))) {
         if (isComninationKeys(KB_UP_KEY|KB_DOWN_KEY)) {
             atomic_set(&keyWaitFlg,1);
-            LOG_INF("start wakeup id:%d\n", mainThreadID);
             k_wakeup(mainThreadID);
             ctrlOLED(true);
         }
@@ -452,28 +505,28 @@ int psmWork(void) {
 
 void main(void) {
     int err, errCounts = 0;
-
-    LOG_INF("APP %s  %s started", IOTEX_APP_NAME, RELEASE_VERSION);
+    
+	err = nrf_modem_lib_init();
+	if (err < 0) {
+		LOG_ERR("Modem library init failed, err: %d", err);
+		return err;
+	}
+    LOG_INF("APP %s  %s started\n", IOTEX_APP_NAME, RELEASE_VERSION);
     mainThreadID = k_current_get(); 
-    k_work_q_start(&application_work_q, application_stack_area,K_THREAD_STACK_SIZEOF(application_stack_area),CONFIG_APPLICATION_WORKQUEUE_PRIORITY);
+    k_work_queue_start(&application_work_q, application_stack_area,K_THREAD_STACK_SIZEOF(application_stack_area),K_LOWEST_APPLICATION_THREAD_PRIO, NULL);
     /*  open watchdog */
     if (IS_ENABLED(CONFIG_WATCHDOG)) {
-        watchdog_init_and_start(&application_work_q);
+        watchdog_init_and_start();
     }
     /*   init ECDSA */
-    InitLowsCalc();
-    if (initECDSA_sep256r()) {
-        LOG_ERR("initECDSA_sep256r error\n");
-        return;
-    }
     /*  i2c speed 400kbps  */
     setI2Cspeed(2);
     /* HAL init, notice gpio must be the first (to set IO_POWER_ON on )*/
     iotex_local_storage_init();
     /*  read ecdsa key pair */
-    if (startup_check_ecc_key()) {
-        LOG_ERR("check ecc key error\n");
-        LOG_ERR("system will not startup\n");
+    if (err = pebble_crypto_init()) {
+        LOG_ERR("check ecc key error: %d ", err);
+        LOG_ERR("system will not startup");
         return;
     }
     /*  init gpio */
@@ -500,13 +553,10 @@ void main(void) {
     /*  OTA upgrade  */
     appEntryDetect();
     /*  work queue of the status bar  */
-    k_delayed_work_submit_to_queue(&application_work_q, &animation_work, K_MSEC(10));
+    k_work_schedule_for_queue(&application_work_q, &animation_work, K_MSEC(10));
     /*  LTE-M / NB-IOT network attach */
     modem_configure();
     handle_bsdlib_init_ret();
-#ifdef CONFIG_UNITTEST
-    unittest();
-#endif
     /*  status bar refresh */
     sta_Refresh();
     initNTP();
@@ -535,7 +585,6 @@ void main(void) {
         }
     }
 
-    /* connect_to_cloud(0); */
     LOG_INF("Disconnecting MQTT client...\n");
     err = mqtt_disconnect(&client);
     if (err) {

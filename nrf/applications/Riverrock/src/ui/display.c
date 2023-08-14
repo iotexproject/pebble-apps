@@ -1,21 +1,20 @@
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
-#include <drivers/sensor.h>
-#include <console/console.h>
-#include <power/reboot.h>
-#include <logging/log_ctrl.h>
-#include <logging/log.h>
+//#include <drivers/gps.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/xen/console.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log_ctrl.h>
+#include <zephyr/logging/log.h>
 #if defined(CONFIG_BSD_LIBRARY)
 #include <modem/bsdlib.h>
 #include <bsd.h>
 #include <modem/lte_lc.h>
 #include <modem/modem_info.h>
-#endif /* CONFIG_BSD_LIBRARY */
-#include <net/cloud.h>
-#include <net/socket.h>
+#endif /* CONFIG_BSD_LIBRARY */c
+#include <zephyr/net/socket.h>
 #include <net/nrf_cloud.h>
 #if defined(CONFIG_NRF_CLOUD_AGPS)
 #include <net/nrf_cloud_agps.h>
@@ -24,11 +23,11 @@
 #include <lwm2m_carrier.h>
 #endif
 #if defined(CONFIG_BOOTLOADER_MCUBOOT)
-#include <dfu/mcuboot.h>
+#include <zephyr/dfu/mcuboot.h>
 #endif
-#include <drivers/gpio.h>
-#include <drivers/i2c.h>
-#include <sys/mutex.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/sys/mutex.h>
 #include "dis_data.h"
 #include "bme/bme680_helper.h"
 
@@ -255,7 +254,7 @@ void ssd1306_display_string(uint8_t chXpos, uint8_t chYpos, const uint8_t *pchSt
 }
 
 void ssd1306_init(void) {
-    if (!(__i2c_dev_CD1306 = device_get_binding(I2C_DEV_BME680))) {
+    if (!(__i2c_dev_CD1306 = DEVICE_DT_GET(DT_NODELABEL(i2c2)))) {
         LOG_ERR("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
         return ;
     }

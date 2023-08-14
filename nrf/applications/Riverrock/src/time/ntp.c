@@ -1,17 +1,16 @@
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
-#include <drivers/sensor.h>
-#include <console/console.h>
-#include <power/reboot.h>
-#include <logging/log_ctrl.h>
-#include <sys/mutex.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/xen/console.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log_ctrl.h>
+#include <zephyr/sys/mutex.h>
 #include <modem/lte_lc.h>
-#include <logging/log.h>
-#include <net/sntp.h>
-#include <net/socketutils.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/net/sntp.h>
+#include <zephyr/net/socketutils.h>
 
 
 LOG_MODULE_REGISTER(ntp, 0);
@@ -192,7 +191,7 @@ ntp_error:
 
 int syncNTPTime(void)
 {
-    s64_t uptime_now;
+    int64_t uptime_now;
     uint32_t last_update_time = 0;
 
     sys_mutex_lock(&ntp_mutex, K_FOREVER);
@@ -204,9 +203,9 @@ int syncNTPTime(void)
     return  0;
 }
 
-s64_t getSysTimestamp_ms(void)
+int64_t getSysTimestamp_ms(void)
 {
-    s64_t timestamp, uptime_now;
+    int64_t timestamp, uptime_now;
 
     sys_mutex_lock(&ntp_mutex, K_FOREVER);
     uptime_now = k_uptime_get();
@@ -221,9 +220,9 @@ uint32_t getSysTimestamp_s(void)
 {
     uint32_t timestamp;
     
-    LOG_DBG("modem time: %d\n",atoi(iotex_modem_get_clock(NULL)));
+    /*LOG_DBG("modem time: %d\n",atoi(iotex_modem_get_clock(NULL)));*/
     timestamp = (uint32_t)(getSysTimestamp_ms()/1000);
-    LOG_DBG("ntp timestamp in second:%d \n", timestamp);
+    /*LOG_DBG("ntp timestamp in second:%d \n", timestamp);*/
     return  timestamp;
 }
 

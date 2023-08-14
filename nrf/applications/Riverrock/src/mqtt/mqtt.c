@@ -1,14 +1,13 @@
 #include <stdio.h>
-#include <zephyr.h>
-#include <net/socket.h>
-#include <power/reboot.h>
-#include <logging/log.h>
+#include <zephyr/kernel.h>
+#include <zephyr/net/socket.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log.h>
 #include "mqtt.h"
 #include "config.h"
 #include "hal/hal_gpio.h"
 #include "modem/modem_helper.h"
 #include "mqtt/devReg.h"
-#include "ui.h"
 #include "display.h"
 #include "pb_decode.h"
 #include "pb_encode.h"
@@ -28,47 +27,47 @@ static bool connected = 0;
 /* When MQTT_EVT_CONNACK callback enable data sending */
 atomic_val_t send_data_enable;
 /* When connect mqtt server failed, auto reboot */
-static struct k_delayed_work cloud_reboot_work;
+static struct k_work_delayable cloud_reboot_work;
 static uint8_t devSt = 0;
 /* Buffers for MQTT client. */
-static u8_t rx_buffer[CONFIG_MQTT_MESSAGE_BUFFER_SIZE];
-static u8_t tx_buffer[CONFIG_MQTT_MESSAGE_BUFFER_SIZE];
-static u8_t payload_buf[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
+static uint8_t rx_buffer[CONFIG_MQTT_MESSAGE_BUFFER_SIZE];
+static uint8_t tx_buffer[CONFIG_MQTT_MESSAGE_BUFFER_SIZE];
+static uint8_t payload_buf[CONFIG_MQTT_PAYLOAD_BUFFER_SIZE];
 static uint32_t cnt = 0;
 const uint8_t *pmqttBrokerHost = "a11homvea4zo8t-ats.iot.ap-east-1.amazonaws.com";
 
 
 extern void mqttGetResponse(void);
 
-static void iotex_mqtt_get_topic(u8_t *buf, int len) {
+static void iotex_mqtt_get_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "device/%s/data",iotex_mqtt_get_client_id());
 }
 
-static void iotex_mqtt_get_firm_topic(u8_t *buf, int len) {
+static void iotex_mqtt_get_firm_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/firmware",iotex_mqtt_get_client_id());
 }
 
-static void iotex_get_heart_beat_topic(u8_t *buf, int len) {
+static void iotex_get_heart_beat_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "device/%s/action/update-state",iotex_mqtt_get_client_id());
 }
 
-static void iotex_mqtt_get_config_topic(u8_t *buf, int len) {
+static void iotex_mqtt_get_config_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/config",iotex_mqtt_get_client_id());
 }
 
-static void iotex_mqtt_get_reg_topic(u8_t *buf, int len) {
+static void iotex_mqtt_get_reg_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/status",iotex_mqtt_get_client_id());
 }
 
-static void iotex_mqtt_get_ownership_topic(u8_t *buf, int len) {
+static void iotex_mqtt_get_ownership_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "device/%s/confirm",iotex_mqtt_get_client_id());
 }
 
-static void iotex_mqtt_query_topic(u8_t *buf, int len) {
+static void iotex_mqtt_query_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "device/%s/query",iotex_mqtt_get_client_id());
 }
 
-static void  iotex_mqtt_backend_ack_topic(u8_t *buf, int len) {
+static void  iotex_mqtt_backend_ack_topic(uint8_t *buf, int len) {
     snprintf(buf, len, "backend/%s/status",iotex_mqtt_get_client_id());
 }
 
@@ -102,7 +101,6 @@ static int packDevState(uint8_t *buf, uint32_t size) {
     }
 
     if (devSt < 4) {
-
         uint_timestamp = getSysTimestamp_s();
         pb_ostream_t enc_datastream;
         enc_datastream = pb_ostream_from_buffer(binpack.data.bytes, sizeof(binpack.data.bytes));
@@ -250,7 +248,7 @@ static int subscribe_regist_topic(struct mqtt_client *client) {
 }
 
 /**@brief Function to print strings without null-termination. */
-static void data_print(u8_t *prefix, u8_t *data, size_t len) {
+static void data_print(uint8_t *prefix, uint8_t *data, size_t len) {
     char buf[len + 1];
     memcpy(buf, data, len);
     buf[len] = 0;
@@ -260,9 +258,9 @@ static void data_print(u8_t *prefix, u8_t *data, size_t len) {
 /*
  * @brief Function to read the published payload.
  */
-static int publish_get_payload(struct mqtt_client *c, u8_t *write_buf, size_t length) {
-    u8_t *buf = write_buf;
-    u8_t *end = buf + length;
+static int publish_get_payload(struct mqtt_client *c, uint8_t *write_buf, size_t length) {
+    uint8_t *buf = write_buf;
+    uint8_t *end = buf + length;
 
     if (length > sizeof(payload_buf)) {
         return -EMSGSIZE;
@@ -291,7 +289,7 @@ static void cloud_reboot_work_fn(struct k_work *work) {
     }
 
     printk(".");
-    k_delayed_work_submit(&cloud_reboot_work, K_SECONDS(1));
+    k_work_reschedule(&cloud_reboot_work, K_SECONDS(1));
 }
 
 /**@brief MQTT client event handler */
@@ -307,7 +305,7 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
                 break;
             }
             /* Cancel reboot worker */
-            k_delayed_work_cancel(&cloud_reboot_work);
+            k_work_cancel_delayable(&cloud_reboot_work);
             LOG_INF("[%s:%d] MQTT client connected!\n", __func__, __LINE__);
             if (IsDevReg()) {
                 subscribe_regist_topic(c);
@@ -426,12 +424,8 @@ static void mqtt_evt_handler(struct mqtt_client *const c, const struct mqtt_evt 
     }
 }
 
-bool iotex_mqtt_is_connected(void) {
-    return connected;
-}
-
 const uint8_t *iotex_mqtt_get_client_id() {
-    static u8_t client_id_buf[CLIENT_ID_LEN + 1] = { 0 };
+    static uint8_t client_id_buf[CLIENT_ID_LEN + 1] = { 0 };
 #if !defined(CONFIG_CLOUD_CLIENT_ID)
     if (client_id_buf[0] == 0) {
         snprintf(client_id_buf, sizeof(client_id_buf), "%s", iotex_modem_get_imei());
@@ -445,7 +439,7 @@ const uint8_t *iotex_mqtt_get_client_id() {
 int iotex_mqtt_publish_query(struct mqtt_client *client, enum mqtt_qos qos, char *data, int len)
 {
     struct mqtt_publish_param param;
-    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    uint8_t pub_topic[MQTT_TOPIC_SIZE];
 
     iotex_mqtt_query_topic(pub_topic, sizeof(pub_topic));
     param.message.topic.qos = qos;
@@ -465,7 +459,7 @@ int iotex_mqtt_publish_query(struct mqtt_client *client, enum mqtt_qos qos, char
 int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, char *data, int len)
 {
     struct mqtt_publish_param param;
-    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    uint8_t pub_topic[MQTT_TOPIC_SIZE];
 
     iotex_mqtt_get_ownership_topic(pub_topic, sizeof(pub_topic));
     param.message.topic.qos = qos;
@@ -483,7 +477,7 @@ int iotex_mqtt_publish_ownership(struct mqtt_client *client, enum mqtt_qos qos, 
 
 int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char *data, int len) {
     struct mqtt_publish_param param;
-    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    uint8_t pub_topic[MQTT_TOPIC_SIZE];
     uint8_t *topic = NULL;
 
     topic = iotex_get_truStreamTopic();
@@ -506,7 +500,7 @@ int iotex_mqtt_publish_data(struct mqtt_client *client, enum mqtt_qos qos, char 
 int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos)
 {
     struct mqtt_publish_param param;
-    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    uint8_t pub_topic[MQTT_TOPIC_SIZE];
     int len;
     uint8_t payload[100];
 
@@ -527,7 +521,7 @@ int iotex_mqtt_heart_beat(struct mqtt_client *client, enum mqtt_qos qos)
 int iotex_mqtt_configure_upload(struct mqtt_client *client, enum mqtt_qos qos)
 {
     struct mqtt_publish_param param;
-    u8_t pub_topic[MQTT_TOPIC_SIZE];
+    uint8_t pub_topic[MQTT_TOPIC_SIZE];
     uint8_t payload[300];
     int len;
 
@@ -588,14 +582,14 @@ int iotex_mqtt_client_init(struct mqtt_client *client, struct pollfd *fds) {
     tls_config->hostname = pmqttBrokerHost;
     /* Reboot the device if CONNACK has not arrived in 30s */
     cnt = 0;
-    k_delayed_work_init(&cloud_reboot_work, cloud_reboot_work_fn);
-    k_delayed_work_submit(&cloud_reboot_work, K_SECONDS(1));
+    k_work_init_delayable(&cloud_reboot_work, cloud_reboot_work_fn);
+    k_work_reschedule(&cloud_reboot_work, K_SECONDS(1));
     LOG_INF("Before mqtt_connect, connect timeout will reboot in %d seconds\n", CLOUD_CONNACK_WAIT_DURATION);
     if ((err = mqtt_connect(client)) != 0) {
-        k_delayed_work_cancel(&cloud_reboot_work);
+        k_work_cancel_delayable(&cloud_reboot_work);
         return err;
     }
-    k_delayed_work_cancel(&cloud_reboot_work);
+    k_work_cancel_delayable(&cloud_reboot_work);
     /* Initialize the file descriptor structure used by poll */
     fds->fd = client->transport.tls.sock;
     fds->events = POLLIN;
