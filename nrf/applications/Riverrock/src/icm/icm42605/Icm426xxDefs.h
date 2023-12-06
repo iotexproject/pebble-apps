@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-/** @file Icm426xxDefs.h
+/** @file icm426xxDefs.h
  * File exposing the device register map
  */
 

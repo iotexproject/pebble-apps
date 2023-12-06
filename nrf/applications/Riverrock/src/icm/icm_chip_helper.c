@@ -4,9 +4,9 @@
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/device.h>
 #include <zephyr/logging/log.h>
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxDriver_HL.h"
 #include "icm42607/inv_imu_defs.h"
 #include "icm42607/inv_imu_driver.h"
 #include "icm42607/inv_imu_transport.h"
@@ -196,7 +196,7 @@ int iotex_icm_chip_init(void)
     rc = inv_icm426xx_init(&__icm_driver, &icm_serif, NULL); 
     rc |= inv_icm426xx_configure_fifo(&__icm_driver, INV_ICM426XX_FIFO_DISABLED);
     if (rc != INV_ERROR_SUCCESS) {
-        LOG_INF("!!! ERROR : failed to initialize Icm426xx: %d\n",rc);
+        LOG_INF("!!! ERROR : failed to initialize icm426xx: %d\n",rc);
         fatalError();
         return rc;
     }

@@ -3,14 +3,14 @@
 #include <stdlib.h>
 #include <zephyr/drivers/i2c.h>
 #include <zephyr/logging/log.h>
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxDriver_HL.h"
 #include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
-#include "icm42605/Icm426xxDriver_HL_apex.h"
-#include "icm42605/Icm426xx_pedometer.h"
+#include "icm42605/icm426xxDriver_HL_apex.h"
+#include "icm42605/icm426xx_pedometer.h"
 
 LOG_MODULE_REGISTER(pedometer, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 

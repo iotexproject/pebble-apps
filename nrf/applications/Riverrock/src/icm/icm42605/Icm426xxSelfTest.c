@@ -21,11 +21,11 @@
  * ________________________________________________________________________________________________________
  */
 
-#include "icm42605/Icm426xxSelfTest.h"
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxExtFunc.h"
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm42605/icm426xxSelfTest.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxExtFunc.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxDriver_HL.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -65,7 +65,7 @@
 #define MAX_ST_ACCEL_MG 1200
 
 
-/** @brief Icm426xx HW Base sensor status based upon s->sensor_on_mask
+/** @brief icm426xx HW Base sensor status based upon s->sensor_on_mask
  */
 enum inv_icm426xx_sensor_on_mask {
 	INV_ICM426XX_SENSOR_ON_MASK_ACCEL = (1L<<INV_ICM426XX_SENSOR_ACCEL),

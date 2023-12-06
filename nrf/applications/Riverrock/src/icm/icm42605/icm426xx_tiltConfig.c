@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/drivers/i2c.h>
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxDriver_HL.h"
-#include "icm42605/Icm426xxDriver_HL_apex.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxDriver_HL.h"
+#include "icm42605/icm426xxDriver_HL_apex.h"
 #include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"
@@ -14,7 +14,7 @@
 /*
  * Tilt frequency 
  * Use type ICM426XX_APEX_CONFIG0_DMP_ODR_t to define tilt frequency
- * These types are defined in Icm426xxDefs.h.
+ * These types are defined in icm426xxDefs.h.
  *
  * \note The frequency modes to run the Tilt are :
  * ICM426XX_APEX_CONFIG0_DMP_ODR_25Hz  (Low Power mode), 
@@ -26,14 +26,14 @@
  * Tilt wait time 
  * Use type ICM426XX_APEX_CONFIG4_TILT_WAIT_TIME_t to define the number of accelerometer samples 
  * to wait before triggering tilt event.
- * These types are defined in Icm426xxDefs.h.
+ * These types are defined in icm426xxDefs.h.
  */
 #define ICM_TILT_WAIT_TIME ICM426XX_APEX_CONFIG4_TILT_WAIT_TIME_4S
 
 /*
  * Tilt power save mode
  * Use type ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_t to define tilt power save mode
- * These types are defined in Icm426xxDefs.h.
+ * These types are defined in icm426xxDefs.h.
  */
 #define ICM_TILT_POWER_SAVE_MODE  ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_EN
 

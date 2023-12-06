@@ -21,14 +21,14 @@
  * ________________________________________________________________________________________________________
  */
 
-/** @defgroup DriverIcm426xxExt Icm426xx driver extern functions
- *  @brief    Extern functions for Icm426xx devices
- *  @ingroup  DriverIcm426xx
+/** @defgroup Drivericm426xxExt icm426xx driver extern functions
+ *  @brief    Extern functions for icm426xx devices
+ *  @ingroup  Drivericm426xx
  *  @{
  */
 
-/** @file Icm426xxExtFunc.h
- * Extern functions for Icm426xx devices
+/** @file icm426xxExtFunc.h
+ * Extern functions for icm426xx devices
  */
 
 #ifndef _INV_ICM426XX_EXTFUNC_H_

@@ -52,7 +52,7 @@ int iotex_icm_get_sensor_data(iotex_storage_icm *icm42605);
 int  inv_icm_wom_detect(struct inv_imu_device *icm_driver);
 
 
-/* For Icm426xxDriver_HL using */
+/* For icm426xxDriver_HL using */
 void inv_icm426xx_sleep_us(uint32_t us);
 uint64_t inv_icm426xx_get_time_us(void);
 struct inv_icm426xx * getICMDriver(void);

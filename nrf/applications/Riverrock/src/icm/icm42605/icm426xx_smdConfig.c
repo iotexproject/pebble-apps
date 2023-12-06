@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <zephyr/drivers/i2c.h>
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxDriver_HL.h"
 #include "icm_chip_helper.h"
 #include "modem/modem_helper.h"
 #include "nvs/local_storage.h"

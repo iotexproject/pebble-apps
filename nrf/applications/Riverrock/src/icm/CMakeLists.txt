@@ -10,9 +10,9 @@ target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/icm426xx_smdConf
 target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/icm426xx_tiltConfig.c)
 target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/icm426xx_womConfig.c)
 target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/icm426xxActionDetect.c)
-target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/Icm426xxDriver_HL.c)
-target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/Icm426xxDriver_HL_apex.c)
-target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/Icm426xxTransport.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/icm426xxDriver_HL.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/icm426xxDriver_HL_apex.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42605/icm426xxTransport.c)
 
 target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42607/inv_imu_apex.c)
 target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/icm42607/inv_imu_driver.c)

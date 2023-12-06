@@ -21,11 +21,11 @@
  * ________________________________________________________________________________________________________
  */
 #include <zephyr/logging/log.h>
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxExtFunc.h"
-#include "icm42605/Icm426xxDriver_HL.h"
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxVersion.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxExtFunc.h"
+#include "icm42605/icm426xxDriver_HL.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxVersion.h"
 
 
 LOG_MODULE_REGISTER(icm426xx, CONFIG_ASSET_TRACKER_LOG_LEVEL);

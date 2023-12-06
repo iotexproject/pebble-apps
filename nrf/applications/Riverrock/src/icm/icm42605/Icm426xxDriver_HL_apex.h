@@ -21,14 +21,14 @@
  * ________________________________________________________________________________________________________
  */
 
-/** @defgroup DriverIcm426xxDriver_HL_apex Icm426xx driver high level functions related to APEX
- *  @brief High-level function to setup an Icm426xx device
- *  @ingroup  DriverIcm426xx
+/** @defgroup Drivericm426xxDriver_HL_apex icm426xx driver high level functions related to APEX
+ *  @brief High-level function to setup an icm426xx device
+ *  @ingroup  Drivericm426xx
  *  @{
  */
 
-/** @file Icm426xxDriver_HL_apex.h
- * High-level function to setup an Icm426xx device
+/** @file icm426xxDriver_HL_apex.h
+ * High-level function to setup an icm426xx device
  */
 
 #ifndef _INV_ICM426xx_DRIVER_HL_APEX_H_
@@ -38,7 +38,7 @@
 extern "C" {
 #endif
 
-#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/icm426xxDefs.h"
 
 #include "InvError.h"
 
@@ -48,7 +48,7 @@ extern "C" {
 /* Forward declarations */
 struct inv_icm426xx;
 
-/** @brief Icm426xx TAP inputs parameters definition
+/** @brief icm426xx TAP inputs parameters definition
  */
 typedef struct {
 	uint8_t min_jerk_thr;	                                /**< Minimum Jerk Threshold */
@@ -58,7 +58,7 @@ typedef struct {
 	ICM426XX_APEX_CONFIG8_TAP_TMIN_t tmin;                  /**< Single tap window */
 } inv_icm426xx_tap_parameters_t;
 
-/** @brief Icm426xx APEX inputs parameters definition
+/** @brief icm426xx APEX inputs parameters definition
  */
 typedef struct inv_icm426xx_apex_parameters {
 	ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_t pedo_amp_th;                   /**< Peak threshold value to be considered as a valid step (mg) */

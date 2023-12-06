@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively â€œSoftwareâ€ is subject
+ * This software, related documentation and any modifications thereto (collectively “Software? is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -21,15 +21,15 @@
  * ________________________________________________________________________________________________________
  */
 
-/** @defgroup DriverIcm426xxUnit Icm426xx driver unit functions
- *  @brief Unit functions to access Icm426xx device registers
- *  @ingroup  DriverIcm426xx
+/** @defgroup Drivericm426xxUnit icm426xx driver unit functions
+ *  @brief Unit functions to access icm426xx device registers
+ *  @ingroup  Drivericm426xx
  *  @{
  */
 
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxExtFunc.h"
-#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxExtFunc.h"
+#include "icm42605/icm426xxTransport.h"
 
 
 /** @brief Set CHIP_ID register
@@ -133,8 +133,8 @@ int inv_icm426xx_wr_apex_config0_highg_en(struct inv_icm426xx * s, ICM426XX_APEX
 /** @brief Set PWR_MGMT_0 register S4S_EN bit
  *
  *  <pre>
- *  0 â€disable s4s
- *  1 â€enable s4s
+ *  0 ?disable s4s
+ *  1 ?enable s4s
  *  </pre>
  * @param[in] new_value See enum ICM426XX_PWR_MGMT_0_S4S_t
  * @return 0 in case of success, negative value on error. See enum inv_error

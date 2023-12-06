@@ -7,9 +7,9 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxDriver_HL.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxDriver_HL.h"
 
 enum  SENSOR_ACTION
 {

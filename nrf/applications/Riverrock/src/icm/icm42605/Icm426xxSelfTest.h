@@ -21,14 +21,14 @@
  * ________________________________________________________________________________________________________
  */
 
-/** @defgroup DriverIcm426xxSelfTest Icm426xx selftest
- *  @brief Low-level function to run selftest on a Icm426xx device
- *  @ingroup  DriverIcm426xx
+/** @defgroup Drivericm426xxSelfTest icm426xx selftest
+ *  @brief Low-level function to run selftest on a icm426xx device
+ *  @ingroup  Drivericm426xx
  *  @{
  */
 
-/** @file Icm426xxSelfTest.h
- * Low-level function to run selftest on a Icm426xx device
+/** @file icm426xxSelfTest.h
+ * Low-level function to run selftest on a icm426xx device
  */
 
 #ifndef _INV_ICM426XX_SELFTEST_H_
