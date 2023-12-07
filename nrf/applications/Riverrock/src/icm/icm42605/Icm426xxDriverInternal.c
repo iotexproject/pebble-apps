@@ -2,7 +2,7 @@
  * ________________________________________________________________________________________________________
  * Copyright (c) 2017 InvenSense Inc. All rights reserved.
  *
- * This software, related documentation and any modifications thereto (collectively “Software? is subject
+ * This software, related documentation and any modifications thereto (collectively â€œSoftware? is subject
  * to InvenSense and its licensors' intellectual property rights under U.S. and international copyright
  * and other intellectual property rights laws.
  *
@@ -159,8 +159,8 @@ int inv_icm426xx_wr_pwr_mgmt0_s4s_en(struct inv_icm426xx * s, ICM426XX_PWR_MGMT_
 /** @brief Read PWR_MGMT_0 register S4S_EN bit
  *
  *  <pre>
- *  0 â€s4s disabled
- *  1 â€s4s enabled
+ *  0 Ã¢â‚¬s4s disabled
+ *  1 Ã¢â‚¬s4s enabled
  *  </pre>
  * @param[out] value See enum ICM426XX_PWR_MGMT_0_S4S_t
  * @return 0 in case of success, negative value on error. See enum inv_error
