@@ -1,14 +1,23 @@
 #include <stdio.h>
 #include <string.h>
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include "ecdsa.h"
-#include <drivers/entropy.h>
-#include <sys/util.h>
-#include <toolchain/common.h>
-#include <logging/log.h>
+#include <zephyr/drivers/entropy.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/toolchain/common.h>
+#include <zephyr/logging/log.h>
+#if CONFIG_BOARD_THINGY91_NRF9160_NS
+#include <tfm_ns_interface.h>
+#include <tfm_ioctl_api.h>
+#endif
+#include <psa/crypto.h>
+#include <psa/crypto_extra.h>
+#include <psa/crypto_values.h>
+#include <pm_config.h>
 #include "ecdsa.h"
 #include "nvs/local_storage.h"
 
+#include "psa/crypto.h"
 
 LOG_MODULE_REGISTER(ecdsa, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
@@ -42,6 +51,17 @@ LOG_MODULE_REGISTER(ecdsa, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 #define  COM_PUB_STR_ADD(a)  (a+PRIV_STR_LEN+130)
 #define  UNCOM_PUB_STR_ADD(a) (a+PRIV_STR_LEN)
 
+#define APP_SUCCESS		(0)
+#define APP_ERROR		(-1)
+
+#define NRF_CRYPTO_EXAMPLE_ECDSA_TEXT_SIZE (100)
+
+#define NRF_CRYPTO_EXAMPLE_ECDSA_PUBLIC_KEY_SIZE (65)
+#define NRF_CRYPTO_EXAMPLE_ECDSA_SIGNATURE_SIZE (64)
+#define NRF_CRYPTO_EXAMPLE_ECDSA_HASH_SIZE (32)
+
+psa_key_id_t key_id;
+
 unsigned char* readECCPubKey(void);
 
 uint16_t CRC16(uint8_t *data, size_t len) {
@@ -56,18 +76,6 @@ uint16_t CRC16(uint8_t *data, size_t len) {
         }
     }
     return (crc);
-}
-
-int get_ecc_key(void) {
-    uint8_t *pbuf;
-    char buf[MODEM_READ_BUF_SIZE];
-
-    memset(buf, 0, sizeof(buf));
-    pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
-    if (pbuf) 
-        return updateKey(pbuf);
-    else
-        return 1;
 }
 
 /*
@@ -91,8 +99,21 @@ unsigned char *readECCPubKey(void) {
     return pub;
 }
 
-int startup_check_ecc_key(void) {
-    return get_ecc_key() ? -4 : 0;
+int pebble_crypto_init(void) {
+    uint8_t *pbuf;
+    uint32_t ret = 0;
+    char buf[MODEM_READ_BUF_SIZE];
+
+    psa_crypto_init();
+    memset(buf, 0, sizeof(buf));
+    pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
+    if (pbuf){
+		ret = export_psa_key(pbuf, 128, &key_id);
+        printf("Pubkey: %s\n", readECCPubKey());
+        return ret;
+    }
+    else
+        return 1;
 }
 
 void hex2str(char* buf_hex, int len, char *str) {
@@ -108,25 +129,50 @@ void hex2str(char* buf_hex, int len, char *str) {
     }
     str[j] = 0;    
 }
+static char str2Hex(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return (c - '0');
+    }
 
+    if (c >= 'a' && c <= 'z') {
+        return (c - 'a' + 10);
+    }
+
+    if (c >= 'A' && c <= 'Z') {
+        return (c -'A' + 10);
+    }
+    return c;
+}
+
+int hexStr2Bin(char *str, char *bin) {
+    int i,j;
+    for(i = 0,j = 0; j < (strlen(str)>>1) ; i++,j++)
+    {
+        bin[j] = (str2Hex(str[i]) <<4);
+        i++;
+        bin[j] |= str2Hex(str[i]);
+    }   
+    return j; 
+}
 int doESDASign(char *inbuf, uint32_t len, char *buf, int *sinlen) {
     int ret = 0;
-#ifdef TEST_VERFY_SIGNATURE    
-    __disable_irq();
-    ret = doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
-    __enable_irq();
-    LOG_INF("doESDA_sep256r_Sign return :%x \n", ret);
-#else
-    doESDA_sep256r_Sign(inbuf, len, buf, sinlen);
-#endif
-    LowsCalc(buf+32, buf+32);
+
+    ret = spp_sign(inbuf, len, buf, sinlen);
     return ret;
 }
 
 int safeRandom(void) {
     int  rand;
-    __disable_irq();
-    rand = iotex_random();
-    __enable_irq();
+    psa_generate_random((uint8_t *)&rand, sizeof(rand));
     return rand;
 }
+int GenRandom(char *out)
+{
+    psa_status_t status;
+    uint8_t random_number_hex[8];
+    status = psa_generate_random(random_number_hex, 8);
+    hex2str(random_number_hex,sizeof(random_number_hex), out);
+    return status;
+}
+

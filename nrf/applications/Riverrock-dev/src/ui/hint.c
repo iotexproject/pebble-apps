@@ -1,13 +1,13 @@
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
-#include <drivers/sensor.h>
-#include <console/console.h>
-#include <logging/log.h>
-#include <power/reboot.h>
-#include <sys/mutex.h>
+//#include <drivers/gps.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/xen/console.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/sys/mutex.h>
 #include <modem/lte_lc.h>
 #include "hints_data.h"
 #include "display.h"
@@ -265,6 +265,34 @@ static int regionIndex(int id)
     return  0;
 }
 
+static uint8_t cutRedundancy(uint8_t *str, uint8_t next_char, uint8_t cut_char){
+    uint8_t *end = str;
+    uint32_t i;
+    if(cut_char == 0)
+    {
+        for(i = 0; i < 20; i++){
+            if((*end) != next_char)
+                end--;
+            else {
+                *(end+2) = 0;
+                return 0;
+            }
+        }
+    }
+    else
+    {
+        for(i = 0; i < 20; i++){
+            if((*end) != cut_char)
+                end--;
+            else {
+                *end = 0;
+                return 0;
+            }
+        }
+    }
+    return  -1;
+}
+
 bool updateCert(int id) {
     uint8_t *pcert = NULL;
     uint8_t *pkey = NULL;
@@ -290,7 +318,6 @@ bool updateCert(int id) {
             free(proot);
         return false;
     }
-
     if(selArea <= 4) {
         pmqttBrokerHost = mqttBrokerHost[selArea];
         mqtt_port = 8883;
@@ -305,9 +332,11 @@ bool updateCert(int id) {
             LOG_ERR("read endpoint error \n");
             goto out;
         }
-        pbuf_root[strlen(pbuf_root) - 3] = 0;
-        pbuf_cert[strlen(pbuf_cert) - 3] = 0;
-        sscanf(pbuf_cert, "%[^:]:%s",port,flg);
+        if(cutRedundancy(pbuf_root+ strlen(pbuf_root) - 1, 0, '"') || cutRedundancy(pbuf_cert + strlen(pbuf_cert) - 1, 0, '"')){
+            LOG_ERR("endpoint damaged \n");
+            goto out;
+        }
+        sscanf(pbuf_cert, "%[0-9]:%[a-z]]",port,flg);
         if(!strcmp(flg,"tls"))
             is_tls = 1;
         else
@@ -327,9 +356,11 @@ bool updateCert(int id) {
             LOG_ERR("read cert error \n");
             goto out;
         }
-        pbuf_cert[strlen(pbuf_cert) - 3] = 0;
-        pbuf_key[strlen(pbuf_key) - 3] = 0;
-        pbuf_root[strlen(pbuf_root) - 3] = 0;
+        if(cutRedundancy(pbuf_cert+ strlen(pbuf_cert) - 1, '-', 0) || cutRedundancy(pbuf_key + strlen(pbuf_key) - 1, '-', 0) ||
+        cutRedundancy(pbuf_root + strlen(pbuf_root) - 1, '-', 0)){
+            LOG_ERR("cert damaged \n");
+            goto out;
+        }
         WriteCertIntoModem(pbuf_cert, pbuf_key, pbuf_root);
     }
     pebbleContractNet = pebble_net_type[id];
@@ -370,16 +401,16 @@ void initBrokeHost(void) {
     }
     if(selArea == 0) {
         pebbleModem = PEBBLE_MODEM_NB_IOT;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT, LTE_LC_SYSTEM_MODE_PREFER_NBIOT);
     } else {
         pebbleModem = PEBBLE_MODEM_LTE_M;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM, LTE_LC_SYSTEM_MODE_PREFER_LTEM);
     }
 
     if (!mqttCertExist()) {
         ssd1306_clear_screen(0);
         dis_OnelineText(1, ALIGN_CENTRALIZED, "MISS KEY", DIS_NORMAL);
-        //while (1);
+        while (1);
         return;
     }
 }
@@ -430,10 +461,10 @@ void modemSettings(void) {
                 break;
             else if (cursor == 0) {
                 pebbleModem = PEBBLE_MODEM_NB_IOT;
-                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT, LTE_LC_SYSTEM_MODE_PREFER_NBIOT);
             } else if(cursor == 1) {
                 pebbleModem = PEBBLE_MODEM_LTE_M;
-                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+                lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM, LTE_LC_SYSTEM_MODE_PREFER_LTEM);
             }
             /*  read modem and writing into  sec */
             if (selArea != cursor) {
@@ -809,10 +840,10 @@ bool pebbleWorsAtLTEM(void) {
 void anotherWorkMode(void) {
     if(pebbleWorksAtNBIOT()) {
         pebbleModem = PEBBLE_MODEM_LTE_M;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_LTEM, LTE_LC_SYSTEM_MODE_PREFER_LTEM);
     } else {
         pebbleModem = PEBBLE_MODEM_NB_IOT;
-        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT);
+        lte_lc_system_mode_set(LTE_LC_SYSTEM_MODE_NBIOT, LTE_LC_SYSTEM_MODE_PREFER_NBIOT);
     }
     pebbleBackGround(0);
     setDefaultWorkMode();
@@ -828,8 +859,6 @@ void setDefaultWorkMode(void) {
     index[1] = 0;
     iotex_local_storage_save(SID_MODEM_WORK_MODE, index, 1);
 }
-
-
 
 void ntp_err_show(void) 
 {

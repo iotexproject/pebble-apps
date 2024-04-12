@@ -1,15 +1,27 @@
-#include <device.h>
+#include <zephyr/device.h>
 #include <string.h>
-#include <drivers/flash.h>
-#include <storage/flash_map.h>
-#include <fs/nvs.h>
-#include <logging/log.h>
+#include <zephyr/drivers/flash.h>
+#include <zephyr/storage/flash_map.h>
+#include <zephyr/fs/nvs.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/storage/flash_map.h>
 #include "local_storage.h"
-
 
 LOG_MODULE_REGISTER(local_storage, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
-static struct nvs_fs __local_storage;
+/* Flash partition for NVS */
+#define NVS_FLASH_DEVICE FLASH_AREA_DEVICE(storage)
+/* Flash block size in bytes */
+#define NVS_SECTOR_SIZE  (DT_PROP(DT_CHOSEN(zephyr_flash), erase_block_size))
+#define NVS_SECTOR_COUNT 2
+/* Start address of the filesystem in flash */
+#define NVS_STORAGE_OFFSET FLASH_AREA_OFFSET(storage)
+
+static struct nvs_fs __local_storage = {
+	.sector_size = NVS_SECTOR_SIZE,
+	.sector_count = NVS_SECTOR_COUNT,
+	.offset = NVS_STORAGE_OFFSET,
+};
 
 /*
 ** @brief: Initialize local storage(zephyr nvs subsystem
@@ -19,17 +31,12 @@ int iotex_local_storage_init(void) {
     int ret;
     struct flash_pages_info info;
 
-    __local_storage.offset = FLASH_AREA_OFFSET(storage);
-    /* Get flash page info */
-    if ((ret = flash_get_page_info_by_offs(device_get_binding(DT_CHOSEN_ZEPHYR_FLASH_CONTROLLER_LABEL), __local_storage.offset, &info))) {
-        LOG_ERR("Get flash page info failed: %d\n", ret);
-        return -1;
-    }
-    /* Set nvs sector size as flash page size */
-    __local_storage.sector_size = info.size;
-    __local_storage.sector_count = CONFIG_NVS_LOCAL_STORAGE_SECTOR_COUNT;
-    /* Init nvs filesystem */
-    if ((ret = nvs_init(&__local_storage, DT_CHOSEN_ZEPHYR_FLASH_CONTROLLER_LABEL))) {
+	__local_storage.flash_device = NVS_FLASH_DEVICE;
+	if (__local_storage.flash_device == NULL) {
+		return -ENODEV;
+	}
+
+    if ((ret = nvs_mount(&__local_storage))) {
         LOG_ERR("Init local storage failed: %d\n", ret);
         return -1;
     }

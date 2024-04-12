@@ -1,9 +1,9 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdio.h>
-#include <drivers/i2c.h>
-#include <device.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/device.h>
 #include <string.h>
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 #include "tsl2572.h"
 #include "nvs/local_storage.h"
 #include "modem/modem_helper.h"
@@ -39,7 +39,7 @@ int iotex_TSL2572_init(uint8_t gain)
 {
     uint8_t chip_id = 0;
 
-    if (!(__i2c_dev_tsl2572 = device_get_binding(I2C_DEV_TSL2572))) {
+    if (!(__i2c_dev_tsl2572 = DEVICE_DT_GET(DT_NODELABEL(i2c2)))) {
         LOG_ERR("I2C: Device driver[%s] not found.\n", I2C_DEV_TSL2572);
         return -1;
     }

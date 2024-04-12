@@ -1,12 +1,12 @@
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
-#include <drivers/sensor.h>
-#include <console/console.h>
-#include <power/reboot.h>
-#include <sys/mutex.h>
+//#include <drivers/gps.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/xen/console.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/sys/mutex.h>
 
 #include "display.h"
 #include "devReg.h"
@@ -44,7 +44,7 @@ const uint8_t sim_card[] = {0x00,0x1F,0x21,0x41,0x81,0xBD,0xA5,0xA5,0xA5,0xA5,0x
 const uint8_t modem_mode_m[]={0x0F,0x08,0x04,0x02,0x04,0x08,0x0F};
 const uint8_t modem_mode_n[]={0x0F,0x04,0x02,0x0F};
 atomic_val_t  is_modem_sleep;
-static struct k_delayed_work   led_flash;
+static struct k_work_delayable   led_flash;
 
 extern uint8_t s_chDispalyBuffer[128][8];
 extern void closeGrennLED(void);
@@ -54,7 +54,7 @@ void led_flash_fn(struct k_work *work) {
 }
 
 void ledFlahsWorkerInit(void) {
-    k_delayed_work_init(&led_flash, led_flash_fn);
+    k_work_init_delayable(&led_flash, led_flash_fn);
 }
 
 void sta_LoadIcon(void) {
@@ -105,7 +105,7 @@ void sta_Refresh(void) {
         ledTime = 0;
         if (!sta_GetMeta(PEBBLE_POWER)) {
             CtrlBlueLED(true);
-            k_delayed_work_submit(&led_flash, K_MSEC(300));
+            k_work_reschedule(&led_flash, K_MSEC(300));
         }
     }
 
@@ -162,7 +162,6 @@ void sta_Refresh(void) {
         index++;
         if (index > 8)
             index = 0;
-        /* memset(staBar.sig_icon, 0, sizeof(staBar.sig_icon)); */
         for(i = 0;i < index * 4; i++) {
             s_chDispalyBuffer[i++][7] = 0x18;
             s_chDispalyBuffer[i++][7] = 0x18;

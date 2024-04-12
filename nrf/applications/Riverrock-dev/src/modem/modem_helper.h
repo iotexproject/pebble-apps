@@ -2,7 +2,7 @@
 #define _IOTEX_MODEM_H_
 
 #define MODEM_IMEI_LEN 15
-#define TIMESTAMP_STR_LEN 50
+#define TIMESTAMP_STR_LEN 64
 
 typedef struct {
     char data[TIMESTAMP_STR_LEN];

@@ -21,14 +21,14 @@
  * ________________________________________________________________________________________________________
  */
 
-/** @defgroup DriverIcm426xxDriver_HL Icm426xx driver high level functions
- *  @brief High-level function to setup an Icm426xx device
- *  @ingroup  DriverIcm426xx
+/** @defgroup Drivericm426xxDriver_HL icm426xx driver high level functions
+ *  @brief High-level function to setup an icm426xx device
+ *  @ingroup  Drivericm426xx
  *  @{
  */
 
-/** @file Icm426xxDriver_HL.h
- * High-level function to setup an Icm426xx device
+/** @file icm426xxDriver_HL.h
+ * High-level function to setup an icm426xx device
  */
 
 #ifndef _INV_ICM426xx_DRIVER_HL_H_
@@ -38,8 +38,8 @@
 extern "C" {
 #endif
 
-#include "icm42605/Icm426xxDefs.h"
-#include "icm42605/Icm426xxTransport.h"
+#include "icm42605/icm426xxDefs.h"
+#include "icm42605/icm426xxTransport.h"
 
 #include "InvError.h"
 
@@ -104,7 +104,7 @@ extern "C" {
 	#define RTC_SUPPORTED 0
 #endif
 
-/** @brief Icm426xx maximum buffer size mirrored from FIFO at polling time
+/** @brief icm426xx maximum buffer size mirrored from FIFO at polling time
  *  @warning fifo_idx type variable must be large enough to parse the FIFO_MIRRORING_SIZE
  */
 #define ICM426XX_FIFO_MIRRORING_SIZE 16 * 129 // packet size * max_count = 2064
@@ -114,11 +114,11 @@ extern "C" {
  */
 #define ICM426XX_DEFAULT_WOM_THS_MG 52>>2 /* = 52mg/4 */
 
-/** @brief Icm426xx Accelerometer start-up time before having correct data
+/** @brief icm426xx Accelerometer start-up time before having correct data
  */
 #define ICM426XX_ACC_STARTUP_TIME_US 20000U
 
-/** @brief Icm426xx Gyroscope start-up time before having correct data
+/** @brief icm426xx Gyroscope start-up time before having correct data
  */
 #define ICM426XX_GYR_STARTUP_TIME_US 60000U
 
@@ -163,7 +163,7 @@ typedef struct {
 	int8_t gyro_high_res[3];
 } inv_icm426xx_sensor_event_t;
 
-/** @brief Icm426xx driver states definition
+/** @brief icm426xx driver states definition
  */
 struct inv_icm426xx {
 	struct inv_icm426xx_transport transport;                              /**< Warning : this field MUST be the first one of 
@@ -230,7 +230,7 @@ typedef enum{
 	INV_ICM426XX_ENABLE
 }inv_icm426xx_interrupt_value;
 
-/** @brief Icm426xx set of interrupt enable flag
+/** @brief icm426xx set of interrupt enable flag
  */
 typedef struct {
 	inv_icm426xx_interrupt_value INV_ICM426XX_UI_FSYNC;

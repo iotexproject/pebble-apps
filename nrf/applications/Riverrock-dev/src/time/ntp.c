@@ -1,17 +1,16 @@
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <drivers/gps.h>
-#include <drivers/sensor.h>
-#include <console/console.h>
-#include <power/reboot.h>
-#include <logging/log_ctrl.h>
-#include <sys/mutex.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/xen/console.h>
+#include <zephyr/sys/reboot.h>
+#include <zephyr/logging/log_ctrl.h>
+#include <zephyr/sys/mutex.h>
 #include <modem/lte_lc.h>
-#include <logging/log.h>
-#include <net/sntp.h>
-#include <net/socketutils.h>
+#include <zephyr/logging/log.h>
+#include <zephyr/net/sntp.h>
+#include <zephyr/net/socketutils.h>
 
 
 LOG_MODULE_REGISTER(ntp, 0);
@@ -102,11 +101,11 @@ socket_close:
 	return err;
 }
 
-static int time_NTP_server_get(int skipped_ntp, struct time_aux *aux)
+static int time_NTP_server_get(int start_ntp, struct time_aux *aux)
 {
 	int err, i; 
 
-	for (i = 0; i < ARRAY_SIZE(servers); i++) {
+	for (i = start_ntp; i < ARRAY_SIZE(servers); i++) {
 		err =  sntp_time_request(&servers[i],
 			MSEC_PER_SEC * SNTP_REQUEST_TIMEOUT,
 			&sntp_time);
@@ -135,64 +134,44 @@ static int readNTP(void) {
     struct time_aux  aux1, aux2;
     uint32_t modem_timestamp;
     const char *modem_tm_str;
-    int ret = 0;
+    int ntp_server = 0;
 
     //  mqtt not closed 
     if (atomic_get(&send_data_enable))
         return 1;
 
-    ret = time_NTP_server_get(-1, &aux1);
-    if(ret >= 0) {
+    ntp_server = time_NTP_server_get(0, &aux1);
+    if(ntp_server >= 0) {
         uptime_now = k_uptime_get();
         modem_tm_str = iotex_modem_get_clock(NULL);
-        if(modem_tm_str != NULL) {
-            modem_timestamp = atoi(modem_tm_str);
-            if(abs((uint32_t)((aux1.date_time_utc + uptime_now - aux1.last_date_time_update)/1000) - modem_timestamp) <= 2){
-                sys_time_aux.date_time_utc = aux1.date_time_utc;
-                sys_time_aux.last_date_time_update = aux1.last_date_time_update;
-            }
-            else {
-                ret = time_NTP_server_get(ret, &aux2);
-                if(ret >= 0) {
-                    if(abs((uint32_t)((aux1.date_time_utc - aux1.last_date_time_update - aux2.date_time_utc + aux2.last_date_time_update)/1000)) <= 2){
-                        sys_time_aux.date_time_utc = aux1.date_time_utc;
-                        sys_time_aux.last_date_time_update = aux1.last_date_time_update;
-                    }
-                    else
-                    {
-                        ret = 1;
-                        goto ntp_error;
-                    }
-                }
-                else {
-                    ret = 1;
-                    goto ntp_error;
-                }
-            }
+        modem_tm_str = NULL;
+        if((modem_tm_str != NULL) && (abs((uint32_t)((aux1.date_time_utc + uptime_now - aux1.last_date_time_update)/1000) - atoi(modem_tm_str)) <= 2)) {
+            sys_time_aux.date_time_utc = aux1.date_time_utc;
+            sys_time_aux.last_date_time_update = aux1.last_date_time_update;
+            return 0;
         }
         else {
-            ret = 1;
-            goto ntp_error;
+            while((ntp_server >=0) && (ntp_server < ARRAY_SIZE(servers))){
+                ntp_server = time_NTP_server_get(ntp_server, &aux2);
+                if(abs((uint32_t)((aux1.date_time_utc - aux1.last_date_time_update - aux2.date_time_utc + aux2.last_date_time_update)/1000)) <= 2){
+                    sys_time_aux.date_time_utc = aux2.date_time_utc;
+                    sys_time_aux.last_date_time_update = aux2.last_date_time_update;
+                    return  0;
+                }
+                aux1.date_time_utc = aux2.date_time_utc;
+                aux1.last_date_time_update = aux2.last_date_time_update;
+            }
         }
     }
-    else {
-        ret = 1;
-        goto ntp_error;
-    }
-    return  ret;
-
-ntp_error:
     ntp_err_show();
-    while(1)
-    {
-        k_sleep(K_SECONDS(100));
-    }
+    sys_reboot(0);
+    return 2;
 }
 
 
 int syncNTPTime(void)
 {
-    s64_t uptime_now;
+    int64_t uptime_now;
     uint32_t last_update_time = 0;
 
     sys_mutex_lock(&ntp_mutex, K_FOREVER);
@@ -204,9 +183,9 @@ int syncNTPTime(void)
     return  0;
 }
 
-s64_t getSysTimestamp_ms(void)
+int64_t getSysTimestamp_ms(void)
 {
-    s64_t timestamp, uptime_now;
+    int64_t timestamp, uptime_now;
 
     sys_mutex_lock(&ntp_mutex, K_FOREVER);
     uptime_now = k_uptime_get();
@@ -221,9 +200,9 @@ uint32_t getSysTimestamp_s(void)
 {
     uint32_t timestamp;
     
-    LOG_DBG("modem time: %d\n",atoi(iotex_modem_get_clock(NULL)));
+    /*LOG_DBG("modem time: %d\n",atoi(iotex_modem_get_clock(NULL)));*/
     timestamp = (uint32_t)(getSysTimestamp_ms()/1000);
-    LOG_DBG("ntp timestamp in second:%d \n", timestamp);
+    /*LOG_DBG("ntp timestamp in second:%d \n", timestamp);*/
     return  timestamp;
 }
 

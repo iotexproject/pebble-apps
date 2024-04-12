@@ -1,13 +1,12 @@
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 #include <stdio.h>
-#include <drivers/i2c.h>
-#include <device.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/device.h>
 #include <string.h>
 #include "bme680.h"
 #include "bme680_helper.h"
 #include "nvs/local_storage.h"
 #include "modem/modem_helper.h"
-#include "env_sensors.h"
 
 static struct bme680_dev __gas_sensor;
 static struct device *__i2c_dev_bme680;
@@ -73,12 +72,11 @@ static int8_t user_config_bme680(void) {
 }
 
 int iotex_bme680_init(void) {
-#if 1
     /* BME680 i2c bus init */
     uint8_t chip_id = 0;
     int8_t ret = BME680_OK;
 
-    if (!(__i2c_dev_bme680 = device_get_binding(I2C_DEV_BME680))) {
+    if (!(__i2c_dev_bme680 = DEVICE_DT_GET(DT_NODELABEL(i2c2)))) {
         printk("I2C: Device driver[%s] not found.\n", I2C_DEV_BME680);
         return -1;
     }
@@ -109,14 +107,9 @@ int iotex_bme680_init(void) {
 
     /* Configure the sensor */
     return user_config_bme680();
-#else
-    env_sensors_init_and_start(NULL,NULL);
-    return BME680_OK;
-#endif
 }
 
 int iotex_bme680_get_sensor_data(iotex_storage_bme680 *bme680) {
-#if 1
     uint16_t meas_period;
     int8_t rslt = BME680_OK;
     struct bme680_field_data data;
@@ -145,21 +138,4 @@ int iotex_bme680_get_sensor_data(iotex_storage_bme680 *bme680) {
 
 
     return rslt;
-#else
-    env_sensor_data_t env_data;
-    env_sensors_get_air_quality(&env_data);
-    bme680->gas_resistance = env_data.value;
-    env_sensors_get_pressure(&env_data);
-    bme680->pressure = env_data.value;
-    env_sensors_get_humidity(&env_data);
-    bme680->humidity = env_data.value;    
-    env_sensors_get_temperature(&env_data);
-    bme680->temperature = env_data.value; 
-    /* char env_print[200]; */
-    /* memset(env_print,0, sizeof(env_print));    */
-    /* snprintf(env_print, sizeof(env_print), "{\"temperature\":\"%f\",\"humidity\":%f,\"gas_resistance\":%f}", */
-    /*             bme680->temperature, bme680->humidity, bme680->gas_resistance); */
-    /* printk("BME680 read : %s \n", env_print); */
-    return BME680_OK;
-#endif
 }

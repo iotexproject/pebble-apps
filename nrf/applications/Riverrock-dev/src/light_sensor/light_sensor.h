@@ -20,8 +20,8 @@ extern "C" {
  * @details Interface for RGB IR light sensor for asset tracker.
  *
  */
-#include <zephyr.h>
-#include <drivers/sensor.h>
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/sensor.h>
 
 struct light_sensor_data {
     /* light levels in lux */
@@ -56,14 +56,14 @@ int light_sensor_get_data(struct light_sensor_data *const data);
  * @param interval_s Interval, in seconds. 0 to disable.
  *
  */
-void light_sensor_set_send_interval(const u32_t interval_s);
+void light_sensor_set_send_interval(const uint32_t interval_s);
 
 /**
  * @brief Get light sensor's poll/send interval.
  *
  * @return Interval, in seconds.
  */
-u32_t light_sensor_get_send_interval(void);
+uint32_t light_sensor_get_send_interval(void);
 
 #ifdef __cplusplus
 }

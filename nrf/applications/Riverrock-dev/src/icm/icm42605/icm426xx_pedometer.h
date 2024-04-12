@@ -1,12 +1,12 @@
 #ifndef    __PEDOMETER_H__
 #define    __PEDOMETER_H__
-#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/icm426xxDefs.h"
 #include "icm_chip_helper.h"
 
 /*
  * Pedometer frequency 
  * Use type ICM426XX_APEX_CONFIG0_DMP_ODR_t to define pedometer frequency
- * These types are defined in Icm426xxDefs.h.
+ * These types are defined in icm426xxDefs.h.
  *
  * \note The frequency modes to run the Pedometer are :
  * ICM426XX_APEX_CONFIG0_DMP_ODR_25Hz  (Low Power mode), 
@@ -17,7 +17,7 @@
 /*
  * Pedometer power save mode
  * Use type ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_t to define pedometer power save mode
- * These types are defined in Icm426xxDefs.h.
+ * These types are defined in icm426xxDefs.h.
  */
 #define ICM_PEDOMETER_POWER_SAVE_MODE ICM426XX_APEX_CONFIG0_DMP_POWER_SAVE_EN
  
@@ -28,7 +28,7 @@
 /* 
  * Peak threshold value to be considered as a valid step (mg) 
  * Use type ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_t to define the valid step peak threshold
- * These types are defined in Icm426xxDefs.h
+ * These types are defined in icm426xxDefs.h
  */
 #define ICM_PEDOMETER_VALID_STEP_THRESHOLD /*ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_62MG*/  ICM426XX_APEX_CONFIG2_PEDO_AMP_TH_30MG
 		
@@ -41,7 +41,7 @@
  * Duration of non-walk in number of samples to exit the current walk mode.
  * ICM_PEDOMETER_STEP_COUNTER_THRESHOLD number of steps above must again be detected before step count starts to increase
  * Use type ICM426XX_APEX_CONFIG3_PEDO_SB_TIMER_TH_t to define the non-walk duration
- * These types are defined in Icm426xxDefs.h
+ * These types are defined in icm426xxDefs.h
  *
  * \note The recommended values according to the frequency mode selected are :
  * ICM426XX_APEX_CONFIG3_PEDO_SB_TIMER_TH_100_SAMPLES in Low Power mode
@@ -57,7 +57,7 @@
 /*
  * Sensitivity mode: Normal
  * Use type ICM426XX_APEX_CONFIG9_SENSITIVITY_MODE_t to define sensitivity mode 
- * These types are defined in Icm426xxDefs.h.
+ * These types are defined in icm426xxDefs.h.
  */
 #define ICM_PEDOMETER_SENSITIVITY_MODE ICM426XX_APEX_CONFIG9_SENSITIVITY_MODE_NORMAL
 

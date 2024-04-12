@@ -3,18 +3,14 @@
  *
  * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
-#include <zephyr.h>
-#include <drivers/gpio.h>
-#include <drivers/flash.h>
-#include <bsd.h>
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/flash.h>
 #include <modem/lte_lc.h>
-#include <modem/at_cmd.h>
-#include <modem/at_notif.h>
-#include <modem/bsdlib.h>
 #include <modem/modem_key_mgmt.h>
 #include <net/fota_download.h>
-#include <dfu/mcuboot.h>
-#include <logging/log.h>
+#include <zephyr/dfu/mcuboot.h>
+#include <zephyr/logging/log.h>
 #include "keyBoard.h"
 #include "display.h"
 #include "mqtt/devReg.h"
@@ -40,7 +36,7 @@ LOG_MODULE_REGISTER(http_update, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 static const struct device *gpiob;
 static struct gpio_callback gpio_cb;
 static struct k_work fota_work;
-static struct k_delayed_work fota_status_check;
+static struct k_work_delayable fota_status_check;
 static int aliveCnt = 0;
 static uint8_t otaHost[100];
 static uint8_t otaFile[200];
@@ -56,7 +52,6 @@ static void app_dfu_transfer_start(struct k_work *unused)
 {
     int retval;
     int sec_tag;
-    char *apn = NULL;
 
     LOG_INF("app_dfu_transfer_start\n ");
 #ifndef CONFIG_USE_HTTPS
@@ -64,7 +59,7 @@ static void app_dfu_transfer_start(struct k_work *unused)
 #else
     sec_tag = TLS_SEC_TAG;
 #endif
-    retval = fota_download_start(otaHost, otaFile, sec_tag, apn, 0);
+    retval = fota_download_start(otaHost, otaFile, sec_tag, 0, 0);
     if (retval != 0) {
         /* Re-enable button callback */
         LOG_ERR("fota_download_start() failed, err %d\n", retval);
@@ -79,9 +74,9 @@ static void fota_status(struct k_work *unused)
         aliveCnt = 0;
         LOG_ERR("Received hangup from fota_download\n");
         k_work_submit(&fota_work);
-        k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
+        k_work_reschedule(&fota_status_check, K_MSEC(2000));
     } else {
-        k_delayed_work_submit(&fota_status_check, K_MSEC(10000));
+        k_work_reschedule(&fota_status_check, K_MSEC(10000));
     }
     LOG_INF("aliveCnt:%d\n", aliveCnt);
 }
@@ -112,7 +107,7 @@ static int led_app_version(void) {
 void dfu_button_pressed(const struct device *gpiob, struct gpio_callback *cb, uint32_t pins)
 {
     k_work_submit(&fota_work);
-    k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
+    k_work_reschedule(&fota_status_check, K_MSEC(2000));
     gpio_pin_interrupt_configure(gpiob, DT_GPIO_PIN(DT_ALIAS(sw0), gpios), GPIO_INT_DISABLE);
 }
 
@@ -134,7 +129,7 @@ static int dfu_button_init(void) {
 static int initSw0(void) {
     int err;
 
-    gpiob = device_get_binding(DT_GPIO_LABEL(DT_ALIAS(sw0), gpios));
+    gpiob = device_get_binding(DT_GPIO_PIN(DT_ALIAS(sw0), gpios));
     if (!gpiob) {
         LOG_ERR("Nordic nRF GPIO driver was not found!\n");
         return 1;
@@ -156,7 +151,7 @@ void fota_dl_handler(const struct fota_download_evt *evt)
         break;
     case FOTA_DOWNLOAD_EVT_FINISHED:
         /* Re-enable button callback */
-        k_delayed_work_cancel(&fota_status_check);
+        k_work_cancel_delayable(&fota_status_check);
         devRegSet(DEV_UPGRADE_COMPLETE);
         break;
     case FOTA_DOWNLOAD_EVT_PROGRESS:
@@ -171,7 +166,7 @@ void fota_dl_handler(const struct fota_download_evt *evt)
 static int application_init(void) {
     int err;
     k_work_init(&fota_work, app_dfu_transfer_start);
-    k_delayed_work_init(&fota_status_check, fota_status);
+    k_work_init_delayable(&fota_status_check, fota_status);
     err = fota_download_init(fota_dl_handler);
     return (err != 0) ? err : 0;
 }
@@ -194,5 +189,5 @@ void initOTA(void) {
 void startOTA(uint8_t *url) {
     getHost(url,otaHost,otaFile);
     k_work_submit(&fota_work);
-    k_delayed_work_submit(&fota_status_check, K_MSEC(2000));
+    k_work_reschedule(&fota_status_check, K_MSEC(2000));
 }

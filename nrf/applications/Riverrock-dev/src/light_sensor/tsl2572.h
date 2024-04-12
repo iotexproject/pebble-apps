@@ -8,7 +8,7 @@ extern "C" {
 
 #define TSL25721            0x34
 #define TSL2572_I2CADDR     0x39
-#define I2C_DEV_TSL2572     "I2C_2"
+#define I2C_DEV_TSL2572     "i2c2"
 
 #define GAIN_1X 0
 #define GAIN_8X 1

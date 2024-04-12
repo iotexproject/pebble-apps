@@ -21,14 +21,14 @@
  * ________________________________________________________________________________________________________
  */
 
-/** @defgroup DriverIcm426xxTransport Icm426xx driver transport
- *  @brief    Low-level Icm426xx register access
- *  @ingroup  DriverIcm426xx
+/** @defgroup Drivericm426xxTransport icm426xx driver transport
+ *  @brief    Low-level icm426xx register access
+ *  @ingroup  Drivericm426xx
  *  @{
  */
 
-/** @file Icm426xxTransport.h
- * Low-level Icm426xx register access
+/** @file icm426xxTransport.h
+ * Low-level icm426xx register access
  */
 
 #ifndef _INV_ICM426XX_TRANSPORT_H_
@@ -95,7 +95,7 @@ struct inv_icm426xx_transport {
  */
 int inv_icm426xx_init_transport(struct inv_icm426xx * s);
 
-/** @brief Reads data from a register on Icm426xx.
+/** @brief Reads data from a register on icm426xx.
  * @param[in] reg    register address to be read
  * @param[in] len    number of byte to be read
  * @param[out] buf   output data from the register
@@ -103,7 +103,7 @@ int inv_icm426xx_init_transport(struct inv_icm426xx * s);
  */
 int inv_icm426xx_read_reg(struct inv_icm426xx * s, uint8_t reg, uint32_t len, uint8_t * buf);
 
-/** @brief Writes data to a register on Icm426xx.
+/** @brief Writes data to a register on icm426xx.
  * @param[in] reg    register address to be written
  * @param[in] len    number of byte to be written
  * @param[in] buf    input data to write

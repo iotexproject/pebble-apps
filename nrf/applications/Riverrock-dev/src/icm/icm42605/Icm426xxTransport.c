@@ -21,8 +21,8 @@
  * ________________________________________________________________________________________________________
  */
  
-#include "icm42605/Icm426xxTransport.h"
-#include "icm42605/Icm426xxDefs.h"
+#include "icm42605/icm426xxTransport.h"
+#include "icm42605/icm426xxDefs.h"
 
 #include "InvError.h"
 

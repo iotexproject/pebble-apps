@@ -1,19 +1,17 @@
-#include <zephyr.h>
-#include <kernel_structs.h>
+#include <zephyr/kernel.h>
+#include <zephyr/kernel_structs.h>
 #include <stdio.h>
 #include <string.h>
-#include <net/cloud.h>
-#include <net/socket.h>
+#include <zephyr/net/socket.h>
 #include <net/nrf_cloud.h>
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 #include "devReg.h"
-#include "ui.h"
 #include "cJSON.h"
 #include "cJSON_os.h"
 #include "ecdsa.h"
 #include "mqtt/mqtt.h"
 #include "display.h"
-#include "watchdog.h"
+#include "watchdog_app.h"
 #include "config.h"
 #include "ver.h"
 
@@ -104,7 +102,6 @@ int SignAndSend(void)
     uint32_t uint_timestamp;
 
     ConfirmPackage confirmAdd = ConfirmPackage_init_zero;
-
     uint_timestamp = getSysTimestamp_s();
     json_buf = malloc(DATA_BUFFER_SIZE);
     if (!json_buf)
@@ -147,7 +144,6 @@ void waitForOtaOver(void) {
 }
 
 void stopTaskBeforeOTA(void) {
-    stopWatchdog();
     stopMqtt();
     stopAnimationWork();
 }
@@ -203,7 +199,7 @@ void mainStatus(struct mqtt_client *client) {
             waitForOtaOver();
             LOG_INF("upgrade over, system reboot\n");
             k_sleep(K_MSEC(500));
-            sys_reboot(0);            
+            sys_reboot(0);
             break;
         case DEV_REG_STOP:
             break;
@@ -225,7 +221,7 @@ int iotexDevBinding(struct pollfd *fds, struct mqtt_client *client) {
         if ((fds->revents & POLLIN) == POLLIN) {
             err = mqtt_input(client);
             if (err != 0) {
-                LOG_ERR("ERROR: mqtt_input %d\n", err);                
+                LOG_ERR("ERROR: mqtt_input %d\n", err);
                 break;
             }
         }

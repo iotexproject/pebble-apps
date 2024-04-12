@@ -3,7 +3,7 @@
 #ifndef __DISPLAY_H__
 #define  __DISPLAY_H__
 
-#include <zephyr.h>
+#include <zephyr/kernel.h>
 
 #ifdef __cplusplus
 extern "C" {

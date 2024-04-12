@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
  */
 
-#include <zephyr.h>
-#include <spinlock.h>
+#include <zephyr/kernel.h>
+#include <zephyr/spinlock.h>
 #include "light_sensor.h"
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(light_sensor, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
@@ -44,15 +44,15 @@ static struct ls_ch_data *ls_data[LS_CH__END] = {
     [LS_CH_IR] = &ls_ch_ir 
 };
 static light_sensor_data_ready_cb ls_cb;
-static struct k_delayed_work ls_poller;
+static struct k_work_delayable ls_poller;
 static struct k_work_q *ls_work_q;
-static u32_t data_send_interval_s = CONFIG_LIGHT_SENSOR_DATA_SEND_INTERVAL;
+static uint32_t data_send_interval_s = CONFIG_LIGHT_SENSOR_DATA_SEND_INTERVAL;
 static bool initialized;
 
 static void light_sensor_poll_fn(struct k_work *work);
 
-static inline int submit_poll_work(const u32_t delay_s) {
-    return k_delayed_work_submit_to_queue(ls_work_q, &ls_poller, K_SECONDS((u32_t)delay_s));
+static inline int submit_poll_work(const uint32_t delay_s) {
+    return k_work_schedule_for_queue(ls_work_q, &ls_poller, K_SECONDS((uint32_t)delay_s));
 }
 
 int light_sensor_init_and_start(struct k_work_q *work_q,const light_sensor_data_ready_cb cb) {
@@ -69,7 +69,7 @@ int light_sensor_init_and_start(struct k_work_q *work_q,const light_sensor_data_
     }
     ls_work_q = work_q;
     ls_cb = cb;
-    k_delayed_work_init(&ls_poller, light_sensor_poll_fn);
+    k_work_init_delayable(&ls_poller, light_sensor_poll_fn);
     initialized = true;
     return (data_send_interval_s > 0) ? submit_poll_work(LS_INIT_DELAY_S) : 0;
 }
@@ -116,7 +116,7 @@ void light_sensor_poll_fn(struct k_work *work) {
     submit_poll_work(data_send_interval_s);
 }
 
-void light_sensor_set_send_interval(const u32_t interval_s) {
+void light_sensor_set_send_interval(const uint32_t interval_s) {
     if (interval_s == data_send_interval_s) {
         return;
     }
@@ -128,10 +128,10 @@ void light_sensor_set_send_interval(const u32_t interval_s) {
         /* restart work for new interval to take effect */
         submit_poll_work(0);
     } else if (k_delayed_work_remaining_get(&ls_poller) > 0) {
-        k_delayed_work_cancel(&ls_poller);
+        k_work_cancel_delayable(&ls_poller);
     }
 }
 
-u32_t light_sensor_get_send_interval(void) {
+uint32_t light_sensor_get_send_interval(void) {
     return data_send_interval_s;
 }

@@ -1,10 +1,9 @@
 #ifndef  _IOTEX_MQTT_H_
 #define  _IOTEX_MQTT_H_
 
-#include <net/mqtt.h>
-#include <net/cloud.h>
-#include <zephyr.h>
-#include <net/socket.h>
+#include <zephyr/net/mqtt.h>
+#include <zephyr/kernel.h>
+#include <zephyr/net/socket.h>
 
 #define DATA_BUFFER_SIZE   500
 

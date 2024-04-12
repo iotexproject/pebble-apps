@@ -1,6 +1,5 @@
 #include <stdio.h>
-#include <net/cloud.h>
-#include <logging/log.h>
+#include <zephyr/logging/log.h>
 #include "cJSON.h"
 #include "cJSON_os.h"
 #include "mqtt.h"
@@ -200,7 +199,6 @@ bool iotex_mqtt_sampling_data_and_store(uint16_t channel) {
     }
 
     /* Pack data to a buffer then store to nvs, unpack with the same sequence when uploaded */
-
     /* Snr */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_SNR)) {
         buffer[write_cnt++] = iotex_model_get_signal_quality();
@@ -759,7 +757,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     char jsStr[130];
     int sinLen;
     float AmbientLight = 0.0;
-    uint32_t uint_timestamp, ntp_timestamp;
+    uint32_t uint_timestamp;
     /* char random[17]; */
     BinPackage binpack = BinPackage_init_zero;
     SensorData sensordat = SensorData_init_zero;
@@ -829,6 +827,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
         sensordat.humidity = (uint32_t)(env_sensor.humidity * 100);
         sensordat.has_humidity = true;
     }
+
     /* Env sensor light */
     if (IOTEX_DATA_CHANNEL_IS_SET(channel, DATA_CHANNEL_LIGHT_SENSOR)) {
         AmbientLight = iotex_Tsl2572ReadAmbientLight();
@@ -891,69 +890,5 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
         return 0;
     }
     LOG_INF("sen->snr:%d\n", sensordat.snr);
-#ifdef DECODE_PROTOBUF
-    /*  --------------------------------- TEST CODE ------------------------ */
-    {
-        sinLen = enc_packstream.bytes_written;
-        /*  decode buffer now */
-        /* Allocate space for the decoded message. */
-        BinPackage message = BinPackage_init_zero;
-        
-        /* Create a stream that reads from the buffer. */
-        pb_istream_t sens_decode_stream = pb_istream_from_buffer(buffer, sinLen);
-        
-        /* Check for errors... */
-        if (!pb_decode(&sens_decode_stream, BinPackage_fields, &message))
-        {
-            LOG_ERR("Decoding failed: %s\n", PB_GET_ERROR(&sens_decode_stream));
-            return 0;
-        }
-
-        SensorData DecodeSensor = SensorData_init_zero;        
-        /* Create a stream that reads from the buffer. */
-        pb_istream_t test_decode_stream = pb_istream_from_buffer(message.data.bytes, message.data.size);
-        
-        /* Check for errors... */
-        if (!pb_decode(&test_decode_stream, SensorData_fields, &DecodeSensor))
-        {
-            LOG_ERR("Decoding failed: %s\n", PB_GET_ERROR(&test_decode_stream));
-            return 0;
-        }
-
-        PrintSensorData(&DecodeSensor,&message);
-    }
-#endif
-
     return enc_packstream.bytes_written;
 }
-#ifdef DECODE_PROTOBUF
-void PrintSensorData(SensorData *sen, BinPackage *pack)
-{
-    LOG_INF("*****************protobuf decode : ************************\n");
-    LOG_INF("sen->snr:%d\n", sen->snr);
-    LOG_INF("snr:%d.%02d vbat:%d.%02d latitude:%d.%07d longitude:%d.%07d \n", sen->snr / 100,sen->snr % 100, \
-    sen->vbat / 100,sen->vbat % 100, (int)sen->latitude / 10000000, ((int)sen->latitude ) % 10000000,\
-    (int)sen->longitude / 10000000, ((int)sen->longitude ) % 10000000);
-
-    LOG_INF("gasResistance:%d.%02d temperature:%d.%02d pressure:%d.%02d humidity:%d.%02d \n", sen->gasResistance / 100, sen->gasResistance % 100,\
-    sen->temperature / 100, sen->temperature % 100, sen->pressure / 100, sen->pressure % 100,\
-    sen->humidity / 100, sen->humidity % 100);
-
-    LOG_INF("light:%d.%02d temperature2:%d.%02d gyroscope:%d,%d,%d \n",sen->light/100,sen->light%100,\
-    sen->temperature2/100,sen->temperature2%100,sen->gyroscope[0],sen->gyroscope[1],sen->gyroscope[2]);
-
-    LOG_INF("accelerometer:%d,%d,%d \n", sen->accelerometer[0],sen->accelerometer[1],sen->accelerometer[2]);
-
-    LOG_INF("timestamp:%d \n", pack->timestamp);
-
-    LOG_INF("randoms: %s\n", sen->random);
-
-    LOG_INF("signature:");
-
-    for (int i = 0; i <64; i++) {
-        printk("%02x", pack->signature[i]);
-    }
-    LOG_INF("\n");
-    LOG_INF("***********************************************************\n");
-}
-#endif

@@ -2,12 +2,12 @@
 #define _IOTEX_ICM42605_H_
 
 #include <stdint.h>
-#include <sys/mutex.h>
+#include <zephyr/sys/mutex.h>
 #include "nvs/local_storage.h"
 
 
 #if(CONFIG_IOTEX_BOARD_VERSION == 3)
-#define I2C_DEV_ICM_CHIP  "I2C_2"
+#define I2C_DEV_ICM_CHIP  "i2c2"
 #endif
 #if(CONFIG_IOTEX_BOARD_VERSION == 2)
 #define I2C_DEV_ICM42605  "I2C_1"
@@ -52,7 +52,7 @@ int iotex_icm_get_sensor_data(iotex_storage_icm *icm42605);
 int  inv_icm_wom_detect(struct inv_imu_device *icm_driver);
 
 
-/* For Icm426xxDriver_HL using */
+/* For icm426xxDriver_HL using */
 void inv_icm426xx_sleep_us(uint32_t us);
 uint64_t inv_icm426xx_get_time_us(void);
 struct inv_icm426xx * getICMDriver(void);
