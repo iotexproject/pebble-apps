@@ -54,10 +54,10 @@ const uint8_t AreaSec[5][2]={
 
 const uint8_t *mqttBrokerHost[5]={
     "a11homvea4zo8t-ats.iot.ap-east-1.amazonaws.com",
-    "a11homvea4zo8t-ats.iot.eu-central-1.amazonaws.com",
-    "a11homvea4zo8t-ats.iot.me-south-1.amazonaws.com",
+//    "a11homvea4zo8t-ats.iot.eu-central-1.amazonaws.com",
+//    "a11homvea4zo8t-ats.iot.me-south-1.amazonaws.com",
     "a11homvea4zo8t-ats.iot.us-east-1.amazonaws.com",
-    "a11homvea4zo8t-ats.iot.sa-east-1.amazonaws.com"
+//    "a11homvea4zo8t-ats.iot.sa-east-1.amazonaws.com"
 };
 
 void pubOnePack(void) {
@@ -207,6 +207,33 @@ bool checkMenuEntry(void)
     return isDownKeyStartupPressed();
 }
 
+static uint8_t cutRedundancy(uint8_t *str, uint8_t next_char, uint8_t cut_char){
+    uint8_t *end = str;
+    uint32_t i;
+    if(cut_char == 0)
+    {
+        for(i = 0; i < 20; i++){
+            if((*end) != next_char)
+                end--;
+            else {
+                *(end+2) = 0;
+                return 0;
+            }
+        }
+    }
+    else
+    {
+        for(i = 0; i < 20; i++){
+            if((*end) != cut_char)
+                end--;
+            else {
+                *end = 0;
+                return 0;
+            }
+        }
+    }
+    return  -1;
+}
 void updateCert(int selArea) {
     uint8_t *pcert = NULL;
     uint8_t *pkey = NULL;
@@ -238,9 +265,11 @@ void updateCert(int selArea) {
         goto out;
     }
 
-    pbuf_cert[strlen(pbuf_cert) - 3] = 0;
-    pbuf_key[strlen(pbuf_key) - 3] = 0;
-    pbuf_root[strlen(pbuf_root) - 3] = 0;     
+        if(cutRedundancy(pbuf_cert+ strlen(pbuf_cert) - 1, '-', 0) || cutRedundancy(pbuf_key + strlen(pbuf_key) - 1, '-', 0) ||
+        cutRedundancy(pbuf_root + strlen(pbuf_root) - 1, '-', 0)){
+            LOG_ERR("cert damaged \n");
+            goto out;
+        }   
     WriteCertIntoModem(pbuf_cert, pbuf_key, pbuf_root);
     pmqttBrokerHost = mqttBrokerHost[selArea];
     itoa(selArea, index, 10);
@@ -262,8 +291,15 @@ void initBrokeHost(void) {
     if (pbuf != NULL) {
         pbuf[1] = 0;
         selArea = atoi(pbuf);
+        if(selArea > 1){
+            selArea = 0;
+            updateCert(selArea);
+            itoa(selArea, buf, 10);
+            buf[1] = 0;
+            WritDataIntoModem(MQTT_CERT_INDEX, buf);
+        } selArea = 0;
         pmqttBrokerHost = mqttBrokerHost[selArea];
-        if(selArea == 3) {
+        if(selArea == 1) {
             pebbleContractNet = PEBBLE_CONTRACT_TEST_NET;
         }
         else {
@@ -412,7 +448,7 @@ void selectArea(void)
         pbuf[1] = 0;
         selArea = atoi(pbuf);
         if(selArea > 1)
-            selArea = 1;
+            selArea = 0;
     }   
     allArea[selArea][15] = 'X';
     for (i = 0; i < (sizeof(allArea) / sizeof(allArea[0])) && i < 4 ; i++) {
