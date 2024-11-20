@@ -2,6 +2,6 @@
 
 Firmware of pebble tracker can be upgraded to pebble device via usb or OTA.
 
-### Riverrock
+### ioID
 
-A pebble application that can be configured separately.
+A Pebble application based on ioID. 
