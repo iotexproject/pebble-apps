@@ -18,8 +18,6 @@
 
 #include "include/utils/cJSON/cJSON.h"
 
-#define IOTEX_PEBBLE_SENSOR_DATA_DISPLAY_ENABLE
-
 LOG_MODULE_REGISTER(payload, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 double latitude;

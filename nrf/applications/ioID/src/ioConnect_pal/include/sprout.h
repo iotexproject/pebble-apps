@@ -7,7 +7,7 @@
 #define IOTEX_SPROUT_COMMUNICATE_TYPE       SPROUT_COMMUNICATE_TYPE_DID
 
 #define IOTEX_SPROUT_HTTP_URL                   "/didDoc"
-#define IOTEX_SPROUT_SERVER_UES_TEST_NET 
+// #define IOTEX_SPROUT_SERVER_UES_TEST_NET 
 #ifdef IOTEX_SPROUT_SERVER_UES_TEST_NET
 #define IOTEX_SPROUT_HTTP_HOST                  "pebble-server.testnet.iotex.io"
 #else

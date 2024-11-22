@@ -47,6 +47,7 @@ static char *_client_id_serialize = NULL;
 static char *_sprout_query = NULL;
 
 static char *_ota_url = NULL;
+static char *_ota_ver = NULL;
 
 static struct addrinfo *res = NULL;
 
@@ -81,6 +82,11 @@ uint32_t iotex_pal_sprout_sensor_data_timestamp_get(void)
 char * iotex_pal_sprout_ota_url_get(void)
 {
     return _ota_url;
+}
+
+char * iotex_pal_sprout_ota_ver_get(void)
+{
+    return _ota_ver;
 }
 
 static void _pal_sprout_ctx_init(void)
@@ -314,8 +320,21 @@ static int _pal_sprout_device_query_handle(char *resp)
         LOG_ERR("Failed to Quary Signature Verigy : %d", status);
         goto exit;
     }
+
+    cJSON *timestamp_item = cJSON_GetObjectItem(device_status, "timestamp");
+    if (NULL == timestamp_item || !cJSON_IsNumber(timestamp_item)) {
+        ret = IOTEX_SPROUT_ERR_DATA_FORMAT;
+        goto exit;
+    }  
+
+    timestamp_utc = timestamp_item->valueint;
+    LOG_INF("Receive Timestamp UTC: %d", timestamp_utc); 
+
+    timestamp_base = (u_int32_t)(k_uptime_get() / 1000);
+    LOG_INF("Receive Timestamp Boot: %d", timestamp_base); 
+
+    _sprout_ctx.status |= IOTEX_PAL_SPROUT_STATUS_REQUEST_TIMESTAMP;    
     
-///////////////////////////////////////////////////////////////////////////////////////////////////////
     cJSON *ota_url_item = cJSON_GetObjectItem(device_status, "uri");
     if (NULL == ota_url_item || !cJSON_IsString(ota_url_item)) {
         ret = IOTEX_SPROUT_ERR_DATA_FORMAT;
@@ -336,19 +355,25 @@ static int _pal_sprout_device_query_handle(char *resp)
 
     LOG_INF("Receive OTA URL : %s", _ota_url); 
 
-    cJSON *timestamp_item = cJSON_GetObjectItem(device_status, "timestamp");
-    if (NULL == timestamp_item || !cJSON_IsNumber(timestamp_item)) {
+    cJSON *ota_ver_item = cJSON_GetObjectItem(device_status, "version");
+    if (NULL == ota_ver_item || !cJSON_IsString(ota_ver_item)) {
         ret = IOTEX_SPROUT_ERR_DATA_FORMAT;
         goto exit;
     }  
 
-    timestamp_utc = timestamp_item->valueint;
-    LOG_INF("Receive Timestamp UTC: %d", timestamp_utc); 
+    if (_ota_ver) {
+        free (_ota_ver);
+    }
 
-    timestamp_base = (u_int32_t)(k_uptime_get() / 1000);
-    LOG_INF("Receive Timestamp Boot: %d", timestamp_base); 
+    _ota_ver = calloc(strlen(ota_ver_item->valuestring) + 1, sizeof(char));
+    if (NULL == _ota_ver) {
+        ret = IOTEX_SPROUT_ERR_INSUFFICIENT_MEMORY;
+        goto exit;
+    }
 
-    _sprout_ctx.status |= IOTEX_PAL_SPROUT_STATUS_REQUEST_TIMESTAMP;
+    strcpy(_ota_ver, ota_ver_item->valuestring); 
+
+    LOG_INF("Receive OTA Ver : %s", _ota_ver); 
 
 exit:
     if (device_status) {

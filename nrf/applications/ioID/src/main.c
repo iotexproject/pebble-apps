@@ -301,8 +301,6 @@ static void bulk_publish_sersor_data(void) {
     }  
 }
 
-#define IOTEX_PEBBLE_SENSOR_DATA_DISPLAY_ENABLE
-
 /*  Upload sensor data regularly */
 static void periodic_publish_sensors_data_ioid(void) {
     
@@ -587,9 +585,6 @@ int iotex_ioconnect_pal_init(JWK* signJWK)
 {
     psa_crypto_init();
     
-    // psa_destroy_key(1);
-    // return 0;
-
     int ret =  iotex_pal_jose_generate_jwk(signJWK);
     char *deviceDID = iotex_pal_jose_device_did_get();
     char *deviceKA_KID = iotex_pal_jose_device_kakid_get();
@@ -661,17 +656,22 @@ void main(void) {
     /*  OTA upgrade  */
     appEntryDetect();
     /*  work queue of the status bar  */
-    k_work_schedule_for_queue(&application_work_q, &animation_work, K_MSEC(10));
-
+    if (!get_ota_process_status()) {
+        k_work_schedule_for_queue(&application_work_q, &animation_work, K_MSEC(10));
+    }
+    
     /*  LTE-M / NB-IOT network attach */
     modem_configure();
     handle_bsdlib_init_ret();
     /*  status bar refresh */
-    // if (!get_ota_process_status()) {
-    //     sta_Refresh();
-    // }
-    
-    // initNTP();
+
+#if 0  
+    if (!get_ota_process_status()) {
+        sta_Refresh();
+    }
+      
+    initNTP();
+#endif
 
     iotex_pal_sprout_didcomm_prepare();
         
@@ -679,23 +679,6 @@ void main(void) {
     
     /*  status bar refresh */
     sta_Refresh();
-
-#if 0
-    char *secret_b64 = "R3QNJihYLjtcaxALSTsKe1cYSX0pS28wZitFVXE4Y2klf2hxVCczYHw2dVg4fXJdSgdCcnM4PgV1aTo9DwYqEw==";
-
-    char secret[64] = {0};
-    size_t outlen;
-    base64_decode(secret_b64, strlen(secret_b64), secret, &outlen);
-
-    printf("Secret [%d]:\n", outlen);
-    for (int i = 0; i < outlen; i++)
-        printf("%02x ", secret[i]);
-    printf("\n");
-
-    psa_key_id_t server_kakey_id = 0; 
-    JWK *server_kaJWK = iotex_jwk_generate_by_secret(secret + 32, 32, JWKTYPE_EC, JWK_SUPPORT_KEY_ALG_P256,
-                                        PSA_KEY_LIFETIME_VOLATILE, PSA_KEY_USAGE_DERIVE, PSA_ALG_ECDH, &server_kakey_id);                                
-#endif
 
     int ret = 0;
 exit:

@@ -560,48 +560,6 @@ JWK* iotex_jwk_generate_by_secret(uint8_t *secret, unsigned int secret_size,
         printf("%02x", exported[i]);
     printf("\n");        
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    psa_key_attributes_t attributes_2 = PSA_KEY_ATTRIBUTES_INIT;
-
-    psa_set_key_usage_flags(&attributes_2, PSA_KEY_USAGE_VERIFY_HASH | PSA_KEY_USAGE_VERIFY_MESSAGE);
-    psa_set_key_algorithm(&attributes_2, PSA_ALG_ECDSA(PSA_ALG_SHA_256));
-    psa_set_key_type(&attributes_2, PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_K1));
-    psa_set_key_lifetime(&attributes_2, PSA_KEY_LIFETIME_VOLATILE);
-    psa_set_key_bits(&attributes_2, 256);     
-
-    unsigned int key_id_test = 0;
-    status = psa_import_key( &attributes_2, exported, 65, &key_id_test );
-    if( status != PSA_SUCCESS ) {
-        printf("[TEST] psa_import_key ret : %d\n", status);
-        goto normal;
-    }
-
-    uint8_t signature[64];
-    size_t  signature_length;
-    status = psa_sign_message(*key_id, PSA_ALG_ECDSA(PSA_ALG_SHA_256), "This is a test", strlen("This is a test"), signature, sizeof(signature), &signature_length);
-    printf("psa_sign_message [%d] %d:\n", signature_length, status);
-    for (int i = 0; i < signature_length; i++) {
-        printf("%02x", signature[i]);
-    }
-    printf("\n");
-
-    status = psa_verify_message(*key_id, PSA_ALG_ECDSA(PSA_ALG_SHA_256), "This is a test", strlen("This is a test"), signature, signature_length);
-    if (PSA_SUCCESS == status)
-        printf("[1] Verify Success\n");
-    else
-        printf("[1] Verify Failed\n");
-
-    status = psa_verify_message(key_id_test, PSA_ALG_ECDSA(PSA_ALG_SHA_256), "This is a test", strlen("This is a test"), signature, signature_length);
-    if (PSA_SUCCESS == status)
-        printf("[2] Verify Success\n");
-    else
-        printf("[2] Verify Failed ret : %d\n", status);         
-        
-normal:
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
     JWK *jwk = malloc(sizeof(JWK));
     if (NULL == jwk)
         return NULL;        

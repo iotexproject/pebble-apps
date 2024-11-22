@@ -146,11 +146,6 @@ int iotex_pal_crypt_init(void)
 
         export_private(pbuf, 128, secret);
 
-        printf("private key :\n");
-        for (int i = 0; i < 32; i++)
-            printf("%02x", secret[i]);
-        printf("\n");
-
         // secret[31] = 0x57;
 
         _signJWK = iotex_jwk_generate_by_secret(secret, sizeof(secret), 
@@ -194,9 +189,8 @@ psa_status_t iotex_pal_crypt_ecdsa_sign(char *input, uint32_t input_length, char
     status = spp_sign(inbuf, len, buf, sinlen);
 #else
 
-#if 0
-    status = psa_sign_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);
-    printf("iotex_pal_crypt_ecdsa_sign sign ret %d\n", status);     
+#if 1
+    status = psa_sign_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);     
 #else
     uint8_t hash[32];
     uint8_t hash_str[64 + 1] = {0};
@@ -218,9 +212,6 @@ psa_status_t iotex_pal_crypt_ecdsa_sign(char *input, uint32_t input_length, char
     printf("iotex_pal_crypt_ecdsa_sign verify ret %d\n", status);     
 #endif
 
-#endif
-
-#if 0
 #endif
 
     return status;
