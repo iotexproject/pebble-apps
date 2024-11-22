@@ -216,6 +216,11 @@ const uint8_t httpNoAppUpgrd_cn[]={
 };
 const uint8_t *httpNoAppUpgrd[]={httpNoAppUpgrd_en,httpNoAppUpgrd_cn, sizeof(httpNoAppUpgrd_cn)};
 
+const uint8_t httpIsTheLast_en[] = "The current version is the latest";
+const uint8_t httpIsTheLast_cn[]={
+};
+const uint8_t *httpIsTheLast[]={httpIsTheLast_en,httpIsTheLast_cn, sizeof(httpIsTheLast_cn)};
+
 
 const uint8_t deviceRegister_en[] = "Please register your Pebble first";
 const uint8_t deviceRegister_cn[] = {

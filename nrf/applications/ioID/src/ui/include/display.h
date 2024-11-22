@@ -57,6 +57,7 @@ extern const uint8_t *htstartReconf[];
 extern const uint8_t *htstartMqtt[];
 extern const uint8_t *htupdateConfig[];
 extern const uint8_t *httpNoAppUpgrd[];
+extern const uint8_t *httpIsTheLast[];
 extern const uint8_t *deviceRegister[];
 extern const uint8_t *getDiddocErr[];
 extern const uint8_t *getTokenErr[]; 

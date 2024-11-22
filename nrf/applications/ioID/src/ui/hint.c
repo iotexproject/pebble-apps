@@ -266,11 +266,11 @@ void updateCert(int selArea) {
         goto out;
     }
 
-        if(cutRedundancy(pbuf_cert+ strlen(pbuf_cert) - 1, '-', 0) || cutRedundancy(pbuf_key + strlen(pbuf_key) - 1, '-', 0) ||
-        cutRedundancy(pbuf_root + strlen(pbuf_root) - 1, '-', 0)){
-            LOG_ERR("cert damaged \n");
-            goto out;
-        }   
+    if(cutRedundancy(pbuf_cert+ strlen(pbuf_cert) - 1, '-', 0) || cutRedundancy(pbuf_key + strlen(pbuf_key) - 1, '-', 0) ||
+    cutRedundancy(pbuf_root + strlen(pbuf_root) - 1, '-', 0)){
+        LOG_ERR("cert damaged \n");
+        goto out;
+    }   
     WriteCertIntoModem(pbuf_cert, pbuf_key, pbuf_root);
     pmqttBrokerHost = mqttBrokerHost[selArea];
     itoa(selArea, index, 10);
@@ -795,12 +795,18 @@ void appEntryOTAProcess()
 #ifdef IOTEX_PEBBLE_OTA_TEST
     uint8_t *ota_test_url = "https://download.iotex.me/app_riverrock_update_ota.bin";
 #else    
-    uint8_t *ota_test_url = iotex_pal_sprout_ota_url_get();
+    char *ota_test_url = iotex_pal_sprout_ota_url_get();
 #endif
     if (NULL == ota_test_url) {
         hintString(httpNoAppUpgrd, HINT_TIME_FOREVER);
         goto exit;
-    }    
+    }
+
+    char *ota_firmware_ver = iotex_pal_sprout_ota_ver_get(); 
+    if (0 == strcmp(ota_firmware_ver, RELEASE_VERSION)) {
+        hintString(httpIsTheLast, HINT_TIME_FOREVER);
+        goto exit;
+    }       
 
     startOTA(ota_test_url);
     waitForOtaOver();
