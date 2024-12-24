@@ -480,11 +480,6 @@ jwk_generater:
     base64url_encode((char *)exported + 1, 32, jwk->Params.ec.x_coordinate, &x_len);
     base64url_encode((char *)exported + 1 + 32, 32, jwk->Params.ec.y_coordinate, &y_len);    
 
-    printf("PuK:\n");
-    for (int i = 0; i < 64; i++)
-        printf("%02x", exported[i]);
-    printf("\n");
-
     jwk->type = JWKTYPE_EC;
     if (JWK_SUPPORT_KEY_ALG_P256 == keyalg) {
         strncpy(jwk->Params.ec.crv, "P-256", strlen("P-256"));
@@ -555,7 +550,7 @@ JWK* iotex_jwk_generate_by_secret(uint8_t *secret, unsigned int secret_size,
     if( status != PSA_SUCCESS )
         return NULL;
 
-    printf("Real PublicKey[%d]:\n", exported_length);
+    printf("PublicKey[%d]:\n", exported_length);
     for (int i = 0; i < exported_length; i++)
         printf("%02x", exported[i]);
     printf("\n");        

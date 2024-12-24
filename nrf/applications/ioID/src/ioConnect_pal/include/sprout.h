@@ -6,13 +6,15 @@
 
 #define IOTEX_SPROUT_COMMUNICATE_TYPE       SPROUT_COMMUNICATE_TYPE_DID
 
-#define IOTEX_SPROUT_HTTP_URL                   "/didDoc"
 // #define IOTEX_SPROUT_SERVER_UES_TEST_NET 
 #ifdef IOTEX_SPROUT_SERVER_UES_TEST_NET
 #define IOTEX_SPROUT_HTTP_HOST                  "pebble-server.testnet.iotex.io"
+#define IOTEX_PEBBLE_IOID_PROJECT_ID            "923"
 #else
 #define IOTEX_SPROUT_HTTP_HOST                  "pebble-server.mainnet.iotex.io"
+#define IOTEX_PEBBLE_IOID_PROJECT_ID            "6"
 #endif
+
 #define IOTEX_SPROUT_HTTP_PORT_STRING           "80"         
 #define IOTEX_SPROUT_HTTP_PORT_DEMICAL          80
 #define IOTEX_SPROUT_HTTPS_PORT_STRING         "443"
@@ -20,6 +22,7 @@
 
 #define IOTEX_SPROUT_HTTP_TIMEOUT               5000
 
+#define IOTEX_SPROUT_HTTP_URL                   "/didDoc"
 #define IOTEX_SPROUT_HTTP_PATH_MESSAGE          "/message"
 #define IOTEX_SPROUT_HTTP_PATH_REQUEST_TOKEN    "/issue_vc"
 #define IOTEX_SPROUT_HTTP_PATH_GET_DIDDOC       "/didDoc"
@@ -27,8 +30,11 @@
 #define IOTEX_SPROUT_HTTP_PATH_DEVICE_QUERY     "/device/query"
 #define IOTEX_SPROUT_HTTP_PATH_SEND_SENSOR_DATA "/device/data"
 #else
-#define IOTEX_SPROUT_HTTP_PATH_DEVICE_QUERY     "/device"
-#define IOTEX_SPROUT_HTTP_PATH_SEND_SENSOR_DATA "/device"
+// #define IOTEX_SPROUT_HTTP_PATH_DEVICE_QUERY     "/device"
+#define IOTEX_SPROUT_HTTP_PATH_DEVICE_QUERY     "/v2/device"
+// #define IOTEX_SPROUT_HTTP_PATH_SEND_SENSOR_DATA "/device"
+#define IOTEX_SPROUT_HTTP_PATH_SEND_SENSOR_DATA "/v2/device"
+// #define IOTEX_SPROUT_HTTP_PATH_SEND_SENSOR_DATA "/task"
 #define IOTEX_SPROUT_HTTP_PATH_GET_PUBLIC_KEY   "/public_key"
 #endif
 #define IOTEX_SPROUT_HTTP_HEADER_HEAD           "Authorization: Bearer "
@@ -50,6 +56,8 @@
 #define IOTEX_PAL_SPROUT_MESSAGE_ID_MAX_SIZE        256
 #define IOTEX_PAL_SPROUT_HTTP_REPLY_BUF_MAX_SIZE    256     // 1024 * 8
 #define IOTEX_PAL_SPROUT_HTTP_HEADER_MAX_SIZE       1024
+
+#define IOTEX_PEBBLE_SENSOR_DATA_BUFFER_SIZE        512
 
 #define IOTEX_SPROUT_ERR_SUCCESS                 0
 #define IOTEX_SPROUT_ERR_BAD_INPUT_PARA         -1

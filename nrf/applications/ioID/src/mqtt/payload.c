@@ -292,7 +292,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
 
     /*  get random number */
     __disable_irq();
-    iotex_pal_crypt_random_generate(sensordat.random);
+    iotex_pal_crypt_random_generate_string(sensordat.random);
     __enable_irq();
     sensordat.random[sizeof(sensordat.random) - 1] = 0;
     sensordat.has_random = true;
@@ -315,7 +315,7 @@ int SensorPackage(uint16_t channel, uint8_t *buffer)
     *(uint32_t*)buffer = BinPackage_PackageType_DATA;
     memcpy(buffer + 4,  binpack.data.bytes, enc_datastream.bytes_written + 4);
 
-    iotex_pal_crypt_ecdsa_sign(buffer, enc_datastream.bytes_written + 8, esdaSign, &sinLen);
+    iotex_pal_crypt_ecdsa_sign(buffer, enc_datastream.bytes_written + 8, esdaSign, &sinLen, false);
 #ifdef IOTEX_PEBBLE_SENSOR_DATA_DISPLAY_ENABLE
     printf("Sign Input [%d] :\n", enc_datastream.bytes_written + 8);
     for (int i = 0; i < enc_datastream.bytes_written + 8; i++) {

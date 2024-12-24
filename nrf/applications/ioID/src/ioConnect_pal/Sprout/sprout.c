@@ -54,7 +54,7 @@ static struct addrinfo *res = NULL;
 typedef struct _pal_sprout_ctx {
 
     uint8_t type;
-    uint8_t *_replyData;
+    uint8_t *_recvData;
     uint8_t err_times;
     uint8_t isRegister;
 
@@ -91,9 +91,9 @@ char * iotex_pal_sprout_ota_ver_get(void)
 
 static void _pal_sprout_ctx_init(void)
 {
-    if (_sprout_ctx._replyData) {
-        free(_sprout_ctx._replyData);
-        _sprout_ctx._replyData = NULL;
+    if (_sprout_ctx._recvData) {
+        free(_sprout_ctx._recvData);
+        _sprout_ctx._recvData = NULL;
     } 
 
     memset(&_sprout_ctx, 0, sizeof(_sprout_ctx));  
@@ -101,9 +101,9 @@ static void _pal_sprout_ctx_init(void)
 
 static void _pal_sprout_ctx_deinit(void)
 {
-    if (_sprout_ctx._replyData) {
-        free(_sprout_ctx._replyData);
-        _sprout_ctx._replyData = NULL;
+    if (_sprout_ctx._recvData) {
+        free(_sprout_ctx._recvData);
+        _sprout_ctx._recvData = NULL;
     }
 
     _sprout_ctx.type      = IOTEX_PAL_SPROUT_CTX_TYPE_INIT;
@@ -448,40 +448,40 @@ exit:
 
 void _pal_sprout_http_response_parse(struct k_work *item)
 {
-    if (NULL == _sprout_ctx._replyData)
+    if (NULL == _sprout_ctx._recvData)
         goto exit;
-
+    
     switch (_sprout_ctx.type) {
         case IOTEX_PAL_SPROUT_CTX_TYPE_SERVER_PUBKEY:
 
-            _pal_sprout_device_request_pubkey_handle(_sprout_ctx._replyData);
+            _pal_sprout_device_request_pubkey_handle(_sprout_ctx._recvData);
 
             break;        
 #if IOTEX_SPROUT_COMMUNICATE_PROTOCOL_USE_DIDCOMM        
         case IOTEX_PAL_SPROUT_CTX_TYPE_SERVER_DIDDOC:
             
-            _pal_sprout_diddoc_handle(_sprout_ctx._replyData);
+            _pal_sprout_diddoc_handle(_sprout_ctx._recvData);
         
             break;
         case IOTEX_PAL_SPROUT_CTX_TYPE_REQUEST_TOKEN:
             
-             _pal_sprout_token_handle(_sprout_ctx._replyData);
+             _pal_sprout_token_handle(_sprout_ctx._recvData);
 
             break;         
         case IOTEX_PAL_SPROUT_CTX_TYPE_SEND_MESSAGE:
             
-            _pal_sprout_send_messge_handle(_sprout_ctx._replyData);
+            _pal_sprout_send_messge_handle(_sprout_ctx._recvData);
 
             break;
         case IOTEX_PAL_SPROUT_CTX_TYPE_QUERY_STATUS:
 
-            _pal_sprout_query_handle(_sprout_ctx._replyData);
+            _pal_sprout_query_handle(_sprout_ctx._recvData);
 
             break;
 #endif            
         case IOTEX_PAL_SPROUT_CTX_TYPE_DEVICE_QUERY:
 
-            _pal_sprout_device_query_handle(_sprout_ctx._replyData);
+            _pal_sprout_device_query_handle(_sprout_ctx._recvData);
 
             break;                                
         default:
@@ -512,40 +512,42 @@ static int _pal_sprout_http_server_connect(void)
     LOG_INF("Looking up %s", IOTEX_SPROUT_HTTP_HOST);
 	int err = getaddrinfo(IOTEX_SPROUT_HTTP_HOST, IOTEX_SPROUT_HTTP_PORT_STRING, &hints, &res);
 	if (err) {
-		LOG_ERR("getaddrinfo() failed, err %d\n", errno);
+		LOG_ERR("getaddrinfo() failed, err %d", errno);
         err = errno;
         goto exit; 
 	}
 
 	inet_ntop(res->ai_family, &((struct sockaddr_in *)(res->ai_addr))->sin_addr, peer_addr, INET_ADDRSTRLEN);
-	LOG_INF("Resolved %s (%s) protocol %d\n", peer_addr, net_family2str(res->ai_family), res->ai_protocol);
+	LOG_INF("Resolved %s (%s) protocol %d", peer_addr, net_family2str(res->ai_family), res->ai_protocol);
 
 setup:
     _sock = socket(res->ai_family, SOCK_STREAM, res->ai_protocol);
 	if (_sock < 0)  {
 		LOG_ERR("Failed to create HTTP socket (%d)", -errno);
         err = errno;
-        goto exit_1;
+        goto exit;
     }
 
 	err = connect(_sock, res->ai_addr, res->ai_addrlen);
 	if (err) {
-		LOG_ERR("connect() failed, err: %d\n", -errno);
+		LOG_ERR("connect() failed, err: %d", -errno);
         err = errno;
-		goto exit_2;
+		goto exit_1;
 	}
 
-    LOG_INF("Connected to %s:%d\n", IOTEX_SPROUT_HTTP_HOST, ntohs(((struct sockaddr_in *)(res->ai_addr))->sin_port));    
+    LOG_INF("Connected to %s:%d", IOTEX_SPROUT_HTTP_HOST, ntohs(((struct sockaddr_in *)(res->ai_addr))->sin_port));    
 
     return 0;
 	
-exit_2:    
+exit_1:    
 	close(_sock);
     _sock = -1;
-exit_1:
-    freeaddrinfo(res);
-    res = NULL;
 exit:
+    if (res) {
+        freeaddrinfo(res);
+        res = NULL;
+    }
+
 	return err;    
 }
 
@@ -612,14 +614,14 @@ int iotex_pal_sprout_init(char *deviceDID, char *deviceKAKID)
         return IOTEX_SPROUT_ERR_INSUFFICIENT_MEMORY;
 
     size_t  signature_length;
-    psa_status_t status = iotex_pal_crypt_ecdsa_sign(_client_id_serialize, strlen(_client_id_serialize), signature, &signature_length);
+    psa_status_t status = iotex_pal_crypt_ecdsa_sign(_client_id_serialize, strlen(_client_id_serialize), signature, &signature_length, false);
     if (PSA_SUCCESS != status) {
         LOG_ERR("Failed to Signature - %d", status);
         return IOTEX_SPROUT_ERR_SIGNATURE_FAIL;
     }
         
     iotex_utils_convert_hex_to_str(signature , signature_length, signature_str + 2);
-
+    
     cJSON_AddStringToObject(client_id, "signature", signature_str);
 
     _sprout_query = cJSON_PrintUnformatted(client_id);
@@ -654,17 +656,17 @@ static int _pal_sprout_http_response_recv(struct http_response *rsp, enum http_f
         goto exit;
     }
 
-    if ((NULL == _sprout_ctx._replyData)) {
-        _sprout_ctx._replyData = calloc(rsp->content_length + 1, 1);
+    if ((NULL == _sprout_ctx._recvData)) {
+        _sprout_ctx._recvData = calloc(rsp->content_length + 1, 1);
     }
 
-    if ((NULL == _sprout_ctx._replyData)) {
+    if ((NULL == _sprout_ctx._recvData)) {
         ret =  IOTEX_SPROUT_ERR_INSUFFICIENT_MEMORY;
         goto exit;
     }
 
     if (rsp->body_found) {
-        memcpy(_sprout_ctx._replyData + rsp->processed - rsp->body_frag_len, rsp->recv_buf + rsp->data_len - rsp->body_frag_len, rsp->body_frag_len);    
+        memcpy(_sprout_ctx._recvData + rsp->processed - rsp->body_frag_len, rsp->recv_buf + rsp->data_len - rsp->body_frag_len, rsp->body_frag_len);    
     }
 
 exit:
@@ -677,8 +679,8 @@ exit:
 
     printf("rsp->recv_buf : \n%s\n", rsp->recv_buf);
 
-    memset(_replyData, 0, sizeof(_replyData));
 #endif
+    memset(_replyData, 0, sizeof(_replyData));
 
     return ret;  
 }
@@ -690,10 +692,10 @@ static void _response_cb(struct http_response *rsp, enum http_final_call final_d
         LOG_ERR("_pal_sprout_http_response_recv ret %d", ret);
         return;
     }
-    
+
 	if (final_data == HTTP_DATA_MORE)
         return;
-
+    
     if (200 == rsp->http_status_code) {
         if (0 == strcmp(user_data, IOTEX_HTTP_USER_DATA_STRING_QUERY)) {
             _sprout_ctx.isRegister = 1;     
@@ -705,8 +707,8 @@ static void _response_cb(struct http_response *rsp, enum http_final_call final_d
     _sprout_ctx.err_times++;
 
     LOG_ERR("Response status : %s", rsp->http_status);
-    if (_sprout_ctx._replyData) {
-        LOG_ERR("Response body : %s", _sprout_ctx._replyData);
+    if (_sprout_ctx._recvData) {
+        LOG_ERR("Response body : %s", _sprout_ctx._recvData);
     }
 
     if (NULL == user_data)
@@ -717,14 +719,14 @@ static void _response_cb(struct http_response *rsp, enum http_final_call final_d
         _sprout_ctx.isRegister = 0; 
     }
 #else
-    if ( (0 != strcmp(user_data, IOTEX_HTTP_USER_DATA_STRING_SEND_MESSAGE)) ) {
-        _sprout_ctx.isRegister = 0; 
-    }
+    // if ( (0 != strcmp(user_data, IOTEX_HTTP_USER_DATA_STRING_SEND_MESSAGE)) ) {
+    //     _sprout_ctx.isRegister = 0; 
+    // }
 #endif
 
     return;        
 #if 0
-    cJSON *device_status =  cJSON_Parse(_sprout_ctx._replyData); 
+    cJSON *device_status =  cJSON_Parse(_sprout_ctx._recvData); 
     if (NULL == device_status)
         return;
 
@@ -891,7 +893,7 @@ int iotex_pal_sprout_send_message(char *message, bool isMessage)
 
     req.method          = HTTP_POST;
     req.url             = IOTEX_SPROUT_HTTP_PATH_SEND_SENSOR_DATA;
-    req.host            = IOTEX_SPROUT_HTTP_HOST;
+    req.host            = IOTEX_SPROUT_HTTP_HOST;           
     req.port            = IOTEX_SPROUT_HTTP_PORT_STRING;
     req.protocol        = "HTTP/1.1";
     req.response        = _response_cb;
@@ -900,6 +902,8 @@ int iotex_pal_sprout_send_message(char *message, bool isMessage)
 
     req.payload         = message;
     req.payload_len     = strlen(message);
+
+    memset(_replyData, 0, sizeof(_replyData));
 
     int ret = http_client_req(_sock, &req, IOTEX_SPROUT_HTTP_TIMEOUT, user_data);        
     if (ret < 0) {
@@ -995,21 +999,24 @@ int iotex_pal_sprout_state_query(void)
 
 static int _pal_sprout_config_upload(void)
 {
-    uint8_t payload[300] = {0};
+    uint8_t payload[128] = {0}, config_data[256] = {0};
     int rc;
-    char *config_data = NULL;
+    // char *config_data = NULL;
+    config_data[0] = '0';
+    config_data[1] = 'x';
 
     rc = packDevConf(payload, sizeof(payload));
     if (rc) {
-        config_data = base64_encode_automatic( payload, rc );
-        if (config_data) {
-            iotex_pal_sprout_didcomm_send_message(config_data, false);
-        }
-        else {
-            LOG_ERR("Failed to Send Config Package");
+        // config_data = base64_encode_automatic( payload, rc );
+        iotex_utils_convert_hex_to_str(payload, rc, config_data + 2);
+        // if (config_data) {
+        iotex_pal_sprout_didcomm_send_message(config_data, false);
+        // }
+        // else {
+            // LOG_ERR("Failed to Send Config Package");
 
-            return IOTEX_SPROUT_ERR_CONFIG_UPLOAD;
-        }
+            // return IOTEX_SPROUT_ERR_CONFIG_UPLOAD;
+        // }
 
         LOG_INF("Success to Send Config Package : %d \n", rc);
     } else {
@@ -1018,8 +1025,8 @@ static int _pal_sprout_config_upload(void)
         return IOTEX_SPROUT_ERR_CONFIG_UPLOAD;
     }
 
-    if (config_data)
-        free (config_data);    
+    // if (config_data)
+    //     free (config_data);    
 
     return IOTEX_SPROUT_ERR_SUCCESS;
 }
@@ -1145,15 +1152,15 @@ int iotex_pal_sprout_didcomm_prepare(void)
     if (ret)
         goto exit;
 #else
-    ret = _pal_sprout_config_upload();        
-    if (ret) {
-        LOG_ERR("_pal_sprout_config_upload err : %d", ret);
-        goto exit;
-    }
-
     ret = _pal_sprout_didcomm_prepare_query_status();
     if (ret) {
         LOG_ERR("iotex_pal_sprout_state_query err : %d", ret);
+        goto exit;
+    }
+
+    ret = _pal_sprout_config_upload();        
+    if (ret) {
+        LOG_ERR("_pal_sprout_config_upload err : %d", ret);
     }
 #endif
 
@@ -1202,9 +1209,22 @@ int iotex_pal_sprout_didcomm_send_message(char *message, bool isMessage)
     return ret;
 }
 #else
+
+#ifdef IOTEX_SPROUT_TEST_SEND_MESSAGE
+static uint32_t now_offset = 0;
+#endif
 int iotex_pal_sprout_didcomm_send_message(char *message, bool isMessage)
 {
     int ret = IOTEX_SPROUT_ERR_SUCCESS;
+
+    uint8_t hash_temp[32]  = {0};
+    uint8_t hash_input[40] = {0}, signature[64] = {0};
+    size_t  hash_size = 0, signature_length = 0;
+
+    char signature_str[64 * 2 + 2 + 1] = {0};
+
+    signature_str[0] = '0';
+    signature_str[1] = 'x';    
 
     if (NULL == message)
         return IOTEX_SPROUT_ERR_BAD_INPUT_PARA;
@@ -1214,34 +1234,87 @@ int iotex_pal_sprout_didcomm_send_message(char *message, bool isMessage)
 
     if (NULL == _deviceDID || NULL == _deviceKAKID)
         return IOTEX_SPROUT_ERR_BAD_STATUS;
-         
-    cJSON * upload_json = cJSON_CreateObject();
-    if (NULL == upload_json)
+
+    uint32_t now = iotex_pal_sprout_sensor_data_timestamp_get();  
+#ifdef IOTEX_SPROUT_TEST_SEND_MESSAGE
+    now = 1733964348 + now_offset++; 
+#endif
+    uint32_t random = 0;
+    iotex_pal_crypt_random_generate(&random, sizeof(random));
+
+    cJSON * payload_json = cJSON_CreateObject();
+    if (NULL == payload_json)
         return IOTEX_SPROUT_ERR_INSUFFICIENT_MEMORY;
 
-    cJSON_AddStringToObject(upload_json, "deviceID", _deviceDID);
-    cJSON_AddStringToObject(upload_json, "payload", message);
+    cJSON_AddStringToObject(payload_json, "data", message);
+    cJSON_AddNumberToObject(payload_json, "timestamp", now);   
 
-    char *upload_json_serialize = cJSON_PrintUnformatted(upload_json);
-    if (NULL == upload_json_serialize) {
+    cJSON * upload_json = cJSON_CreateObject();
+    if (NULL == upload_json) {
         ret = IOTEX_SPROUT_ERR_INSUFFICIENT_MEMORY;
+
+        cJSON_Delete(payload_json);
+
         goto exit;
+    }  
+
+    cJSON_AddNumberToObject(upload_json, "nonce", random);
+    cJSON_AddStringToObject(upload_json, "projectID", IOTEX_PEBBLE_IOID_PROJECT_ID);
+    cJSON_AddItemToObject(upload_json, "payload", payload_json);  
+
+    char * payload_serialize = cJSON_PrintUnformatted(upload_json);
+    if (NULL == payload_serialize) {
+        ret = IOTEX_SPROUT_ERR_INSUFFICIENT_MEMORY;   
+        goto exit_1;
     }
 
-    uint8_t signature[64] = {0};
-    char signature_str[64 * 2 + 2 + 1] = {0};
+    hash_size = iotex_pal_crypt_hash(0, payload_serialize, strlen(payload_serialize), hash_input, sizeof(hash_input));
+    if (32 != hash_size)
+        goto exit_2;  
 
-    signature_str[0] = '0';
-    signature_str[1] = 'x';
+    hash_input[hash_size]     = (uint8_t)(now & 0x000000FF);
+    hash_input[hash_size + 1] = (uint8_t)((now & 0x0000FF00) >> 8);
+    hash_input[hash_size + 2] = (uint8_t)((now & 0x00FF0000) >> 16);
+    hash_input[hash_size + 3] = (uint8_t)((now & 0xFF000000) >> 24);
 
-    size_t  signature_length;
-    psa_status_t status = iotex_pal_crypt_ecdsa_sign(upload_json_serialize, strlen(upload_json_serialize), signature, &signature_length);
+#if IOTEX_SPROUT_TEST_SEND_MESSAGE
+    printf("hash_input :\n");
+    for (int i = 0; i < sizeof(hash_input); i++) {
+        printf("%02x", hash_input[i]);
+    }
+    printf("\n");
+#endif
+
+#if 0
+    hash_size = iotex_pal_crypt_hash(0, hash_input, sizeof(hash_input), hash_temp, sizeof(hash_temp));
+    if (32 != hash_size)
+        goto exit_1;
+
+#if IOTEX_SPROUT_TEST_SEND_MESSAGE
+    printf("hash_temp :\n");
+    for (int i = 0; i < sizeof(hash_temp); i++) {
+        printf("%02x", hash_temp[i]);
+    }
+    printf("\n");
+#endif
+
+    psa_status_t status = iotex_pal_crypt_ecdsa_sign(hash_temp, sizeof(hash_temp), signature, &signature_length, true);
     if (PSA_SUCCESS != status) {
         LOG_ERR("Failed to Signature - %d", status);
         ret = IOTEX_SPROUT_ERR_SIGNATURE_FAIL;
         goto exit_1;
-    }
-        
+    }    
+
+#else
+
+    psa_status_t status = iotex_pal_crypt_ecdsa_sign(hash_input, sizeof(hash_input), signature, &signature_length, false);
+    if (PSA_SUCCESS != status) {
+        LOG_ERR("Failed to Signature - %d", status);
+        ret = IOTEX_SPROUT_ERR_SIGNATURE_FAIL;
+        goto exit_2;
+    }    
+#endif
+
     iotex_utils_convert_hex_to_str(signature , signature_length, signature_str + 2);
 
     cJSON_AddStringToObject(upload_json, "signature", signature_str);
@@ -1256,19 +1329,19 @@ int iotex_pal_sprout_didcomm_send_message(char *message, bool isMessage)
     if (IOTEX_SPROUT_ERR_SUCCESS != ret)
         LOG_ERR("Failed to Send Message to the Server (%d)", ret);
     
-exit_2:   
     if (sprout_message_serialize) {
         free (sprout_message_serialize);
     }  
 
-exit_1:
-    if (upload_json_serialize) {
-        free (upload_json_serialize);  
+exit_2:
+    if (payload_serialize) {
+        free(payload_serialize);
+        payload_serialize = NULL;
     }
-
-exit:    
-    cJSON_Delete(upload_json);
-
+exit_1:
+    if (upload_json)
+        cJSON_Delete(upload_json);
+exit:
     return ret;
 }
 #endif

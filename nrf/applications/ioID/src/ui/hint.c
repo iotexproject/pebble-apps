@@ -61,9 +61,24 @@ const uint8_t *mqttBrokerHost[5]={
 //    "a11homvea4zo8t-ats.iot.sa-east-1.amazonaws.com"
 };
 
+void setPubCount(uint32_t count) {
+    pubCounts = count;
+}
+
+uint32_t getPubCount(void) {
+    return pubCounts;
+}
+
+#if 1
 void pubOnePack(void) {
     pubCounts++;
 }
+#else
+void pubOnePack(void) {
+    if (3 != pubCounts)
+        pubCounts++;
+}
+#endif
 
 void hintInit(void) {
     hintAliveTime = 0;
@@ -189,7 +204,7 @@ void dashBoard(void) {
     strcpy(disBuf, "v"RELEASE_VERSION);
     dis_OnelineText(2, ALIGN_CENTRALIZED, disBuf,DIS_NORMAL);
     /*  packages */
-    strcpy(disBuf, "Package Sent:");
+    strcpy(disBuf, "Package #:");
     sprintf(disBuf + strlen(disBuf), "%d", pubCounts);
     dis_OnelineText(3, ALIGN_LEFT, disBuf,DIS_NORMAL);    
 }
@@ -887,4 +902,3 @@ void ntp_err_show(void)
     dis_OnelineText(2, ALIGN_LEFT, "Please restart",DIS_NORMAL);
     dis_OnelineText(3, ALIGN_LEFT, "",DIS_NORMAL);
 }
-

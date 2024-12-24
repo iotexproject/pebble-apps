@@ -80,7 +80,7 @@ int packDevConf(uint8_t *buffer, uint32_t size) {
     buffer[3] = (uint8_t)BinPackage_PackageType_CONFIG;
     memcpy(buffer + 4, binpack.data.bytes, enc_datastream.bytes_written + 4);
     LOG_INF("enc_datastream.bytes_written+8 :%d \n", enc_datastream.bytes_written + 8);
-    iotex_pal_crypt_ecdsa_sign(buffer, enc_datastream.bytes_written + 8, esdaSign, &sinLen);
+    iotex_pal_crypt_ecdsa_sign(buffer, enc_datastream.bytes_written + 8, esdaSign, &sinLen, false);
     memcpy(binpack.signature, esdaSign, 64);
     binpack.timestamp = uint_timestamp;
     binpack.type = BinPackage_PackageType_CONFIG;

@@ -5,7 +5,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/net/socket.h>
 
-#define DATA_BUFFER_SIZE   500
+#define DATA_BUFFER_SIZE   256
 
 extern atomic_val_t send_data_enable;
 

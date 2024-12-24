@@ -107,6 +107,14 @@ Z_GENERIC_SECTION(.openocd_dbg.5) __attribute__((used)) const  uint8_t AppVersio
 Z_GENERIC_SECTION(.openocd_dbg.5) __attribute__((used)) const  uint8_t AppVersion[]=APP_VERSION_INFO;
 #endif /* CONFIG_IOTEX_BOARD_VERSION == 3 */
 
+#define IOTEX_PEBBLE_SENSOR_DATA_BUFFER_SIZE            512
+
+#define IOTEX_PEBBLE_FEATURE_MODEM_DAMON_ENABLE
+
+#ifdef IOTEX_PEBBLE_FEATURE_MODEM_DAMON_ENABLE
+#define IOTEX_PEBBLE_PUBLISH_SENSOR_DATA_COUNT_CONTINUE
+#endif
+
 /* Stack definition for application workqueue */
 K_THREAD_STACK_DEFINE(application_stack_area,CONFIG_APPLICATION_WORKQUEUE_STACK_SIZE);
 static struct k_work_q application_work_q;
@@ -123,6 +131,9 @@ extern atomic_val_t modemWriteProtect;
 /* Structures for work */
 static struct k_work_delayable send_env_data_work;
 static struct k_work_delayable   animation_work;
+#ifdef IOTEX_PEBBLE_FEATURE_MODEM_DAMON_ENABLE
+static struct k_work_delayable   modem_damon_work;
+#endif
 enum error_type {
     ERROR_CLOUD,
     ERROR_BSD_RECOVERABLE,
@@ -146,6 +157,10 @@ NRF_MODEM_LIB_ON_INIT(pebble_init_hook, on_modem_lib_init, NULL);
 /* Initialized to value different than success (0) */
 static int modem_lib_init_result = -1;
 static int _ioID_send_message_err = 0;
+
+#ifdef IOTEX_PEBBLE_FEATURE_MODEM_DAMON_ENABLE  
+static int modem_damon_inited = 0;
+#endif
 
 static void on_modem_lib_init(int ret, void *ctx)
 {
@@ -305,25 +320,32 @@ static void bulk_publish_sersor_data(void) {
 static void periodic_publish_sensors_data_ioid(void) {
     
     int rc;
-    char *sensor_data = NULL;
+    char sensor_data[IOTEX_PEBBLE_SENSOR_DATA_BUFFER_SIZE] = {0};
 
     uint16_t channel = iotex_mqtt_get_data_channel();
-    LOG_INF("channel : %d \n", channel);
+    LOG_INF("channel : %d", channel);
     
+    memset(mqttPubBuf, 0, sizeof(mqttPubBuf));
+
     if (rc = SensorPackage(channel, mqttPubBuf)) {
         
-        sensor_data = base64_encode_automatic( mqttPubBuf, rc );
+        LOG_INF("SensorPackage Length : %d", rc);
+        sensor_data[0] = '0';
+        sensor_data[1] = 'x';
+        iotex_utils_convert_hex_to_str(mqttPubBuf, rc, sensor_data + 2); 
 #ifdef IOTEX_PEBBLE_SENSOR_DATA_DISPLAY_ENABLE        
         uint8_t mqttPubBuf_str[1024] = {0};
         iotex_utils_convert_hex_to_str(mqttPubBuf, rc, mqttPubBuf_str);
         printf("mqttPubBuf_str : %s\n", mqttPubBuf_str);
 #endif        
-        if (sensor_data && (0 == iotex_pal_sprout_didcomm_send_message(sensor_data, true))) {
+        // if (sensor_data && (0 == iotex_pal_sprout_didcomm_send_message(sensor_data, true))) {
+        if ( 0 == iotex_pal_sprout_didcomm_send_message(sensor_data, true) ) {
             LOG_INF("Success to Send Sensor Package : %d \n", rc);
             
             pubOnePack();
 
             _ioID_send_message_err = 0;
+
         } else {
             _ioID_send_message_err++;
             LOG_ERR("Failed to send Sensor Package : %d", _ioID_send_message_err);
@@ -334,8 +356,8 @@ static void periodic_publish_sensors_data_ioid(void) {
         LOG_ERR("Failed to get Sensor Package : %d", _ioID_send_message_err);
     }
 
-    if (sensor_data)
-        free (sensor_data);
+    // if (sensor_data)
+    //     free (sensor_data);
 }
 
 #if 0
@@ -358,14 +380,86 @@ void animation_work_fn(struct k_work *work) {
     k_work_schedule_for_queue(&application_work_q, &animation_work, K_SECONDS(1));
 }
 
+#ifdef IOTEX_PEBBLE_FEATURE_MODEM_DAMON_ENABLE  
+
+static uint32_t _pubcount_old       = 0;
+static uint32_t _pubcount_unchanged = 0;
+
+void modem_damon_work_fn(struct k_work *work) {
+
+    uint32_t _pubcount_new = getPubCount();
+
+    LOG_INF("Modem Damon PubCount[New] : %d", _pubcount_new);
+    LOG_INF("Modem Damon PubCount[Old] : %d", _pubcount_old);
+
+    if ( 0 == _pubcount_new) {
+        goto exit;
+    }
+
+    if ( 0 == _pubcount_old) {
+        _pubcount_old = _pubcount_new;
+        _pubcount_unchanged = 0;
+
+        goto exit;
+    }
+
+    if ( _pubcount_old == _pubcount_new) {
+        _pubcount_unchanged++;
+    } else {
+        _pubcount_old = _pubcount_new;
+        _pubcount_unchanged = 0;
+    }
+
+    LOG_INF("Modem Damon Unchanged : %d", _pubcount_unchanged);
+
+    if (_pubcount_unchanged > 5) {
+
+#ifdef IOTEX_PEBBLE_PUBLISH_SENSOR_DATA_COUNT_CONTINUE
+        iotex_local_storage_save(SID_PUB_COUNT, &_pubcount_new, 4);
+#endif        
+
+        sys_reboot(0);
+    }
+
+exit:
+    k_work_schedule_for_queue(&application_work_q, &modem_damon_work, K_SECONDS(120));
+}
+#endif
+
 void stopAnimationWork(void) {
     atomic_set(&stopAnimation, 1);
+}
+
+void startAnimationWork(void) {
+    atomic_set(&stopAnimation, 0);
 }
 
 /**@brief Initializes and submits delayed work. */
 static void work_init(void) {
     k_work_init_delayable(&animation_work, animation_work_fn);
+#ifdef IOTEX_PEBBLE_FEATURE_MODEM_DAMON_ENABLE    
+    k_work_init_delayable(&modem_damon_work, modem_damon_work_fn);
+#endif
 }
+
+#ifdef IOTEX_PEBBLE_PUBLISH_SENSOR_DATA_COUNT_CONTINUE
+static void pubSensorDataCountInit(void) {
+
+    uint32_t pubcount = 0;
+
+    int ret = iotex_local_storage_load(SID_PUB_COUNT, &pubcount, 4);
+    if ( -1 == ret)
+        return;
+
+    LOG_INF("Load PubCount %d", pubcount);
+
+    if (pubcount) {
+        setPubCount(pubcount);
+        int temp = 0;
+        iotex_local_storage_save(SID_PUB_COUNT, &temp, 4);
+    }
+}
+#endif
 
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
@@ -519,7 +613,7 @@ int psmWork(void) {
     }
 #endif
 
-    LOG_INF("Upload Sensor Data\n");
+    LOG_INF("Upload Sensor Data");
 #if 0
     uploadSensorData();
     ret = k_sleep(K_MSEC(200));
@@ -552,10 +646,14 @@ int psmWork(void) {
         }
     }
     lte_lc_psm_req(true);
+#if 1    
     if(iotex_mqtt_get_upload_period() > 30)
         ret = k_sleep(K_SECONDS(iotex_mqtt_get_upload_period() - getSatelliteSearchingTime()));
     else
         ret = k_sleep(K_SECONDS(iotex_mqtt_get_upload_period() - 1));
+#else
+    ret = k_sleep(K_SECONDS(5));
+#endif        
     if(ret) {
         if(atomic_get(&keyWaitFlg)){
             LOG_INF("wakeup after psm\n"); 
@@ -595,7 +693,7 @@ int iotex_ioconnect_pal_init(JWK* signJWK)
 }
 
 void main(void) {
-    int err, errCounts = 0;
+    int err, errCounts = 0, errHttpConnect = 0;
 
 	err = nrf_modem_lib_init();
 	if (err < 0) {
@@ -658,6 +756,7 @@ void main(void) {
     /*  work queue of the status bar  */
     if (!get_ota_process_status()) {
         k_work_schedule_for_queue(&application_work_q, &animation_work, K_MSEC(10));
+        k_work_schedule_for_queue(&application_work_q, &modem_damon_work, K_MSEC(30));
     }
     
     /*  LTE-M / NB-IOT network attach */
@@ -673,17 +772,20 @@ void main(void) {
     initNTP();
 #endif
 
-    iotex_pal_sprout_didcomm_prepare();
+    iotex_pal_sprout_didcomm_prepare(); 
         
     appEntryOTAProcess();
     
     /*  status bar refresh */
     sta_Refresh();
 
+#ifdef IOTEX_PEBBLE_PUBLISH_SENSOR_DATA_COUNT_CONTINUE
+    pubSensorDataCountInit();
+#endif
+
     int ret = 0;
 exit:
     while (true) {
-
         ret = iotex_pal_sprout_is_ready_check();
         switch (ret) {
             case IOTEX_PAL_SPROUT_DEVICE_READY_NOT_REGISTER:
@@ -712,10 +814,16 @@ exit:
 
         if (IOTEX_SPROUT_ERR_SUCCESS != iotex_pal_sprout_http_server_connect()) {
             hintString(httpConnectErr, HINT_TIME_FOREVER);
+
             k_sleep(K_MSEC(5000));
+
+            if (++errHttpConnect > 5)
+                break;
 
             continue;
         }
+
+        errHttpConnect = 0;
 
         psmWork();
 
@@ -733,3 +841,4 @@ exit:
     k_sleep(K_MSEC(500));
     sys_reboot(0);
 }
+

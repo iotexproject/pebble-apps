@@ -19,6 +19,7 @@
 #include <psa/crypto_values.h>
 
 #include "ecdsa.h"
+#include "sprout.h"
 #include "nvs/local_storage.h"
 #include "psa/crypto.h"
 
@@ -146,8 +147,9 @@ int iotex_pal_crypt_init(void)
 
         export_private(pbuf, 128, secret);
 
-        // secret[31] = 0x57;
-
+#ifdef IOTEX_SPROUT_SERVER_UES_TEST_NET
+//        secret[31] = 0x5a;
+#endif
         _signJWK = iotex_jwk_generate_by_secret(secret, sizeof(secret), 
                         JWKTYPE_EC, JWK_SUPPORT_KEY_ALG_K256, PSA_KEY_LIFETIME_VOLATILE, 
                         PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_VERIFY_MESSAGE | PSA_KEY_USAGE_VERIFY_HASH | PSA_KEY_USAGE_EXPORT, PSA_ALG_ECDSA(PSA_ALG_SHA_256), &_sign_keyid);    
@@ -175,37 +177,27 @@ char *iotex_pal_crypt_ecdsa_public_key_export(void)
     return NULL;
 }
 
-psa_status_t iotex_pal_crypt_ecdsa_sign(char *input, uint32_t input_length, char *sign, int *sign_length)
+psa_status_t iotex_pal_crypt_ecdsa_sign(char *input, uint32_t input_length, char *sign, int *sign_length, bool isHash)
 {
+    psa_status_t status;
+
     if (NULL == input || NULL == sign || NULL == sign_length)
         return -1;
 
     if (0 == input_length)
         return -1;
 
-    psa_status_t status;
+    if (isHash && (input_length != 32))
+        return -1;
 
 #ifdef IOTEX_PAL_CRYPT_USE_SPP
     status = spp_sign(inbuf, len, buf, sinlen);
 #else
 
-#if 1
-    status = psa_sign_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);     
-#else
-    uint8_t hash[32];
-    uint8_t hash_str[64 + 1] = {0};
-    size_t  hash_size = 0;
-    psa_hash_operation_t operation = PSA_HASH_OPERATION_INIT;
-    
-    psa_hash_setup(&operation, PSA_ALG_SHA_256);
-    psa_hash_update(&operation, input, input_length);
-    psa_hash_finish(&operation, hash, sizeof(hash), &hash_size);
-
-    iotex_utils_convert_hex_to_str(hash , hash_size, hash_str);
-    printf("Sign HASH : %s\n", hash_str);
-
-    status = psa_sign_hash(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), hash, hash_size, sign, 64, sign_length);
-#endif
+    if (isHash)
+        status = psa_sign_hash(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);         
+    else
+        status = psa_sign_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);     
 
 #if 0
     status = psa_verify_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64);
@@ -225,7 +217,7 @@ int safeRandom(void) {
 }
 #endif
 
-psa_status_t iotex_pal_crypt_random_generate(char *out)
+psa_status_t iotex_pal_crypt_random_generate_string(char *out)
 {
     uint8_t random_number_hex[8];
 
@@ -236,3 +228,36 @@ psa_status_t iotex_pal_crypt_random_generate(char *out)
     return status;
 }
 
+psa_status_t iotex_pal_crypt_random_generate(uint8_t *out, size_t out_size)
+{
+    if (NULL == out || 0 == out_size)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    return psa_generate_random(out, out_size);
+}
+
+size_t iotex_pal_crypt_hash(uint32_t type, uint8_t *input, uint32_t input_length, uint8_t *hash_out, uint32_t hash_out_length)
+{
+    (void)type;
+    
+    size_t hash_length  = 0;
+    psa_status_t status =  PSA_SUCCESS;
+
+    if (NULL == input || NULL == hash_out)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    if (0 == input_length)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    if (hash_out_length < 32)
+        return PSA_ERROR_INVALID_ARGUMENT;
+
+    psa_hash_operation_t operation = PSA_HASH_OPERATION_INIT;    
+    psa_hash_setup(&operation, PSA_ALG_SHA_256);
+    psa_hash_update(&operation, input, input_length);
+    status = psa_hash_finish(&operation, hash_out, hash_out_length, &hash_length);    
+    if (PSA_SUCCESS != status)  
+        hash_length = 0;
+
+    return hash_length;
+}
