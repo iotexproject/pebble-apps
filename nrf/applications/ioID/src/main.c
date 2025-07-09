@@ -687,7 +687,9 @@ int iotex_ioconnect_pal_init(JWK* signJWK)
     char *deviceDID = iotex_pal_jose_device_did_get();
     char *deviceKA_KID = iotex_pal_jose_device_kakid_get();
 
-    iotex_pal_sprout_init(deviceDID, deviceKA_KID);
+    char *deviceID = iotex_mqtt_get_client_id();
+
+    iotex_pal_sprout_init(deviceDID, deviceKA_KID, deviceID);
 
     return 0;    
 }

@@ -569,7 +569,7 @@ void iotex_pal_sprout_http_server_disconnect(void)
     _pal_sprout_http_server_disconnect();
 }
 
-int iotex_pal_sprout_init(char *deviceDID, char *deviceKAKID)
+int iotex_pal_sprout_init(char *deviceDID, char *deviceKAKID, char *deviceID)
 {
     if (NULL == deviceDID || NULL == deviceKAKID)
         return IOTEX_SPROUT_ERR_BAD_INPUT_PARA;
@@ -609,6 +609,10 @@ int iotex_pal_sprout_init(char *deviceDID, char *deviceKAKID)
     signature_str[1] = 'x';
 
     cJSON_AddStringToObject(client_id, "deviceID", _deviceDID);
+
+    if (deviceID)
+        cJSON_AddStringToObject(client_id, "deviceIMEI", deviceID);
+
     _client_id_serialize = cJSON_PrintUnformatted(client_id);
     if (NULL == _client_id_serialize)
         return IOTEX_SPROUT_ERR_INSUFFICIENT_MEMORY;

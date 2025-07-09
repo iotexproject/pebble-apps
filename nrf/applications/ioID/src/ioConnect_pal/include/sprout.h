@@ -109,7 +109,7 @@
 #define IOTEX_PAL_SPROUT_STATUS_VALID_TO_SEND_MESSAGE   (IOTEX_PAL_SPROUT_STATUS_GET_DIDDOC_OF_SERVER | IOTEX_PAL_SPROUT_STATUS_REQUEST_TOKEN)
 
 
-int iotex_pal_sprout_init(char *deviceDID, char *deviceKAKID);
+int iotex_pal_sprout_init(char *deviceDID, char *deviceKAKID, char *deviceID);
 int iotex_pal_sprout_loop(void);
 int iotex_pal_sprout_http_server_connect(void);
 int iotex_pal_sprout_server_request_token(void);
