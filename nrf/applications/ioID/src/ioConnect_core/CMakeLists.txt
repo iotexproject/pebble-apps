@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 if(ESP_PLATFORM)
 	string(REPLACE "\\" "/" ESP_IDF_PATH $ENV{IDF_PATH})
-	idf_component_register(SRCS "src/DeviceConnect_Core.cpp"
+	idf_component_register(SRCS "src/ioConnect_core.cpp"
 							"src/crypto/aes_decrypt.c"
 							"src/crypto/aes_encrypt.c"
 							"src/crypto/cbc_mode.c"

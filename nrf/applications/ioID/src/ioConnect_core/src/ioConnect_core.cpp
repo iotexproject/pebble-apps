@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "DeviceConnect_Core.h"
+#include "ioConnect_core.h"
 
 psa_key_id_t g_sdkcore_key = 1;
 static uint8_t exported[PSA_KEY_EXPORT_ECC_PUBLIC_KEY_MAX_SIZE(256) + 1];
@@ -115,6 +115,10 @@ int iotex_device_connect_mqtt_pub(unsigned char *topic, unsigned char *buf, unsi
 
 void iotex_ioconnect_core_init(void)
 {
-    psa_crypto_init();   
+    psa_crypto_init(); 
+
+#ifdef CONFIG_PSA_SECP256K1_LOWER_S_ENABLE       
+    iotex_utils_secp256k1_eth_lower_s_init();
+#endif      
 }  
 
