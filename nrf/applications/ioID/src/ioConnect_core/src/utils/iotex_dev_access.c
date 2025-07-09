@@ -16,7 +16,11 @@
 #include "include/hal/nvs/nvs_common.h"
 #endif
 
-#include "DeviceConnect_Core.h"
+#include "ioConnect_core.h"
+
+#ifdef CONFIG_PSA_SECP256K1_LOWER_S_ENABLE
+#include "include/utils/LowerS/LowerS.h"
+#endif
 
 #define USER_WALLET_ADDR_LEN_MAX 			200
 #define DEFAULT_TIME_STAMP_UNIX_VALUE      	1701284562
@@ -448,7 +452,9 @@ int iotex_dev_access_dev_register_confirm(int8_t mac[6]) {
     raw_data[upload.payload.pConfirm.owner.size + 3] = (char)(timestamp & 0x000000FF);	
 
 	psa_sign_message( g_sdkcore_key, PSA_ALG_ECDSA(PSA_ALG_SHA_256), (const uint8_t *)(raw_data), upload.payload.pConfirm.owner.size + 4, (uint8_t *)sign_buf, 64, (size_t *)&sign_len);
-	LowsCalc(sign_buf + 32, sign_buf + 32);
+#ifdef CONFIG_PSA_SECP256K1_LOWER_S_ENABLE	
+	iotex_utils_secp256k1_eth_lower_s_calc(sign_buf + 32, sign_buf + 32);
+#endif	
 	
 	upload.payload.pConfirm.timestamp = timestamp;
 

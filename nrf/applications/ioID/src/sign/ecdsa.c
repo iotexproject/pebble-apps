@@ -24,6 +24,7 @@
 #include "psa/crypto.h"
 
 #include "include/utils/convert/convert.h"
+#include "ioConnect_core.h"
 
 LOG_MODULE_REGISTER(ecdsa, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
@@ -128,14 +129,15 @@ int iotex_pal_crypt_init(void)
 #endif
 {
     uint8_t *pbuf;
-    uint32_t ret = 0;
     char buf[MODEM_READ_BUF_SIZE] = {0};
 
 #ifdef IOTEX_PAL_CRYPT_USE_IOID    
     JWK* _signJWK = NULL;
+#else
+    uint32_t ret = 0;
 #endif
 
-    psa_crypto_init();
+    iotex_ioconnect_core_init();
 
     pbuf = ReadDataFromModem(ECC_KEY_SEC, buf, MODEM_READ_BUF_SIZE);
     if (pbuf) {
@@ -197,7 +199,11 @@ psa_status_t iotex_pal_crypt_ecdsa_sign(char *input, uint32_t input_length, char
     if (isHash)
         status = psa_sign_hash(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);         
     else
-        status = psa_sign_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);     
+        status = psa_sign_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64, sign_length);
+
+#ifdef CONFIG_PSA_SECP256K1_LOWER_S_ENABLE       
+    iotex_utils_secp256k1_eth_lower_s_calc(sign + 32, sign + 32);
+#endif                
 
 #if 0
     status = psa_verify_message(_sign_keyid, PSA_ALG_ECDSA(PSA_ALG_SHA_256), input, input_length, sign, 64);
