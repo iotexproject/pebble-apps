@@ -10,7 +10,7 @@
 
 #define  IOTEX_APP_NAME  "Riverrock"
 
-#define  RELEASE_VERSION    "2.1.0"
+#define  RELEASE_VERSION    "2.1.1"
 
 /*  application version */
 #define IOTEX_APP_VERSION IOTEX_APP_NAME" "RELEASE_VERSION
